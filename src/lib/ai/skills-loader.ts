@@ -22,17 +22,15 @@ export function loadSkillPrompt(
   let cached = SKILL_CACHE.get(skillName);
 
   if (!cached) {
-    const possiblePaths = [
-      path.resolve(process.cwd(), "skills", skillName, "SKILL.md"),
-      path.resolve(process.cwd(), "src", "skills", skillName, "SKILL.md"),
-      path.join(__dirname, "..", "..", "..", "skills", skillName, "SKILL.md"),
-    ];
-
+    const filePath = path.join(process.cwd(), "skills", skillName, "SKILL.md");
     let fileContent = "";
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        fileContent = fs.readFileSync(p, "utf-8");
-        break;
+
+    if (fs.existsSync(filePath)) {
+      fileContent = fs.readFileSync(filePath, "utf-8");
+    } else {
+      const fallbackPath = path.resolve(process.cwd(), "src", "skills", skillName, "SKILL.md");
+      if (fs.existsSync(fallbackPath)) {
+        fileContent = fs.readFileSync(fallbackPath, "utf-8");
       }
     }
 

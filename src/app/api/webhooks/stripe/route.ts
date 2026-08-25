@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/integrations/stripe/client";
 import { createAdminClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
@@ -88,7 +90,6 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        // Ignore unhandled events
         break;
     }
   } catch (dbErr) {
