@@ -1,7 +1,7 @@
-import { toggleVehicleTrackingStatusAction, deleteVehicleAction } from "@/app/actions/vehicles";
+import { toggleVehicleTrackingStatusAction, deleteVehicleAction, getVehicleDetailsAction } from "@/app/actions/vehicles";
 
 export async function testVehicleLifecycleManagement() {
-  console.log("▶ [TEST] Gestion du Cycle de Vie Véhicule (Suspension & Suppression)...");
+  console.log("▶ [TEST] Gestion du Cycle de Vie Véhicule & Routage Immatriculation...");
 
   if (typeof toggleVehicleTrackingStatusAction !== "function") {
     throw new Error("toggleVehicleTrackingStatusAction n'est pas définie.");
@@ -39,4 +39,14 @@ export async function testVehicleLifecycleManagement() {
     throw new Error("Les échéances d'un véhicule suspendu ne doivent pas polluer les alertes actives du foyer.");
   }
   console.log("  ✔ Exclusion stricte des alertes et du calendrier pour les véhicules au statut 'suspendu' validée.");
+
+  // Validation du routage par immatriculation propre / slug
+  const testCases = ["EC-301-JX", "ec-301-jx", "EC301JX", "FX-563-KZ", "GP-902-NY", "7253 XX 76", "7253-XX-76"];
+  for (const slug of testCases) {
+    const res = await getVehicleDetailsAction(slug);
+    if (!res || !res.vehicle) {
+      throw new Error(`Échec de la résolution du véhicule pour l'immatriculation / slug : ${slug}`);
+    }
+  }
+  console.log("  ✔ Résolution robuste des URLs d'immatriculation (avec tirets, minuscules, espaces, sans tirets) validée.");
 }

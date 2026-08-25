@@ -36,7 +36,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     // Safe fallback when cookies are unavailable
   }
 
-  const defaultFoyer: any = {
+  const defaultFoyer: Foyer = {
     id: DEFAULT_FOYER_ID,
     nom: `Foyer ${userName}`,
     description: "Flotte automobile familiale LaVigieAuto",
@@ -52,7 +52,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     updated_at: new Date().toISOString(),
   };
 
-  const defaultMembers: any[] = [
+  const defaultMembers: FoyerMember[] = [
     {
       id: "mem-1",
       foyer_id: DEFAULT_FOYER_ID,
@@ -65,6 +65,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         google_calendar_connected: true,
       },
       created_at: "2026-08-20T10:00:00Z",
+      updated_at: "2026-08-20T10:00:00Z",
     },
   ];
 
@@ -75,10 +76,10 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
   // Fast resolution: default result ready immediately in 0ms
   const fallbackResult: FoyerOverviewResult = {
-    foyer: defaultFoyer as Foyer,
+    foyer: defaultFoyer,
     role: "owner",
-    vehicles: DEFAULT_VEHICLES_SEED as EnrichedVehicle[],
-    members: defaultMembers as FoyerMember[],
+    vehicles: DEFAULT_VEHICLES_SEED,
+    members: defaultMembers,
   };
 
   try {

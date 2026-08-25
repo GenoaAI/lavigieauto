@@ -2,7 +2,7 @@ import { EnrichedVehicle } from "@/app/actions/vehicles";
 
 export const DEFAULT_FOYER_ID = "11111111-1111-1111-1111-111111111111";
 
-export const DEFAULT_VEHICLES_SEED: any[] = [
+export const DEFAULT_VEHICLES_SEED: EnrichedVehicle[] = [
   {
     id: "33333333-3333-3333-3333-333333333333",
     foyer_id: DEFAULT_FOYER_ID,

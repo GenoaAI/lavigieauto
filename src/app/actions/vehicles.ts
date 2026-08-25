@@ -9,6 +9,7 @@ import { calculateVehicleTireAssessment, VehicleTireAssessment } from "@/lib/eng
 import { fetchOnlineManufacturerPlan, OfficialMaintenancePlan } from "@/lib/engine/manufacturer-retriever";
 import {
   Vehicule,
+  VehiculeStatut,
   DocumentSource,
   LigneIntervention,
   DefaillanceCT,
@@ -20,12 +21,19 @@ import {
 import { revalidatePath } from "next/cache";
 import { getFoyerOverviewAction } from "@/app/actions/foyer";
 
-export interface EnrichedVehicle extends Vehicule {
-  documents_sources?: DocumentSource[];
-  lignes_interventions?: LigneIntervention[];
-  defaillances_ct?: DefaillanceCT[];
-  echeances_previsionnelles?: EcheancePrevisionnelle[];
-  audits_conformite?: AuditConformite[];
+export interface EnrichedVehicle extends Partial<Vehicule> {
+  id: string;
+  foyer_id: string;
+  immatriculation: string;
+  marque: string;
+  modele: string;
+  kilometrage_actuel: number;
+  statut: VehiculeStatut;
+  documents_sources?: Partial<DocumentSource>[];
+  lignes_interventions?: Partial<LigneIntervention>[];
+  defaillances_ct?: Partial<DefaillanceCT>[];
+  echeances_previsionnelles?: Partial<EcheancePrevisionnelle>[];
+  audits_conformite?: Partial<AuditConformite>[];
 }
 
 export interface VehicleDetailsActionResult {
@@ -148,7 +156,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
       const ocr = (d.ocr_structured_data || {}) as any;
       const defs = vehicle.defaillances_ct || [];
       return {
-        id: d.id,
+        id: d.id || "doc-ct",
         inspectionDate: d.date_document || "2026-08-20",
         mileage: d.kilometrage_document || vehicle.kilometrage_actuel || 0,
         result: (ocr.resultat_global === "A" || ocr.inspectionResult?.status === "FAVORABLE") ? "FAVORABLE" : "FAVORABLE",
@@ -162,13 +170,13 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     vehicleFirstRegistration: regDate,
     currentMileage: vehicle.kilometrage_actuel || 0,
     maintenanceHistory: (vehicle.lignes_interventions || []).map((l) => ({
-      id: l.id,
+      id: l.id || "int-1",
       category: (l.categorie || "OTHER") as any,
       title: l.description || l.operation || "Intervention",
       performedDate: l.date_intervention || new Date().toISOString(),
       mileage: l.kilometrage_intervention || 0,
       totalCostTTC: Number(l.prix_total_ttc) || 0,
-      garageName: l.emetteur || "Garage Professionnel",
+      garageName: (l as any).emetteur || "Garage Professionnel",
       invoiceUrl: l.document_source_id ? `vault://${l.document_source_id}` : "vault://doc",
     })),
     ctHistory,

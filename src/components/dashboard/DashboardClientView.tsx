@@ -36,11 +36,14 @@ import {
 } from "lucide-react";
 
 import { DEFAULT_VEHICLES_SEED } from "@/config/foyer.seed";
+import { Foyer, FoyerMember } from "@/lib/types/database.types";
+import { EnrichedVehicle } from "@/app/actions/vehicles";
+import { ReservationKit } from "@/lib/engine/reservation-kit";
 
 interface DashboardClientViewProps {
-  initialFoyer: any;
-  initialVehicles: any[];
-  initialMembers: any[];
+  initialFoyer: Foyer | null;
+  initialVehicles: EnrichedVehicle[];
+  initialMembers: FoyerMember[];
 }
 
 export function DashboardClientView({
@@ -50,16 +53,16 @@ export function DashboardClientView({
 }: DashboardClientViewProps) {
   const [uiMode, setUiMode] = useUiViewMode();
   const [loading, setLoading] = useState(false);
-  const [foyerData, setFoyerData] = useState<any>(initialFoyer || { nom: "Foyer Charles de Forges" });
-  const [vehicles, setVehicles] = useState<any[]>(
+  const [foyerData, setFoyerData] = useState<Foyer | null>(initialFoyer);
+  const [vehicles, setVehicles] = useState<EnrichedVehicle[]>(
     initialVehicles && initialVehicles.length > 0 ? initialVehicles : DEFAULT_VEHICLES_SEED
   );
-  const [members, setMembers] = useState<any[]>(initialMembers || []);
+  const [members, setMembers] = useState<FoyerMember[]>(initialMembers || []);
   const [isKitOpen, setIsKitOpen] = useState(false);
-  const [selectedVehicleKit, setSelectedVehicleKit] = useState<any | null>(null);
+  const [selectedVehicleKit, setSelectedVehicleKit] = useState<ReservationKit | null>(null);
   const [loadingKitId, setLoadingKitId] = useState<string | null>(null);
   const [actionMenuVehicleId, setActionMenuVehicleId] = useState<string | null>(null);
-  const [vehicleToDelete, setVehicleToDelete] = useState<any | null>(null);
+  const [vehicleToDelete, setVehicleToDelete] = useState<EnrichedVehicle | null>(null);
   const [statusLoadingId, setStatusLoadingId] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -128,17 +131,16 @@ export function DashboardClientView({
         {
           title: nextEcheance?.libelle || "Révision périodique constructeur",
           estimatedBudgetEur: nextEcheance?.cout_estime_max || 180,
-          isRecommended: true,
-          urgency: "HIGH",
+          priority: "HAUTE",
         },
       ],
-      estimatedCostRange: {
+      popularizedDefects: [],
+      totalEstimatedBudget: {
         minEur: nextEcheance?.cout_estime_min || 140,
         maxEur: nextEcheance?.cout_estime_max || 220,
       },
-      negotiationChecklist: {
-        beforeCalling: ["Relever le kilométrage exact au tableau de bord", "Avoir la Carte Grise à portée de main"],
-        duringCall: ["Demander le détail pièces et main d'œuvre", "Refuser les forfaits non préconisés par le constructeur"],
+      consumerChecklist: {
+        beforeLeavingCar: ["Relever le kilométrage exact au tableau de bord", "Avoir la Carte Grise à portée de main", "Demander le détail pièces et main d'œuvre"],
         whenPickingUpCar: ["Vérifier le tampon sur le carnet d'entretien", "Prendre en photo la facture détaillée pour LaVigieAuto"],
       },
     });
@@ -420,9 +422,9 @@ export function DashboardClientView({
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                      {v.metadata?.image_url || v.image_url ? (
+                      {(v.metadata as any)?.image_url || (v as any).image_url ? (
                         <img
-                          src={v.metadata?.image_url || v.image_url}
+                          src={(v.metadata as any)?.image_url || (v as any).image_url}
                           alt={`${v.marque} ${v.modele}`}
                           className="w-full h-full object-cover"
                         />

@@ -16,10 +16,13 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 
+import { Foyer, FoyerMember } from "@/lib/types/database.types";
+import { EnrichedVehicle } from "@/app/actions/vehicles";
+
 interface DashboardSidebarProps {
-  foyer: any;
-  vehicles: any[];
-  members: any[];
+  foyer: Foyer | null;
+  vehicles: EnrichedVehicle[];
+  members: FoyerMember[];
 }
 
 export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarProps) {

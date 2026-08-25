@@ -126,9 +126,13 @@ export type TypeEcheance =
   | 'filtre_carburant'
   | 'batterie'
   | 'assurance'
+  | 'freinage'
+  | 'admission'
+  | 'allumage'
+  | 'distribution'
   | 'autre';
 
-export type CriticiteEcheance = 'faible' | 'moyenne' | 'elevee' | 'critique';
+export type CriticiteEcheance = 'faible' | 'moyenne' | 'haute' | 'elevee' | 'critique';
 
 export type StatutEcheance = 'a_venir' | 'en_retard' | 'effectue' | 'ignore';
 
@@ -136,6 +140,7 @@ export type SourceRecommandation =
   | 'constructeur'
   | 'ia_prevision'
   | 'ct'
+  | 'reglementaire'
   | 'utilisateur';
 
 export interface Database {
@@ -146,6 +151,7 @@ export interface Database {
           id: string;
           nom: string;
           description: string | null;
+          metadata?: Json;
           created_at: string;
           updated_at: string;
         };
@@ -153,6 +159,7 @@ export interface Database {
           id?: string;
           nom: string;
           description?: string | null;
+          metadata?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -160,6 +167,7 @@ export interface Database {
           id?: string;
           nom?: string;
           description?: string | null;
+          metadata?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -172,6 +180,7 @@ export interface Database {
           foyer_id: string;
           user_id: string;
           role: FoyerRole;
+          metadata?: Json;
           created_at: string;
           updated_at: string;
         };
@@ -180,6 +189,7 @@ export interface Database {
           foyer_id: string;
           user_id: string;
           role?: FoyerRole;
+          metadata?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -188,6 +198,7 @@ export interface Database {
           foyer_id?: string;
           user_id?: string;
           role?: FoyerRole;
+          metadata?: Json;
           created_at?: string;
           updated_at?: string;
         };

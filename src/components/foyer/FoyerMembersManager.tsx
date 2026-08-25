@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import { Users, UserPlus, Mail, ShieldCheck, Car } from "lucide-react";
 import type { FoyerMember, Vehicule } from "@/lib/types/database.types";
+import type { EnrichedVehicle } from "@/app/actions/vehicles";
 
 interface FoyerMembersManagerProps {
   members: FoyerMember[];
-  vehicles: Vehicule[];
+  vehicles: (Vehicule | EnrichedVehicle)[];
 }
 
 export function FoyerMembersManager({ members, vehicles }: FoyerMembersManagerProps) {
