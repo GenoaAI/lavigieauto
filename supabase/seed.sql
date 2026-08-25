@@ -1,22 +1,22 @@
 -- ============================================================================
--- AutoCare AI — Seed de Données pour le compte : charlesdeforges@gmail.com
+-- AutoCare AI (LaVigieAuto) — Seed SQL Officiel : charlesdeforges@gmail.com
 -- ============================================================================
 
--- 1. Sécurité : S'assurer que la colonne metadata existe dans foyers
+-- 1. S'assurer que la colonne metadata existe dans foyers
 ALTER TABLE public.foyers ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::JSONB;
 
 DO $$
 DECLARE
     v_user_id UUID;
     v_foyer_id UUID := '11111111-1111-1111-1111-111111111111';
-    v_vehicule_1_id UUID := '22222222-2222-2222-2222-222222222222';
-    v_vehicule_2_id UUID := '33333333-3333-3333-3333-333333333333';
-    v_doc_1_id UUID := '44444444-4444-4444-4444-444444444444';
+    v_vitara_id UUID := '33333333-3333-3333-3333-333333333333';
+    v_espace_id UUID := '22222222-2222-2222-2222-222222222222';
+    v_clio_id UUID := '13e1a1d1-34c0-45a1-90cc-bc2dd7927e20';
+    v_jeep_id UUID := '66666666-6666-6666-6666-666666666666';
 BEGIN
-    -- 2. Récupérer l'ID utilisateur si existant dans auth.users
+    -- 2. Récupérer l'ID utilisateur
     SELECT id INTO v_user_id FROM auth.users WHERE email = 'charlesdeforges@gmail.com' LIMIT 1;
 
-    -- Si l'utilisateur n'a pas encore créé son compte, on le pré-enregistre dans auth.users
     IF v_user_id IS NULL THEN
         v_user_id := '00000000-0000-0000-0000-000000000001';
         INSERT INTO auth.users (
@@ -29,165 +29,97 @@ BEGIN
             'authenticated',
             'authenticated',
             'charlesdeforges@gmail.com',
-            crypt('AutoCare2026!', gen_salt('bf')),
+            crypt('LaVigieAuto2026!', gen_salt('bf')),
             NOW(),
             '{"provider":"email","providers":["email"]}'::JSONB,
-            '{"full_name":"Charles Deforges"}'::JSONB,
+            '{"full_name":"Charles de Forges"}'::JSONB,
             NOW(),
             NOW()
         )
         ON CONFLICT (id) DO NOTHING;
     END IF;
 
-    -- 3. Création du Foyer "Foyer Charles Deforges"
+    -- 3. Foyer
     INSERT INTO public.foyers (id, nom, description, metadata)
     VALUES (
         v_foyer_id,
-        'Foyer Charles Deforges',
-        'Compte principal AutoCare Foyer Multi-Véhicules',
-        '{"stripe_subscription_status": "active", "plan": "foyer_2_vehicules", "calendar_synced": true}'::JSONB
+        'Foyer Charles de Forges',
+        'Flotte automobile familiale LaVigieAuto',
+        '{"stripe_subscription_status": "active", "plan": "foyer_multi_vehicules", "calendar_synced": true, "user_email": "charlesdeforges@gmail.com"}'::JSONB
     )
     ON CONFLICT (id) DO UPDATE SET
         nom = EXCLUDED.nom,
         metadata = EXCLUDED.metadata;
 
-    -- 4. Association du Membre Propriétaire (si présent dans auth.users)
+    -- 4. Membre
     IF EXISTS (SELECT 1 FROM auth.users WHERE id = v_user_id) THEN
         INSERT INTO public.foyer_members (foyer_id, user_id, role)
         VALUES (v_foyer_id, v_user_id, 'owner')
         ON CONFLICT (foyer_id, user_id) DO NOTHING;
     END IF;
 
-    -- 5. Véhicule 1 : Peugeot 3008 (Véhicule principal)
+    -- 5. Véhicule 1 : Suzuki Vitara (125 789 km - En retard)
     INSERT INTO public.vehicules (
         id, foyer_id, immatriculation, vin, marque, modele, version,
         annee_mise_en_circulation, date_premiere_immatriculation, kilometrage_actuel,
-        date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut
+        date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut, metadata
     )
     VALUES (
-        v_vehicule_1_id,
-        v_foyer_id,
-        'XX-123-YY',
-        'VF3MCXXXXXXXXXX',
-        'Peugeot',
-        '3008',
-        '1.2 PureTech 130ch Allure EAT8',
-        2021,
-        '2021-04-12',
-        58400,
-        CURRENT_DATE,
-        'essence',
-        'automatique',
-        'quotidien',
-        14200,
-        'actif'
+        v_vitara_id, v_foyer_id, 'EC-301-JX', 'TSMAYA21S00123456', 'Suzuki', 'Vitara',
+        '1.6 VVT 120ch AllGrip Pack', 2016, '2016-06-15', 125789, '2026-08-25',
+        'essence', 'manuelle', 'quotidien', 15000, 'actif',
+        '{"image_url": "/images/vehicles/suzuki-vitara-2016.jpg", "tracking_status": "actif"}'::JSONB
     )
     ON CONFLICT (id) DO UPDATE SET
         kilometrage_actuel = EXCLUDED.kilometrage_actuel,
-        statut = EXCLUDED.statut;
+        metadata = EXCLUDED.metadata;
 
-    -- 6. Véhicule 2 : Renault Clio V (Second véhicule du foyer)
+    -- 6. Véhicule 2 : Renault Espace V (272 448 km)
     INSERT INTO public.vehicules (
         id, foyer_id, immatriculation, vin, marque, modele, version,
         annee_mise_en_circulation, date_premiere_immatriculation, kilometrage_actuel,
-        date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut
+        date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut, metadata
     )
     VALUES (
-        v_vehicule_2_id,
-        v_foyer_id,
-        'AB-789-CD',
-        'VF1RXXXXXXXXXXX',
-        'Renault',
-        'Clio V',
-        'TCe 90 Intens',
-        2022,
-        '2022-11-20',
-        34200,
-        CURRENT_DATE,
-        'essence',
-        'manuelle',
-        'secondaire',
-        11000,
-        'actif'
+        v_espace_id, v_foyer_id, 'FX-563-KZ', 'VF1RFC00865912345', 'Renault', 'Espace V',
+        'Initiale Paris 1.8 TCe 225 EDC', 2021, '2021-04-12', 272448, '2026-08-25',
+        'essence', 'automatique', 'quotidien', 15000, 'actif',
+        '{"image_url": "/images/vehicles/renault-espace-noir-etoile-2021.jpg", "tracking_status": "actif"}'::JSONB
     )
     ON CONFLICT (id) DO UPDATE SET
         kilometrage_actuel = EXCLUDED.kilometrage_actuel,
-        statut = EXCLUDED.statut;
+        metadata = EXCLUDED.metadata;
 
-    -- 7. Document Source & Facture Révision Passée (Peugeot 3008)
-    INSERT INTO public.documents_sources (
-        id, foyer_id, vehicule_id, nom_fichier, storage_path, file_type,
-        date_document, kilometrage_document, emetteur, montant_ttc, statut_ocr
+    -- 7. Véhicule 3 : Renault Clio III (160 000 km)
+    INSERT INTO public.vehicules (
+        id, foyer_id, immatriculation, vin, marque, modele, version,
+        annee_mise_en_circulation, date_premiere_immatriculation, kilometrage_actuel,
+        date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut, metadata
     )
     VALUES (
-        v_doc_1_id,
-        v_foyer_id,
-        v_vehicule_1_id,
-        'facture_revision_45000.pdf',
-        'factures/peugeot_3008_45k.pdf',
-        'facture',
-        '2025-09-14',
-        45200,
-        'Garage Peugeot des Lilas',
-        310.50,
-        'traite'
+        v_clio_id, v_foyer_id, 'GP-902-NY', 'VF1BR1B0H12345678', 'Renault', 'Clio III',
+        '1.4 16V 98ch Dynamique', 2007, '2007-09-17', 160000, '2026-08-24',
+        'essence', 'manuelle', 'secondaire', 9000, 'actif',
+        '{"image_url": "/images/vehicles/renault-clio-2007.jpg", "tracking_status": "actif"}'::JSONB
     )
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO UPDATE SET
+        kilometrage_actuel = EXCLUDED.kilometrage_actuel,
+        metadata = EXCLUDED.metadata;
 
-    -- 8. Lignes d'intervention associées
-    INSERT INTO public.lignes_interventions (
-        foyer_id, vehicule_id, document_source_id, date_intervention, kilometrage_intervention,
-        categorie, operation, description, prix_total_ttc
-    )
-    VALUES
-        (v_foyer_id, v_vehicule_1_id, v_doc_1_id, '2025-09-14', 45200, 'revision_generale', 'Forfait Révision', 'Forfait Révision Constructeur 45 000 km', 180.00),
-        (v_foyer_id, v_vehicule_1_id, v_doc_1_id, '2025-09-14', 45200, 'moteur', 'Vidange & filtre', 'Vidange huile synthèse 5W30 PSA B71 2297 & filtre', 85.50),
-        (v_foyer_id, v_vehicule_1_id, v_doc_1_id, '2025-09-14', 45200, 'freinage', 'Purge frein', 'Purge & remplacement liquide de frein DOT4', 45.00)
-    ON CONFLICT DO NOTHING;
-
-    -- 9. Prochaine Échéance Prévisionnelle (Alerte J-26 dans Google Calendar)
-    INSERT INTO public.echeances_previsionnelles (
-        foyer_id, vehicule_id, type_echeance, libelle, description,
-        date_preconisee, km_preconise, date_limite, km_limite, statut, criticite,
-        cout_estime_min, cout_estime_max, source_recommandation
+    -- 8. Véhicule 4 : Jeep CJ (89 000 km)
+    INSERT INTO public.vehicules (
+        id, foyer_id, immatriculation, vin, marque, modele, version,
+        annee_mise_en_circulation, date_premiere_immatriculation, kilometrage_actuel,
+        date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut, metadata
     )
     VALUES (
-        v_foyer_id,
-        v_vehicule_1_id,
-        'revision',
-        'Révision des 60 000 km (Geste 1 & 2)',
-        'Vidange huile 5W30, bougies d''allumage, filtre à air et contrôle circuit de freinage.',
-        CURRENT_DATE + INTERVAL '26 days',
-        60000,
-        CURRENT_DATE + INTERVAL '45 days',
-        62000,
-        'a_venir',
-        'moyenne',
-        240.00,
-        310.00,
-        'constructeur'
+        v_jeep_id, v_foyer_id, '7253 XX 76', '1JCCC87A0CT123456', 'Jeep', 'CJ',
+        'CE 17 Classic 4.2L 6L', 1982, '1982-05-10', 89000, '2026-08-25',
+        'essence', 'manuelle', 'collection', 2500, 'actif',
+        '{"image_url": "/images/vehicles/jeep-cj.jpg", "tracking_status": "actif"}'::JSONB
     )
-    ON CONFLICT DO NOTHING;
-
-    -- 10. Audit & Score de Conformité Certifié (94% - Grade A+)
-    INSERT INTO public.audits_conformite (
-        foyer_id, vehicule_id, score_sante, statut_ct_conforme,
-        historique_complet, alertes_actives, resume_synthetique,
-        recommandations, anomalies_detectees, date_audit, audit_par
-    )
-    VALUES (
-        v_foyer_id,
-        v_vehicule_1_id,
-        94,
-        TRUE,
-        TRUE,
-        0,
-        'Suivi Constructeur Exemplaire (Grade A+). Véhicule valorisé de +8% à la revente.',
-        '["Prévoir la révision des 60 000 km", "Vérifier le carnet tamponné lors du prochain passage atelier"]'::JSONB,
-        '[]'::JSONB,
-        NOW(),
-        'ia_vigie'
-    )
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (id) DO UPDATE SET
+        kilometrage_actuel = EXCLUDED.kilometrage_actuel,
+        metadata = EXCLUDED.metadata;
 
 END $$;
