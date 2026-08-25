@@ -94,11 +94,22 @@ export async function signOutAction(): Promise<void> {
     await supabase.auth.signOut();
 
     const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    for (const c of allCookies) {
+      if (
+        c.name.startsWith("gcal_") ||
+        c.name.startsWith("tracking_status_") ||
+        c.name.startsWith("sb-")
+      ) {
+        cookieStore.delete(c.name);
+      }
+    }
     cookieStore.delete("gcal_access_token");
     cookieStore.delete("gcal_refresh_token");
     cookieStore.delete("gcal_calendar_id");
     cookieStore.delete("gcal_user_email");
     cookieStore.delete("gcal_user_name");
+    cookieStore.delete("gcal_user_picture");
     cookieStore.delete("gcal_synced_vehicles");
   } catch (err) {
     console.warn("Erreur signOutAction:", err);

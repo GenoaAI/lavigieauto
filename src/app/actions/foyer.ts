@@ -1,6 +1,6 @@
 "use server";
 
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Foyer, FoyerMember } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "./vehicles";
 import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED } from "@/config/foyer.seed";
@@ -13,21 +13,15 @@ export interface FoyerOverviewResult {
   members: FoyerMember[];
 }
 
-// Global In-Memory Fast Cache
-let memoryCacheResult: FoyerOverviewResult | null = null;
-let lastCacheTimestamp = 0;
-const CACHE_TTL_MS = 30000; // 30 seconds
-
 export async function invalidateFoyerCache(): Promise<void> {
-  memoryCacheResult = null;
-  lastCacheTimestamp = 0;
+  // Invalidation sans état global partagé
 }
 
 export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
-  const now = Date.now();
-  let userEmail = "charlesdeforges@gmail.com";
-  let userName = "Charles de Forges";
+  let userEmail = "";
+  let userName = "";
   let userPicture: string | undefined = undefined;
+  let userId = "";
   let cookieStore: any = null;
 
   try {
@@ -35,45 +29,29 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     const cEmail = cookieStore.get("gcal_user_email")?.value;
     const cName = cookieStore.get("gcal_user_name")?.value;
     const cPic = cookieStore.get("gcal_user_picture")?.value;
-    if (cEmail) userEmail = cEmail;
-    if (cName) userName = cName;
-    if (cPic) userPicture = cPic;
+    if (cEmail) userEmail = cEmail.trim();
+    if (cName) userName = cName.trim();
+    if (cPic) userPicture = cPic.trim();
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      userId = user.id;
+      if (user.email) userEmail = user.email.trim();
+      if (user.user_metadata?.full_name) userName = user.user_metadata.full_name;
+      if (user.user_metadata?.avatar_url) userPicture = user.user_metadata.avatar_url;
+    }
   } catch {
-    // Safe fallback when cookies are unavailable
+    // Safe fallback
   }
 
-  const defaultFoyer: Foyer = {
-    id: DEFAULT_FOYER_ID,
-    nom: `Foyer ${userName}`,
-    description: "Flotte automobile familiale LaVigieAuto",
-    metadata: {
-      user_email: userEmail,
-      owner_name: userName,
-      picture: userPicture,
-      stripe_subscription_status: "active",
-      plan: "foyer_multi_vehicules",
-      calendar_synced: true,
-    },
-    created_at: "2026-08-20T10:00:00Z",
-    updated_at: new Date().toISOString(),
-  };
+  // Par défaut, si aucun utilisateur connecté, on utilise le compte principal de démonstration
+  if (!userEmail) {
+    userEmail = "charlesdeforges@gmail.com";
+    userName = "Charles de Forges";
+  }
 
-  const defaultMembers: FoyerMember[] = [
-    {
-      id: "mem-1",
-      foyer_id: DEFAULT_FOYER_ID,
-      user_id: "user-charles-1",
-      role: "owner",
-      metadata: {
-        name: userName,
-        email: userEmail,
-        picture: userPicture,
-        google_calendar_connected: true,
-      },
-      created_at: "2026-08-20T10:00:00Z",
-      updated_at: "2026-08-20T10:00:00Z",
-    },
-  ];
+  const isCharlesDeForges = userEmail.toLowerCase() === "charlesdeforges@gmail.com";
 
   function applyTrackingOverrides(vehs: EnrichedVehicle[]): EnrichedVehicle[] {
     if (!cookieStore || !vehs) return vehs;
@@ -98,63 +76,179 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     });
   }
 
-  // Return from in-memory cache if fresh (< 30s)
-  if (memoryCacheResult && now - lastCacheTimestamp < CACHE_TTL_MS) {
-    return {
-      ...memoryCacheResult,
-      vehicles: applyTrackingOverrides(memoryCacheResult.vehicles),
+  // 1. CAS DU FOYER PRINCIPAL CHARLES DE FORGES
+  if (isCharlesDeForges) {
+    const defaultFoyer: Foyer = {
+      id: DEFAULT_FOYER_ID,
+      nom: `Foyer ${userName || "Charles de Forges"}`,
+      description: "Flotte automobile familiale LaVigieAuto",
+      metadata: {
+        user_email: userEmail,
+        owner_name: userName || "Charles de Forges",
+        picture: userPicture,
+        stripe_subscription_status: "active",
+        plan: "foyer_multi_vehicules",
+        calendar_synced: true,
+      },
+      created_at: "2026-08-20T10:00:00Z",
+      updated_at: new Date().toISOString(),
     };
+
+    const defaultMembers: FoyerMember[] = [
+      {
+        id: "mem-1",
+        foyer_id: DEFAULT_FOYER_ID,
+        user_id: userId || "user-charles-1",
+        role: "owner",
+        metadata: {
+          name: userName || "Charles de Forges",
+          email: userEmail,
+          picture: userPicture,
+          google_calendar_connected: true,
+        },
+        created_at: "2026-08-20T10:00:00Z",
+        updated_at: "2026-08-20T10:00:00Z",
+      },
+    ];
+
+    try {
+      const adminSupabase = createAdminClient();
+      const dbQueryPromise = Promise.all([
+        (adminSupabase as any)
+          .from("foyers")
+          .select("*")
+          .eq("id", DEFAULT_FOYER_ID)
+          .maybeSingle(),
+        (adminSupabase as any)
+          .from("vehicules")
+          .select(`
+            *,
+            documents_sources (*),
+            lignes_interventions (*),
+            defaillances_ct (*),
+            echeances_previsionnelles (*),
+            audits_conformite (*)
+          `)
+          .eq("foyer_id", DEFAULT_FOYER_ID)
+          .order("created_at", { ascending: true }),
+      ]);
+
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 600));
+      const raceResult: any = await Promise.race([dbQueryPromise, timeoutPromise]);
+
+      if (raceResult && Array.isArray(raceResult)) {
+        const [foyerRes, vehRes] = raceResult;
+        if (!vehRes.error && vehRes.data && vehRes.data.length > 0) {
+          return {
+            foyer: (foyerRes?.data || defaultFoyer) as Foyer,
+            role: "owner",
+            vehicles: applyTrackingOverrides(vehRes.data as EnrichedVehicle[]),
+            members: defaultMembers,
+          };
+        }
+      }
+
+      return {
+        foyer: defaultFoyer,
+        role: "owner",
+        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
+        members: defaultMembers,
+      };
+    } catch {
+      return {
+        foyer: defaultFoyer,
+        role: "owner",
+        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
+        members: defaultMembers,
+      };
+    }
   }
 
-  // Fast resolution: default result ready immediately in 0ms
-  const fallbackResult: FoyerOverviewResult = {
-    foyer: defaultFoyer,
-    role: "owner",
-    vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
-    members: defaultMembers,
+  // 2. CAS D'UN NOUVEL UTILISATEUR DISTINCT (EX: caldf.web@gmail.com) -> RÈGLE STRICTE ZÉRO FAKE DATA
+  const userFoyerNom = `Foyer ${userName || userEmail.split("@")[0]}`;
+  const customFoyerId = `foyer-${userId || userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`;
+
+  const customFoyer: Foyer = {
+    id: customFoyerId,
+    nom: userFoyerNom,
+    description: `Espace automobile personnel de ${userName || userEmail}`,
+    metadata: {
+      user_email: userEmail,
+      owner_name: userName || userEmail.split("@")[0],
+      picture: userPicture,
+      stripe_subscription_status: "trialing",
+      plan: "foyer_multi_vehicules",
+      calendar_synced: Boolean(cookieStore?.get("gcal_access_token")?.value),
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
+
+  const customMembers: FoyerMember[] = [
+    {
+      id: `mem-${userId || userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`,
+      foyer_id: customFoyerId,
+      user_id: userId || `user-${userEmail}`,
+      role: "owner",
+      metadata: {
+        name: userName || userEmail.split("@")[0],
+        email: userEmail,
+        picture: userPicture,
+        google_calendar_connected: Boolean(cookieStore?.get("gcal_access_token")?.value),
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ];
 
   try {
     const adminSupabase = createAdminClient();
+    const { data: allFoyers } = await (adminSupabase as any)
+      .from("foyers")
+      .select("*");
 
-    // Query DB with a 600ms fast timeout to prevent Vercel slow cold-starts
-    const dbQueryPromise = Promise.all([
-      (adminSupabase as any).from("foyers").select("*").limit(1).maybeSingle(),
-      (adminSupabase as any).from("vehicules").select(`
-        *,
-        documents_sources (*),
-        lignes_interventions (*),
-        defaillances_ct (*),
-        echeances_previsionnelles (*),
-        audits_conformite (*)
-      `).order("created_at", { ascending: true }),
-    ]);
+    const matchedFoyer = (allFoyers || []).find(
+      (f: any) =>
+        (f.metadata as any)?.user_email?.toLowerCase() === userEmail.toLowerCase() ||
+        f.id === customFoyerId
+    );
 
-    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 600));
+    if (matchedFoyer) {
+      const { data: vehList } = await (adminSupabase as any)
+        .from("vehicules")
+        .select(`
+          *,
+          documents_sources (*),
+          lignes_interventions (*),
+          defaillances_ct (*),
+          echeances_previsionnelles (*),
+          audits_conformite (*)
+        `)
+        .eq("foyer_id", matchedFoyer.id)
+        .order("created_at", { ascending: true });
 
-    const raceResult: any = await Promise.race([dbQueryPromise, timeoutPromise]);
-
-    if (raceResult && Array.isArray(raceResult)) {
-      const [foyerRes, vehRes] = raceResult;
-      if (!vehRes.error && vehRes.data && vehRes.data.length > 0) {
-        const liveResult: FoyerOverviewResult = {
-          foyer: (foyerRes.data || defaultFoyer) as Foyer,
-          role: "owner",
-          vehicles: applyTrackingOverrides(vehRes.data as EnrichedVehicle[]),
-          members: defaultMembers as FoyerMember[],
-        };
-        memoryCacheResult = liveResult;
-        lastCacheTimestamp = now;
-        return liveResult;
-      }
+      return {
+        foyer: matchedFoyer as Foyer,
+        role: "owner",
+        vehicles: applyTrackingOverrides((vehList || []) as EnrichedVehicle[]),
+        members: customMembers,
+      };
     }
 
-    memoryCacheResult = fallbackResult;
-    lastCacheTimestamp = now;
-    return fallbackResult;
+    // Aucun véhicule enregistré pour ce nouvel utilisateur -> STRICTEMENT []
+    return {
+      foyer: customFoyer,
+      role: "owner",
+      vehicles: [],
+      members: customMembers,
+    };
   } catch {
-    memoryCacheResult = fallbackResult;
-    lastCacheTimestamp = now;
-    return fallbackResult;
+    // En cas d'erreur de connexion base, état vide authentique (Zéro Fake Data)
+    return {
+      foyer: customFoyer,
+      role: "owner",
+      vehicles: [],
+      members: customMembers,
+    };
   }
 }

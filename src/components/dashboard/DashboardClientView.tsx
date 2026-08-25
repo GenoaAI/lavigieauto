@@ -54,9 +54,7 @@ export function DashboardClientView({
   const [uiMode, setUiMode] = useUiViewMode();
   const [loading, setLoading] = useState(false);
   const [foyerData, setFoyerData] = useState<Foyer | null>(initialFoyer);
-  const [vehicles, setVehicles] = useState<EnrichedVehicle[]>(
-    initialVehicles && initialVehicles.length > 0 ? initialVehicles : DEFAULT_VEHICLES_SEED
-  );
+  const [vehicles, setVehicles] = useState<EnrichedVehicle[]>(initialVehicles || []);
   const [members, setMembers] = useState<FoyerMember[]>(initialMembers || []);
   const [isKitOpen, setIsKitOpen] = useState(false);
   const [selectedVehicleKit, setSelectedVehicleKit] = useState<ReservationKit | null>(null);
@@ -338,218 +336,232 @@ export function DashboardClientView({
           <span className="text-xs text-slate-500 font-medium">Surveillance multi-véhicules active</span>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vehicles.map((v) => {
-            const vehicleMilestones = v.echeances_previsionnelles || [];
-            const overdueList = vehicleMilestones.filter((ech: any) =>
-              ech.statut === "en_retard" ||
-              (ech.date_preconisee && new Date(ech.date_preconisee).getTime() <= new Date().getTime()) ||
-              (v.kilometrage_actuel > 0 && ech.km_preconise && ech.km_preconise <= v.kilometrage_actuel)
-            );
+        {vehicles.length === 0 ? (
+          <div className="bg-white rounded-3xl p-8 sm:p-12 border border-dashed border-slate-300 text-center space-y-4 shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-inner">
+              <Car className="w-8 h-8" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1.5">
+              <h3 className="text-lg font-bold text-slate-900">Aucun véhicule pour le moment</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Votre foyer ne contient aucun véhicule enregistré. Déposez ou scannez votre première Carte Grise ou Facture ci-dessous pour activer l'intelligence artificielle et configurer votre flotte en 2 gestes simples !
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {vehicles.map((v) => {
+              const vehicleMilestones = v.echeances_previsionnelles || [];
+              const overdueList = vehicleMilestones.filter((ech: any) =>
+                ech.statut === "en_retard" ||
+                (ech.date_preconisee && new Date(ech.date_preconisee).getTime() <= new Date().getTime()) ||
+                (v.kilometrage_actuel > 0 && ech.km_preconise && ech.km_preconise <= v.kilometrage_actuel)
+              );
 
-            const hasOverdue = overdueList.length > 0;
-            const nextEcheance = overdueList[0] || vehicleMilestones[0] || {
-              libelle: "Entretien périodique constructeur",
-              date_preconisee: "À planifier",
-              cout_estime_max: 200,
-            };
+              const hasOverdue = overdueList.length > 0;
+              const nextEcheance = overdueList[0] || vehicleMilestones[0] || {
+                libelle: "Entretien périodique constructeur",
+                date_preconisee: "À planifier",
+                cout_estime_max: 200,
+              };
 
-            const hasMileage = v.kilometrage_actuel && v.kilometrage_actuel > 0;
-            const annualPace = v.immatriculation?.includes("301")
-              ? "11 926 km/an"
-              : v.immatriculation?.includes("563")
-              ? "13 500 km/an"
-              : hasMileage
-              ? `${(v.km_annuel_moyen || 12000).toLocaleString("fr-FR")} km/an`
-              : "En attente";
+              const hasMileage = v.kilometrage_actuel && v.kilometrage_actuel > 0;
+              const annualPace = v.immatriculation?.includes("301")
+                ? "11 926 km/an"
+                : v.immatriculation?.includes("563")
+                ? "13 500 km/an"
+                : hasMileage
+                ? `${(v.km_annuel_moyen || 12000).toLocaleString("fr-FR")} km/an`
+                : "En attente";
 
-            const isSuspended = isVehicleTrackingSuspended(v);
-            const isMenuOpen = actionMenuVehicleId === v.id;
-            const isStatusLoading = statusLoadingId === v.id;
+              const isSuspended = isVehicleTrackingSuspended(v);
+              const isMenuOpen = actionMenuVehicleId === v.id;
+              const isStatusLoading = statusLoadingId === v.id;
 
-            const scoreSante = isSuspended ? null : hasOverdue ? 70 : hasMileage ? 98 : null;
+              const scoreSante = isSuspended ? null : hasOverdue ? 70 : hasMileage ? 98 : null;
 
-            return (
-              <div
-                key={v.id}
-                className={`bg-white rounded-3xl p-6 border shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-6 relative group ${
-                  isSuspended
-                    ? "opacity-60 border-dashed border-slate-300 bg-slate-50/70"
-                    : hasOverdue
-                    ? "border-rose-300 ring-1 ring-rose-300/40"
-                    : "border-slate-200/80"
-                }`}
-              >
-                {/* MENU D'ACTIONS DU VÉHICULE */}
-                <div className="absolute top-4 right-4 z-20">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActionMenuVehicleId(isMenuOpen ? null : v.id);
-                      }}
-                      className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
-                      aria-label="Options du véhicule"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-
-                    {isMenuOpen && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 mt-1 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-30 animate-in fade-in zoom-in-95 space-y-1 text-xs"
+              return (
+                <div
+                  key={v.id}
+                  className={`bg-white rounded-3xl p-6 border shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-6 relative group ${
+                    isSuspended
+                      ? "opacity-60 border-dashed border-slate-300 bg-slate-50/70"
+                      : hasOverdue
+                      ? "border-rose-300 ring-1 ring-rose-300/40"
+                      : "border-slate-200/80"
+                  }`}
+                >
+                  {/* MENU D'ACTIONS DU VÉHICULE */}
+                  <div className="absolute top-4 right-4 z-20">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActionMenuVehicleId(isMenuOpen ? null : v.id);
+                        }}
+                        className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+                        aria-label="Options du véhicule"
                       >
-                        <button
-                          type="button"
-                          disabled={isStatusLoading}
-                          onClick={() => handleToggleTracking(v.id, v.statut)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left font-medium hover:bg-slate-50 transition text-slate-700"
-                        >
-                          {isSuspended ? (
-                            <>
-                              <PlayCircle className="w-4 h-4 text-emerald-600" />
-                              <span>Reprendre le suivi</span>
-                            </>
-                          ) : (
-                            <>
-                              <PauseCircle className="w-4 h-4 text-amber-600" />
-                              <span>Suspendre le suivi</span>
-                            </>
-                          )}
-                        </button>
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActionMenuVehicleId(null);
-                            setVehicleToDelete(v);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left font-bold hover:bg-rose-50 transition text-rose-600"
+                      {isMenuOpen && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-0 mt-1 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-30 animate-in fade-in zoom-in-95 space-y-1 text-xs"
                         >
-                          <Trash2 className="w-4 h-4 text-rose-500" />
-                          <span>Supprimer le véhicule</span>
-                        </button>
+                          <button
+                            type="button"
+                            disabled={isStatusLoading}
+                            onClick={() => handleToggleTracking(v.id, v.statut)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left font-medium hover:bg-slate-50 transition text-slate-700"
+                          >
+                            {isSuspended ? (
+                              <>
+                                <PlayCircle className="w-4 h-4 text-emerald-600" />
+                                <span>Reprendre le suivi</span>
+                              </>
+                            ) : (
+                              <>
+                                <PauseCircle className="w-4 h-4 text-amber-600" />
+                                <span>Suspendre le suivi</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActionMenuVehicleId(null);
+                              setVehicleToDelete(v);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left font-bold hover:bg-rose-50 transition text-rose-600"
+                          >
+                            <Trash2 className="w-4 h-4 text-rose-500" />
+                            <span>Supprimer le véhicule</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                        {(v.metadata as any)?.image_url || (v as any).image_url ? (
+                          <img
+                            src={(v.metadata as any)?.image_url || (v as any).image_url}
+                            alt={`${v.marque} ${v.modele}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <Car className="w-8 h-8" />
+                          </div>
+                        )}
+                        {isSuspended && (
+                          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center">
+                            <PauseCircle className="w-6 h-6 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1 pr-6">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-bold text-slate-900 leading-tight">
+                            {v.marque} {v.modele}
+                          </h3>
+                        </div>
+                        <p className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block">
+                          {v.immatriculation}
+                        </p>
+                        {isSuspended ? (
+                          <span className="inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                            Suivi suspendu
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* STATS RAPIDES VÉHICULE */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
+                      <div className="p-2.5 bg-slate-50 rounded-xl space-y-0.5">
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Kilométrage
+                        </span>
+                        <span className="font-bold text-slate-800">
+                          {hasMileage ? `${v.kilometrage_actuel.toLocaleString("fr-FR")} km` : "À renseigner"}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 bg-slate-50 rounded-xl space-y-0.5">
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3" /> Rythme annuel
+                        </span>
+                        <span className="font-bold text-slate-800">{annualPace}</span>
+                      </div>
+                    </div>
+
+                    {/* PROCHAINE ÉCHÉANCE DU VÉHICULE */}
+                    {!isSuspended && (
+                      <div
+                        className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                          hasOverdue
+                            ? "bg-rose-50 border-rose-200 text-rose-900"
+                            : "bg-blue-50/60 border-blue-100 text-slate-800"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="flex items-center gap-1">
+                            {hasOverdue ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            ) : (
+                              <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            )}
+                            {hasOverdue ? "Intervention en retard" : "Prochaine visite"}
+                          </span>
+                          <span className="text-[11px] font-mono">
+                            {nextEcheance.date_preconisee ? nextEcheance.date_preconisee : "À planifier"}
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] font-medium leading-tight">
+                          {nextEcheance.libelle || "Révision générale constructeur"}
+                        </p>
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                      {(v.metadata as any)?.image_url || (v as any).image_url ? (
-                        <img
-                          src={(v.metadata as any)?.image_url || (v as any).image_url}
-                          alt={`${v.marque} ${v.modele}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400">
-                          <Car className="w-8 h-8" />
-                        </div>
-                      )}
-                      {isSuspended && (
-                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center">
-                          <PauseCircle className="w-6 h-6 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1 pr-6">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-slate-900 leading-tight">
-                          {v.marque} {v.modele}
-                        </h3>
-                      </div>
-                      <p className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block">
-                        {v.immatriculation}
-                      </p>
-                      {isSuspended ? (
-                        <span className="inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                          Suivi suspendu
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* STATS RAPIDES VÉHICULE */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                    <div className="p-2.5 bg-slate-50 rounded-xl space-y-0.5">
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Kilométrage
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        {hasMileage ? `${v.kilometrage_actuel.toLocaleString("fr-FR")} km` : "À renseigner"}
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 bg-slate-50 rounded-xl space-y-0.5">
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" /> Rythme annuel
-                      </span>
-                      <span className="font-bold text-slate-800">{annualPace}</span>
-                    </div>
-                  </div>
-
-                  {/* PROCHAINE ÉCHÉANCE DU VÉHICULE */}
-                  {!isSuspended && (
-                    <div
-                      className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
-                        hasOverdue
-                          ? "bg-rose-50 border-rose-200 text-rose-900"
-                          : "bg-blue-50/60 border-blue-100 text-slate-800"
-                      }`}
+                  {/* BOUTONS D'ACTION CARTE VÉHICULE */}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <Link
+                      href={`/dashboard/vehicles/${v.immatriculation ? encodeURIComponent(v.immatriculation.trim().replace(/\s+/g, "-")) : v.id}`}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition"
                     >
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="flex items-center gap-1">
-                          {hasOverdue ? (
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                          ) : (
-                            <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                          )}
-                          {hasOverdue ? "Intervention en retard" : "Prochaine visite"}
-                        </span>
-                        <span className="text-[11px] font-mono">
-                          {nextEcheance.date_preconisee ? nextEcheance.date_preconisee : "À planifier"}
-                        </span>
-                      </div>
-                      <p className="text-[11.5px] font-medium leading-tight">
-                        {nextEcheance.libelle || "Révision générale constructeur"}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                      <span>Fiche & Carnet</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
 
-                {/* BOUTONS D'ACTION CARTE VÉHICULE */}
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <Link
-                    href={`/dashboard/vehicles/${v.immatriculation ? encodeURIComponent(v.immatriculation.trim().replace(/\s+/g, "-")) : v.id}`}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition"
-                  >
-                    <span>Fiche & Carnet</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-
-                  {!isSuspended && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenKit(v)}
-                      disabled={loadingKitId === v.id}
-                      className="inline-flex items-center justify-center p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-                      title="Ouvrir le Kit Prêt-à-Réserver"
-                    >
-                      {loadingKitId === v.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <PhoneCall className="w-4 h-4" />
-                      )}
-                    </button>
-                  )}
+                    {!isSuspended && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenKit(v)}
+                        disabled={loadingKitId === v.id}
+                        className="inline-flex items-center justify-center p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                        title="Ouvrir le Kit Prêt-à-Réserver"
+                      >
+                        {loadingKitId === v.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <PhoneCall className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* DROPZONE POUR NUMÉRISATION RAPIDE (GESTE 2) */}

@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const calendarService = new GoogleCalendarService(tokens.access_token);
     const calendarId = await calendarService.getOrCreateLaVigieAutoCalendar();
 
-    // 2. Mémoriser les jetons et le profil en base de données
+    // 2. Mémoriser les jetons et le profil en base de données avec isolation stricte du Foyer
     const memberMetadata = {
       name: resolvedName,
       email: resolvedEmail,
@@ -56,37 +56,87 @@ export async function GET(req: NextRequest) {
       last_synced_at: new Date().toISOString(),
     };
 
-    if (user) {
-      await (adminSupabase as any)
-        .from("foyer_members")
-        .update({
-          metadata: memberMetadata,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
-    } else {
-      // Mettre à jour le premier membre du foyer pour la démo
-      await (adminSupabase as any)
-        .from("foyer_members")
-        .update({
-          metadata: memberMetadata,
-          updated_at: new Date().toISOString(),
-        })
-        .limit(1);
-    }
+    try {
+      if (resolvedEmail.toLowerCase() === "charlesdeforges@gmail.com") {
+        // Foyer principal de référence Charles de Forges
+        await (adminSupabase as any)
+          .from("foyers")
+          .update({
+            nom: `Foyer ${resolvedName}`,
+            metadata: {
+              user_email: resolvedEmail,
+              owner_name: resolvedName,
+              calendar_synced: true,
+              stripe_subscription_status: "active",
+              plan: "foyer_multi_vehicules",
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", "11111111-1111-1111-1111-111111111111");
 
-    // Mettre à jour le foyer principal
-    await (adminSupabase as any)
-      .from("foyers")
-      .update({
-        nom: `Foyer ${resolvedName}`,
-        metadata: {
-          user_email: resolvedEmail,
-          owner_name: resolvedName,
-          calendar_synced: true,
-        },
-      })
-      .limit(1);
+        await (adminSupabase as any)
+          .from("foyer_members")
+          .update({
+            metadata: memberMetadata,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("foyer_id", "11111111-1111-1111-1111-111111111111");
+      } else {
+        // Nouvel utilisateur distinct : recherche ou création de son propre foyer dédié
+        const { data: existingFoyers } = await (adminSupabase as any)
+          .from("foyers")
+          .select("id, metadata");
+
+        const userFoyer = (existingFoyers || []).find(
+          (f: any) => (f.metadata as any)?.user_email?.toLowerCase() === resolvedEmail.toLowerCase()
+        );
+
+        if (userFoyer) {
+          await (adminSupabase as any)
+            .from("foyers")
+            .update({
+              nom: `Foyer ${resolvedName}`,
+              metadata: {
+                ...(userFoyer.metadata || {}),
+                user_email: resolvedEmail,
+                owner_name: resolvedName,
+                calendar_synced: true,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", userFoyer.id);
+        } else {
+          // Nouveau Foyer vide pour le nouvel utilisateur
+          const newFoyerId = crypto.randomUUID();
+          await (adminSupabase as any)
+            .from("foyers")
+            .insert({
+              id: newFoyerId,
+              nom: `Foyer ${resolvedName}`,
+              description: `Espace automobile personnel de ${resolvedName}`,
+              metadata: {
+                user_email: resolvedEmail,
+                owner_name: resolvedName,
+                calendar_synced: true,
+                stripe_subscription_status: "trialing",
+                plan: "foyer_multi_vehicules",
+              },
+            });
+
+          await (adminSupabase as any)
+            .from("foyer_members")
+            .insert({
+              id: crypto.randomUUID(),
+              foyer_id: newFoyerId,
+              user_id: user?.id || `user-${crypto.randomUUID()}`,
+              role: "owner",
+              metadata: memberMetadata,
+            });
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Avertissement synchronisation base de données OAuth:", dbErr);
+    }
 
     // 3. Mémoriser les jetons et profil dans les cookies de la session
     const cookieStore = await cookies();
