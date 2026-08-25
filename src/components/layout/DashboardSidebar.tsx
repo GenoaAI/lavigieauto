@@ -96,11 +96,12 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
           </div>
 
           {vehicles.map((v: any) => {
-            const isCurrent = pathname === `/dashboard/vehicles/${v.id}`;
+            const slug = v.immatriculation ? encodeURIComponent(v.immatriculation.trim().replace(/\s+/g, "-")) : v.id;
+            const isCurrent = pathname === `/dashboard/vehicles/${slug}` || pathname === `/dashboard/vehicles/${v.id}`;
             return (
               <Link
                 key={v.id}
-                href={`/dashboard/vehicles/${v.id}`}
+                href={`/dashboard/vehicles/${slug}`}
                 title={`${v.marque} ${v.modele} (${v.immatriculation})`}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
                   isCurrent

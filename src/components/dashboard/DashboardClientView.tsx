@@ -505,7 +505,7 @@ export function DashboardClientView({
                 {/* BOUTONS D'ACTION CARTE VÉHICULE */}
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                   <Link
-                    href={`/dashboard/vehicles/${v.id}`}
+                    href={`/dashboard/vehicles/${v.immatriculation ? encodeURIComponent(v.immatriculation.trim().replace(/\s+/g, "-")) : v.id}`}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition"
                   >
                     <span>Fiche & Carnet</span>

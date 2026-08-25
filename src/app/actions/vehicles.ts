@@ -36,9 +36,20 @@ export interface VehicleDetailsActionResult {
   tires: VehicleTireAssessment;
 }
 
-export async function getVehicleDetailsAction(vehicleId: string): Promise<VehicleDetailsActionResult | null> {
+export async function getVehicleDetailsAction(identifier: string): Promise<VehicleDetailsActionResult | null> {
   const foyerData = await getFoyerOverviewAction();
-  const matched = foyerData.vehicles.find((v) => v.id === vehicleId || v.immatriculation === vehicleId) || foyerData.vehicles[0];
+  const rawQuery = decodeURIComponent(identifier || "").trim().toUpperCase();
+  const cleanQuery = rawQuery.replace(/[\s-]/g, "");
+
+  const matched = foyerData.vehicles.find((v) => {
+    if (v.id === identifier || v.id === rawQuery) return true;
+    if (v.immatriculation) {
+      const vImm = v.immatriculation.trim().toUpperCase();
+      const vClean = vImm.replace(/[\s-]/g, "");
+      return vImm === rawQuery || vClean === cleanQuery;
+    }
+    return false;
+  }) || foyerData.vehicles[0];
 
   if (!matched) {
     return null;
