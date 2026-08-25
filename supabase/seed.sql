@@ -106,17 +106,17 @@ BEGIN
         kilometrage_actuel = EXCLUDED.kilometrage_actuel,
         metadata = EXCLUDED.metadata;
 
-    -- 8. Véhicule 4 : Jeep CJ (89 000 km)
+    -- 8. Véhicule 4 : Jeep Cherokee SJ (89 000 km, 1981)
     INSERT INTO public.vehicules (
         id, foyer_id, immatriculation, vin, marque, modele, version,
         annee_mise_en_circulation, date_premiere_immatriculation, kilometrage_actuel,
         date_releve_kilometrage, energie, boite_vitesse, usage_type, km_annuel_moyen, statut, metadata
     )
     VALUES (
-        v_jeep_id, v_foyer_id, '7253 XX 76', '1JCCC87A0CT123456', 'Jeep', 'CJ',
-        'CE 17 Classic 4.2L 6L', 1982, '1982-05-10', 89000, '2026-08-25',
+        v_jeep_id, v_foyer_id, '7253 XX 76', '1JCCC87A0BT123456', 'Jeep', 'Cherokee (SJ)',
+        'Chief 4.2L 258ci 4x4', 1981, '1981-05-10', 89000, '2026-08-25',
         'essence', 'manuelle', 'collection', 2500, 'actif',
-        '{"image_url": "/images/vehicles/jeep-cj.jpg", "tracking_status": "actif"}'::JSONB
+        '{"image_url": "/images/vehicles/jeep-cherokee-1981.jpg", "tracking_status": "actif"}'::JSONB
     )
     ON CONFLICT (id) DO UPDATE SET
         kilometrage_actuel = EXCLUDED.kilometrage_actuel,
