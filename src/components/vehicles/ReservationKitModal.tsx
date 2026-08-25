@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Phone, Copy, Check, X, ShieldAlert, Wrench, Calendar, Sparkles } from "lucide-react";
+import { Phone, Copy, Check, X, ShieldAlert, Wrench, Calendar, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import type { ReservationKit } from "@/lib/engine/reservation-kit";
 
 interface ReservationKitModalProps {
@@ -16,13 +16,17 @@ export function ReservationKitModal({
   isOpen,
   onClose,
   kit,
-  garagePhoneNumber = "01 40 00 00 00",
-  garageName = "Garage Recommandé / Habituel",
+  garagePhoneNumber,
+  garageName,
 }: ReservationKitModalProps) {
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [customPhone, setCustomPhone] = useState(garagePhoneNumber || "");
 
   if (!isOpen) return null;
+
+  const resolvedGarageName = garageName || "Votre Atelier Habituel ou Agréé";
+  const activePhone = customPhone.trim();
 
   const handleCopyScript = () => {
     navigator.clipboard.writeText(kit.phoneScript);
@@ -35,6 +39,10 @@ export function ReservationKitModal({
     setCopiedEmail(true);
     setTimeout(() => setCopiedEmail(false), 2000);
   };
+
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `garage automobile ${kit.vehicleSummary.makeModel}`
+  )}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
@@ -62,20 +70,40 @@ export function ReservationKitModal({
           </button>
         </div>
 
-        {/* Action Directe Appel Garage */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-blue-500/20">
-          <div className="space-y-1 text-center sm:text-left">
-            <p className="text-xs font-medium text-blue-100 uppercase tracking-wider">Contact Direct Garage</p>
-            <p className="text-lg font-bold">{garageName}</p>
-            <p className="text-sm text-blue-100">{garagePhoneNumber}</p>
+        {/* Action Directe Contact Garage */}
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-blue-950/20">
+          <div className="space-y-1">
+            <p className="text-[11px] font-bold text-blue-300 uppercase tracking-wider">Atelier & Prise de Rendez-Vous</p>
+            <p className="text-base sm:text-lg font-bold text-white">{resolvedGarageName}</p>
+            {activePhone ? (
+              <p className="text-xs text-blue-200 font-mono">{activePhone}</p>
+            ) : (
+              <p className="text-xs text-slate-300">Numéro non renseigné pour ce véhicule</p>
+            )}
           </div>
-          <a
-            href={`tel:${garagePhoneNumber.replace(/\s+/g, "")}`}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-white text-blue-600 rounded-xl font-semibold shadow hover:bg-blue-50 transition active:scale-95 text-sm"
-          >
-            <Phone className="w-4 h-4" />
-            Appeler le garage en 1 clic
-          </a>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {activePhone ? (
+              <a
+                href={`tel:${activePhone.replace(/\s+/g, "")}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow transition active:scale-95 text-xs flex-1 sm:flex-initial"
+              >
+                <Phone className="w-4 h-4" />
+                Appeler le garage
+              </a>
+            ) : (
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl font-semibold transition active:scale-95 text-xs flex-1 sm:flex-initial"
+              >
+                <MapPin className="w-3.5 h-3.5 text-blue-300" />
+                Trouver un atelier proche
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Script Téléphonique & SMS */}

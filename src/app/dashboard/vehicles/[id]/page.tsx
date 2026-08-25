@@ -1300,13 +1300,21 @@ export default function VehicleDetailPage() {
       )}
 
       {/* MODAL DU KIT PRÊT-À-RÉSERVER */}
-      <ReservationKitModal
-        isOpen={isKitOpen}
-        onClose={() => setIsKitOpen(false)}
-        kit={kit}
-        garagePhoneNumber="01 42 68 55 00"
-        garageName="Garage Réparateur Agréé"
-      />
+      {(() => {
+        const lastInvoice = (v.documents_sources || []).find((d: any) => d.emetteur);
+        const detectedGarageName = lastInvoice?.emetteur || (interventions[0]?.garage && interventions[0]?.garage !== "Garage Professionnel" ? interventions[0]?.garage : undefined);
+        const detectedPhone = (lastInvoice?.metadata as any)?.phone || (v.metadata as any)?.garage_phone;
+
+        return (
+          <ReservationKitModal
+            isOpen={isKitOpen}
+            onClose={() => setIsKitOpen(false)}
+            kit={kit}
+            garagePhoneNumber={detectedPhone}
+            garageName={detectedGarageName}
+          />
+        );
+      })()}
 
       {/* MODALE DE CONFIRMATION DE SUPPRESSION */}
       <DeleteVehicleModal
