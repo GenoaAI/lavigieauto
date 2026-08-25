@@ -18,6 +18,7 @@ import {
   snapToBusinessDay,
 } from "@/lib/types/database.types";
 import { revalidatePath } from "next/cache";
+import { getFoyerOverviewAction } from "@/app/actions/foyer";
 
 export interface EnrichedVehicle extends Vehicule {
   documents_sources?: DocumentSource[];
@@ -59,12 +60,19 @@ export async function getVehicleDetailsAction(vehicleId: string): Promise<Vehicl
   }
 
   const { data, error } = await query.limit(1).maybeSingle();
+  let dataResult = data;
 
-  if (error || !data) {
-    return null;
+  if (error || !dataResult) {
+    const foyerData = await getFoyerOverviewAction();
+    const found = foyerData.vehicles.find((v) => v.id === vehicleId || v.immatriculation === vehicleId) || foyerData.vehicles[0];
+    if (found) {
+      dataResult = found;
+    } else {
+      return null;
+    }
   }
 
-  const vehicle = data as EnrichedVehicle;
+  const vehicle = dataResult as EnrichedVehicle;
 
   if (vehicle.lignes_interventions) {
     vehicle.lignes_interventions.sort(
