@@ -95,7 +95,7 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
     marque: v.marque,
     modele: v.modele,
     immatriculation: v.immatriculation,
-    image_url: v.image_url,
+    image_url: (v.metadata as any)?.image_url || v.image_url || null,
   }));
 
   // Par défaut, si aucune sélection n'a encore été enregistrée, tous les véhicules sont sélectionnés

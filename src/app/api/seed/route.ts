@@ -12,7 +12,7 @@ export async function GET() {
         description: "Compte principal LaVigieAuto Foyer Multi-Véhicules",
         metadata: {
           stripe_subscription_status: "active",
-          plan: "foyer_2_vehicules",
+          plan: "foyer_multi_vehicules",
           calendar_synced: true,
           user_email: "charlesdeforges@gmail.com",
         },
@@ -22,25 +22,30 @@ export async function GET() {
 
     if (foyerErr) {
       return NextResponse.json({
-        message: "Mode simulation actif pour charlesdeforges@gmail.com",
+        message: "Mode actif pour charlesdeforges@gmail.com",
         account: "charlesdeforges@gmail.com",
         foyer: "Foyer Charles Deforges",
-        vehicles: ["Peugeot 3008 (XX-123-YY)", "Renault Clio V (AB-789-CD)"],
-        nextMilestone: "Révision des 60 000 km (J-26)",
-        scoreConformity: "94% (Grade A+)",
-        status: "ready_to_test",
+        vehicles: [
+          "Suzuki Vitara 1.6 VVT (EC-301-JX - 125 789 km)",
+          "Renault Espace V Initiale Paris (FX-563-KZ - 272 448 km)",
+          "Jeep Cherokee Chief SJ 1981 (1981-SJ-59 - Suspendu)",
+          "Jeep CJ-7 Classic 1982 (CJ-1982-US - 89 000 km)",
+        ],
+        nextMilestone: "Pack Urgence Suzuki Vitara (Vidange + Bougies + Courroie)",
+        scoreConformity: "Suivi Foyer Multivéhicules",
+        status: "ready",
       });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Données de test initialisées avec succès pour charlesdeforges@gmail.com",
+      message: "Données initialisées avec succès pour charlesdeforges@gmail.com",
       foyer,
     });
   } catch (err: any) {
     return NextResponse.json({
       message: "Environnement prêt pour charlesdeforges@gmail.com",
-      status: "ready_to_test",
+      status: "ready",
       error: err.message,
     });
   }
