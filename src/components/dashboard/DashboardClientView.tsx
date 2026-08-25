@@ -35,6 +35,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { DEFAULT_VEHICLES_SEED } from "@/config/foyer.seed";
+
 interface DashboardClientViewProps {
   initialFoyer: any;
   initialVehicles: any[];
@@ -48,9 +50,11 @@ export function DashboardClientView({
 }: DashboardClientViewProps) {
   const [uiMode, setUiMode] = useUiViewMode();
   const [loading, setLoading] = useState(false);
-  const [foyerData, setFoyerData] = useState<any>(initialFoyer);
-  const [vehicles, setVehicles] = useState<any[]>(initialVehicles);
-  const [members, setMembers] = useState<any[]>(initialMembers);
+  const [foyerData, setFoyerData] = useState<any>(initialFoyer || { nom: "Foyer Charles de Forges" });
+  const [vehicles, setVehicles] = useState<any[]>(
+    initialVehicles && initialVehicles.length > 0 ? initialVehicles : DEFAULT_VEHICLES_SEED
+  );
+  const [members, setMembers] = useState<any[]>(initialMembers || []);
   const [isKitOpen, setIsKitOpen] = useState(false);
   const [selectedVehicleKit, setSelectedVehicleKit] = useState<any | null>(null);
   const [loadingKitId, setLoadingKitId] = useState<string | null>(null);
