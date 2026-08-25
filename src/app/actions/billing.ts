@@ -50,7 +50,7 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
       : allVehicles.length > 1;
 
     const cookieStore = await cookies();
-    const userEmail = cookieStore.get("gcal_user_email")?.value || metadata.user_email || "contact@lavigieauto.fr";
+    const userEmail = cookieStore.get("gcal_user_email")?.value || metadata.user_email || "contact@lavigieauto.com";
 
     return {
       isSubscribed,
@@ -101,7 +101,7 @@ export async function createCheckoutSessionAction(params: {
       : Math.max(1, foyerData.vehicles?.length || 1);
 
     const cookieStore = await cookies();
-    const userEmail = cookieStore.get("gcal_user_email")?.value || (foyer as any)?.metadata?.user_email || "conducteur@lavigieauto.fr";
+    const userEmail = cookieStore.get("gcal_user_email")?.value || (foyer as any)?.metadata?.user_email || "conducteur@lavigieauto.com";
     const customerId = (foyer as any)?.metadata?.stripe_customer_id;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 

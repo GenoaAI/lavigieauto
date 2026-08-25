@@ -49,7 +49,7 @@ export default function PolitiqueConfidentialitePage() {
               <li><span className="text-slate-400">Dénomination :</span> <strong className="text-white">GENOA ADVISORY SARL</strong></li>
               <li><span className="text-slate-400">Siège social :</span> 36 Avenue de Villeneuve l'Étang, 78000 Versailles, France</li>
               <li><span className="text-slate-400">SIREN :</span> 822 646 881 — RCS Versailles</li>
-              <li><span className="text-slate-400">Délégué à la Protection des Données (DPO) :</span> <a href="mailto:privacy@lavigieauto.fr" className="text-blue-400 hover:underline">privacy@lavigieauto.fr</a></li>
+              <li><span className="text-slate-400">Délégué à la Protection des Données (DPO) :</span> <a href="mailto:privacy@lavigieauto.com" className="text-blue-400 hover:underline">privacy@lavigieauto.com</a></li>
             </ul>
           </div>
         </section>
@@ -162,7 +162,7 @@ export default function PolitiqueConfidentialitePage() {
               <li className="bg-slate-800/70 p-2.5 rounded-lg">✔ <strong>Droit à la portabilité</strong> (Art. 20 RGPD)</li>
             </ul>
             <p className="pt-2 text-xs text-slate-400">
-              Pour exercer vos droits ou demander la suppression définitive de votre compte et de vos véhicules, écrivez à : <a href="mailto:privacy@lavigieauto.fr" className="text-blue-400 hover:underline font-semibold">privacy@lavigieauto.fr</a>. Une réponse vous sera apportée sous 30 jours maximum. Vous pouvez également saisir la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés) sur <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">cnil.fr</a>.
+              Pour exercer vos droits ou demander la suppression définitive de votre compte et de vos véhicules, écrivez à : <a href="mailto:privacy@lavigieauto.com" className="text-blue-400 hover:underline font-semibold">privacy@lavigieauto.com</a>. Une réponse vous sera apportée sous 30 jours maximum. Vous pouvez également saisir la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés) sur <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">cnil.fr</a>.
             </p>
           </div>
         </section>

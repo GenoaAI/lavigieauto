@@ -153,7 +153,7 @@ export default function ConditionsGeneralesPage() {
           </h2>
           <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 text-sm text-slate-300 leading-relaxed space-y-3">
             <p>
-              Les présentes conditions sont régies par le droit français. En cas de litige, l'utilisateur s'adressera en priorité à GENOA ADVISORY à <a href="mailto:contact@lavigieauto.fr" className="text-blue-400 hover:underline">contact@lavigieauto.fr</a> pour rechercher une solution amiable.
+              Les présentes conditions sont régies par le droit français. En cas de litige, l'utilisateur s'adressera en priorité à GENOA ADVISORY à <a href="mailto:contact@lavigieauto.com" className="text-blue-400 hover:underline">contact@lavigieauto.com</a> pour rechercher une solution amiable.
             </p>
             <p className="text-xs text-slate-400">
               À défaut de résolution amiable, tout litige sera soumis aux tribunaux compétents du ressort de la Cour d'appel de Versailles, sous réserve des règles applicables aux consommateurs.

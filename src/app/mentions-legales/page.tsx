@@ -80,7 +80,7 @@ export default function MentionsLegalesPage() {
                 </tr>
                 <tr>
                   <td className="py-2.5 pr-6 text-slate-400 font-medium whitespace-nowrap">Contact électronique</td>
-                  <td className="py-2.5 text-blue-400 font-medium">contact@lavigieauto.fr</td>
+                  <td className="py-2.5 text-blue-400 font-medium">contact@lavigieauto.com</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 pr-6 text-slate-400 font-medium whitespace-nowrap">Site web officiel</td>
@@ -165,7 +165,7 @@ export default function MentionsLegalesPage() {
             Pour toute demande d'information, question relative aux mentions légales ou signalement de contenu :
           </p>
           <p className="text-sm font-semibold text-blue-300">
-            Email : <a href="mailto:contact@lavigieauto.fr" className="underline hover:text-white">contact@lavigieauto.fr</a>
+            Email : <a href="mailto:contact@lavigieauto.com" className="underline hover:text-white">contact@lavigieauto.com</a>
           </p>
         </section>
       </div>

@@ -31,7 +31,7 @@ export async function getCurrentUserAction(): Promise<CurrentUserSummary> {
       return {
         isAuthenticated: true,
         userId: user.id,
-        email: user.email || gcalEmail || "utilisateur@lavigieauto.fr",
+        email: user.email || gcalEmail || "utilisateur@lavigieauto.com",
         name: user.user_metadata?.full_name || gcalName || user.email?.split("@")[0] || "Conducteur",
         picture: user.user_metadata?.avatar_url,
         googleConnected: Boolean(gcalToken),
