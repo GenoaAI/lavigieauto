@@ -153,11 +153,17 @@ export default function RootLayout({
             </div>
 
             <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-              <p>© {new Date().getFullYear()} LaVigieAuto. Tous droits réservés.</p>
-              <div className="flex items-center gap-6">
-                <a href="#" className="hover:text-slate-300">Mentions Légales</a>
-                <a href="#" className="hover:text-slate-300">Politique de Confidentialité</a>
-                <a href="#" className="hover:text-slate-300">Conditions Générales</a>
+              <p>© {new Date().getFullYear()} LaVigieAuto — GENOA ADVISORY SARL. Tous droits réservés.</p>
+              <div className="flex flex-wrap items-center gap-6">
+                <Link href="/mentions-legales" className="hover:text-white transition">
+                  Mentions Légales
+                </Link>
+                <Link href="/politique-confidentialite" className="hover:text-white transition">
+                  Politique de Confidentialité
+                </Link>
+                <Link href="/conditions-generales" className="hover:text-white transition">
+                  Conditions Générales (CGU / CGV)
+                </Link>
               </div>
             </div>
           </div>
