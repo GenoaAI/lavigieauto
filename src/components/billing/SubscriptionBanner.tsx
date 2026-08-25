@@ -40,7 +40,7 @@ export function SubscriptionBanner() {
             <p className="text-xs text-blue-100/80 mt-0.5">
               {billingStatus.isSubscribed
                 ? `Couverture complète de vos ${billingStatus.vehicleCount} véhicules • Prochaine facture gérée via Stripe`
-                : `Activez le suivi illimité et la synchronisation Google Calendar pour ${billingStatus.monthlyPriceEur.toFixed(2)} €/mois`}
+                : "Activez le suivi illimité et la synchronisation Google Calendar à partir de 2,90€ / mois"}
             </p>
           </div>
         </div>
