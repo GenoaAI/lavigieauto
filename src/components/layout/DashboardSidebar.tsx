@@ -31,7 +31,7 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
 
   return (
     <aside
-      className={`sticky top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200/80 p-3 sm:p-4 flex flex-col justify-between shrink-0 transition-all duration-300 z-20 overflow-y-auto ${
+      className={`hidden md:flex sticky top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200/80 p-3 sm:p-4 flex-col justify-between shrink-0 transition-all duration-300 z-20 overflow-y-auto ${
         isCollapsed ? "w-20" : "w-64 lg:w-72"
       }`}
     >

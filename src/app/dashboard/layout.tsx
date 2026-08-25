@@ -18,7 +18,7 @@ export default async function DashboardLayout({
       <DashboardSidebar foyer={foyer} vehicles={vehicles} members={members} />
 
       {/* Main Dashboard Workspace */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
+      <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden pb-24 md:pb-8">
         {children}
       </main>
     </div>
