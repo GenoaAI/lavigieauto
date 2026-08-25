@@ -37,42 +37,14 @@ export interface VehicleDetailsActionResult {
 }
 
 export async function getVehicleDetailsAction(vehicleId: string): Promise<VehicleDetailsActionResult | null> {
-  const supabase = createAdminClient();
+  const foyerData = await getFoyerOverviewAction();
+  const matched = foyerData.vehicles.find((v) => v.id === vehicleId || v.immatriculation === vehicleId) || foyerData.vehicles[0];
 
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
-
-  let query = (supabase as any)
-    .from("vehicules")
-    .select(`
-      *,
-      documents_sources (*),
-      lignes_interventions (*),
-      defaillances_ct (*),
-      echeances_previsionnelles (*),
-      audits_conformite (*)
-    `);
-
-  if (isUuid) {
-    query = query.eq("id", vehicleId);
-  } else {
-    // Search by immatriculation or take primary vehicle
-    query = query.or(`immatriculation.eq.${vehicleId},id.eq.22222222-2222-2222-2222-222222222222`);
+  if (!matched) {
+    return null;
   }
 
-  const { data, error } = await query.limit(1).maybeSingle();
-  let dataResult = data;
-
-  if (error || !dataResult) {
-    const foyerData = await getFoyerOverviewAction();
-    const found = foyerData.vehicles.find((v) => v.id === vehicleId || v.immatriculation === vehicleId) || foyerData.vehicles[0];
-    if (found) {
-      dataResult = found;
-    } else {
-      return null;
-    }
-  }
-
-  const vehicle = dataResult as EnrichedVehicle;
+  const vehicle = matched as EnrichedVehicle;
 
   if (vehicle.lignes_interventions) {
     vehicle.lignes_interventions.sort(

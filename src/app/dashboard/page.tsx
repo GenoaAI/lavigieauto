@@ -35,11 +35,13 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { DEFAULT_VEHICLES_SEED } from "@/app/actions/foyer";
+
 export default function DashboardPage() {
   const [uiMode, setUiMode] = useUiViewMode();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [foyerData, setFoyerData] = useState<any>(null);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>(DEFAULT_VEHICLES_SEED);
   const [members, setMembers] = useState<any[]>([]);
   const [isKitOpen, setIsKitOpen] = useState(false);
   const [selectedVehicleKit, setSelectedVehicleKit] = useState<any | null>(null);

@@ -14,7 +14,7 @@ export interface FoyerOverviewResult {
 
 const DEFAULT_FOYER_ID = "11111111-1111-1111-1111-111111111111";
 
-const DEFAULT_VEHICLES_SEED: any[] = [
+export const DEFAULT_VEHICLES_SEED: any[] = [
   {
     id: "33333333-3333-3333-3333-333333333333",
     foyer_id: DEFAULT_FOYER_ID,
@@ -290,7 +290,13 @@ const DEFAULT_VEHICLES_SEED: any[] = [
   },
 ];
 
+// Global In-Memory Fast Cache
+let memoryCacheResult: FoyerOverviewResult | null = null;
+let lastCacheTimestamp = 0;
+const CACHE_TTL_MS = 30000; // 30 seconds
+
 export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
+  const now = Date.now();
   const cookieStore = await cookies();
   const userEmail = cookieStore.get("gcal_user_email")?.value || "charlesdeforges@gmail.com";
   const userName = cookieStore.get("gcal_user_name")?.value || "Charles de Forges";
@@ -328,61 +334,60 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     },
   ];
 
+  // Return from in-memory cache if fresh (< 30s)
+  if (memoryCacheResult && now - lastCacheTimestamp < CACHE_TTL_MS) {
+    return memoryCacheResult;
+  }
+
+  // Fast resolution: default result ready immediately in 0ms
+  const fallbackResult: FoyerOverviewResult = {
+    foyer: defaultFoyer as Foyer,
+    role: "owner",
+    vehicles: DEFAULT_VEHICLES_SEED as EnrichedVehicle[],
+    members: defaultMembers as FoyerMember[],
+  };
+
   try {
     const adminSupabase = createAdminClient();
 
-    // 1. Récupérer ou insérer le foyer
-    const { data: dbFoyer } = await (adminSupabase as any)
-      .from("foyers")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
-
-    // 2. Récupérer les véhicules
-    const { data: dbVehicles, error: vehErr } = await (adminSupabase as any)
-      .from("vehicules")
-      .select(`
+    // Query DB with a 600ms fast timeout to prevent Vercel slow cold-starts
+    const dbQueryPromise = Promise.all([
+      (adminSupabase as any).from("foyers").select("*").limit(1).maybeSingle(),
+      (adminSupabase as any).from("vehicules").select(`
         *,
         documents_sources (*),
         lignes_interventions (*),
         defaillances_ct (*),
         echeances_previsionnelles (*),
         audits_conformite (*)
-      `)
-      .order("created_at", { ascending: true });
+      `).order("created_at", { ascending: true }),
+    ]);
 
-    if (!vehErr && dbVehicles && dbVehicles.length > 0) {
-      return {
-        foyer: (dbFoyer || defaultFoyer) as Foyer,
-        role: "owner",
-        vehicles: dbVehicles as EnrichedVehicle[],
-        members: defaultMembers as FoyerMember[],
-      };
-    }
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 600));
 
-    // 3. Si la base est encore vierge, persister la flotte du foyer automatiquement
-    try {
-      await (adminSupabase as any).from("foyers").upsert(defaultFoyer);
-      for (const v of DEFAULT_VEHICLES_SEED) {
-        const { documents_sources, lignes_interventions, echeances_previsionnelles, audits_conformite, ...vehData } = v;
-        await (adminSupabase as any).from("vehicules").upsert(vehData);
+    const raceResult: any = await Promise.race([dbQueryPromise, timeoutPromise]);
+
+    if (raceResult && Array.isArray(raceResult)) {
+      const [foyerRes, vehRes] = raceResult;
+      if (!vehRes.error && vehRes.data && vehRes.data.length > 0) {
+        const liveResult: FoyerOverviewResult = {
+          foyer: (foyerRes.data || defaultFoyer) as Foyer,
+          role: "owner",
+          vehicles: vehRes.data as EnrichedVehicle[],
+          members: defaultMembers as FoyerMember[],
+        };
+        memoryCacheResult = liveResult;
+        lastCacheTimestamp = now;
+        return liveResult;
       }
-    } catch {
-      // Ignore background seeding errors
     }
 
-    return {
-      foyer: defaultFoyer as Foyer,
-      role: "owner",
-      vehicles: DEFAULT_VEHICLES_SEED as EnrichedVehicle[],
-      members: defaultMembers as FoyerMember[],
-    };
+    memoryCacheResult = fallbackResult;
+    lastCacheTimestamp = now;
+    return fallbackResult;
   } catch {
-    return {
-      foyer: defaultFoyer as Foyer,
-      role: "owner",
-      vehicles: DEFAULT_VEHICLES_SEED as EnrichedVehicle[],
-      members: defaultMembers as FoyerMember[],
-    };
+    memoryCacheResult = fallbackResult;
+    lastCacheTimestamp = now;
+    return fallbackResult;
   }
 }
