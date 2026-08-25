@@ -30,7 +30,7 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
 
     const metadata = (foyer as any)?.metadata || {};
     const subStatus = metadata.stripe_subscription_status;
-    const isSubscribed = subStatus === "active" || subStatus === "trialing";
+    const isSubscribed = subStatus === "active";
 
     const cookieStore = await cookies();
     const userEmail = cookieStore.get("gcal_user_email")?.value || metadata.user_email || "contact@lavigieauto.fr";

@@ -118,8 +118,8 @@ export async function GET(req: NextRequest) {
                 user_email: resolvedEmail,
                 owner_name: resolvedName,
                 calendar_synced: true,
-                stripe_subscription_status: "trialing",
-                plan: "foyer_multi_vehicules",
+                stripe_subscription_status: "none",
+                plan: "foyer_decouverte",
               },
             });
 
