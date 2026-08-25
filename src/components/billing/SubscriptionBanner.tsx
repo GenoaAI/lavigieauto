@@ -29,17 +29,25 @@ export function SubscriptionBanner() {
               </h4>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                  billingStatus.isSubscribed
+                  billingStatus.quotaExceeded
+                    ? "bg-rose-500/30 text-rose-200 border border-rose-400/40 animate-pulse"
+                    : billingStatus.isSubscribed
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                     : "bg-amber-400 text-slate-950"
                 }`}
               >
-                {billingStatus.isSubscribed ? "PREMIUM" : "ESSAI / DÉCOUVERTE"}
+                {billingStatus.quotaExceeded
+                  ? `QUOTA ATTEINT (${billingStatus.activeVehicleCount} / ${billingStatus.maxVehicles})`
+                  : billingStatus.isSubscribed
+                  ? `PREMIUM (${billingStatus.activeVehicleCount} / ${billingStatus.maxVehicles} VÉHICULES)`
+                  : "ESSAI / DÉCOUVERTE (1 VÉHICULE MAX)"}
               </span>
             </div>
             <p className="text-xs text-blue-100/80 mt-0.5">
-              {billingStatus.isSubscribed
-                ? `Couverture complète de vos ${billingStatus.vehicleCount} véhicules • Prochaine facture gérée via Stripe`
+              {billingStatus.quotaExceeded
+                ? `Votre abonnement actuel couvre ${billingStatus.maxVehicles} véhicule(s). Ajustez votre formule pour couvrir les ${billingStatus.totalVehicleCount} véhicules de votre foyer.`
+                : billingStatus.isSubscribed
+                ? `Couverture complète de votre foyer • ${billingStatus.activeVehicleCount} véhicule(s) sous surveillance active sur ${billingStatus.maxVehicles} souscrit(s).`
                 : "Activez le suivi illimité et la synchronisation Google Calendar à partir de 2,90€ / mois"}
             </p>
           </div>
@@ -51,7 +59,13 @@ export function SubscriptionBanner() {
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-blue-50 text-blue-950 font-bold rounded-xl text-xs shadow-sm transition active:scale-95 shrink-0 self-stretch sm:self-auto justify-center"
         >
           <CreditCard className="w-3.5 h-3.5 text-blue-600" />
-          <span>{billingStatus.isSubscribed ? "Gérer mon abonnement" : "Passer en Premium"}</span>
+          <span>
+            {billingStatus.quotaExceeded
+              ? "Ajuster mon abonnement"
+              : billingStatus.isSubscribed
+              ? "Gérer mon abonnement"
+              : "Passer en Premium"}
+          </span>
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>

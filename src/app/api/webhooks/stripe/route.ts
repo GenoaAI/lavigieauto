@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
 
           const existingMeta = foyer?.metadata || {};
 
+          const vehicleCount = parseInt(session.metadata?.vehicle_count || "1", 10);
+
           await (supabase as any)
             .from("foyers")
             .update({
@@ -46,6 +48,9 @@ export async function POST(req: NextRequest) {
                 stripe_customer_id: session.customer,
                 stripe_subscription_id: session.subscription,
                 stripe_subscription_status: "active",
+                max_vehicles: vehicleCount,
+                vehicle_quota: vehicleCount,
+                plan: `foyer_${vehicleCount}_vehicules`,
                 activated_at: new Date().toISOString(),
                 plan_interval: session.metadata?.interval || "month",
               },

@@ -7,10 +7,17 @@ import { createHouseholdSubscriptionCheckout } from "@/lib/integrations/stripe/c
 import { getFoyerOverviewAction } from "@/app/actions/foyer";
 import { cookies } from "next/headers";
 
+import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
+import { checkVehicleQuota } from "@/lib/integrations/stripe/quota";
+
 export interface BillingStatusResult {
   isSubscribed: boolean;
   status: "active" | "trialing" | "canceled" | "none";
   vehicleCount: number;
+  maxVehicles: number;
+  activeVehicleCount: number;
+  totalVehicleCount: number;
+  quotaExceeded: boolean;
   monthlyPriceEur: number;
   annualPriceEur: number;
   planName: string;
@@ -19,18 +26,28 @@ export interface BillingStatusResult {
 }
 
 /**
- * Récupère le statut d'abonnement Stripe du foyer actuel
+ * Récupère le statut d'abonnement Stripe et le quota de véhicules du foyer actuel
  */
 export async function getHouseholdBillingStatusAction(): Promise<BillingStatusResult> {
   try {
     const foyerData = await getFoyerOverviewAction();
     const foyer = foyerData.foyer;
-    const vehicleCount = foyerData.vehicles?.length || 1;
-    const pricing = calculateHouseholdSubscriptionPrice(vehicleCount);
-
+    const allVehicles = foyerData.vehicles || [];
+    const activeVehicles = allVehicles.filter((v) => !isVehicleTrackingSuspended(v));
+    
     const metadata = (foyer as any)?.metadata || {};
     const subStatus = metadata.stripe_subscription_status;
     const isSubscribed = subStatus === "active";
+
+    // Quota souscrit
+    const maxVehicles = isSubscribed
+      ? Number(metadata.max_vehicles || metadata.vehicle_quota || (allVehicles.length > 0 ? allVehicles.length : 1))
+      : 1;
+
+    const pricing = calculateHouseholdSubscriptionPrice(maxVehicles);
+    const quotaExceeded = isSubscribed
+      ? activeVehicles.length > maxVehicles
+      : allVehicles.length > 1;
 
     const cookieStore = await cookies();
     const userEmail = cookieStore.get("gcal_user_email")?.value || metadata.user_email || "contact@lavigieauto.fr";
@@ -38,10 +55,16 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
     return {
       isSubscribed,
       status: isSubscribed ? (subStatus as any) : "none",
-      vehicleCount,
+      vehicleCount: maxVehicles,
+      maxVehicles,
+      activeVehicleCount: activeVehicles.length,
+      totalVehicleCount: allVehicles.length,
+      quotaExceeded,
       monthlyPriceEur: pricing.monthlyTotalEur,
       annualPriceEur: pricing.annualTotalEur,
-      planName: `Formule Foyer (${vehicleCount} véhicule${vehicleCount > 1 ? "s" : ""})`,
+      planName: isSubscribed
+        ? `Formule Foyer (${maxVehicles} véhicule${maxVehicles > 1 ? "s" : ""})`
+        : "Formule Découverte (1 véhicule)",
       customerEmail: userEmail,
       portalAvailable: Boolean(metadata.stripe_customer_id),
     };
@@ -51,9 +74,13 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
       isSubscribed: false,
       status: "none",
       vehicleCount: 1,
+      maxVehicles: 1,
+      activeVehicleCount: 0,
+      totalVehicleCount: 0,
+      quotaExceeded: false,
       monthlyPriceEur: 2.90,
       annualPriceEur: 29.00,
-      planName: "Formule Foyer (1 véhicule)",
+      planName: "Formule Découverte (1 véhicule)",
       portalAvailable: false,
     };
   }
@@ -64,11 +91,14 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
  */
 export async function createCheckoutSessionAction(params: {
   interval: "month" | "year";
+  vehicleCount?: number;
 }): Promise<{ success: boolean; url?: string; error?: string }> {
   try {
     const foyerData = await getFoyerOverviewAction();
     const foyer = foyerData.foyer;
-    const vehicleCount = Math.max(1, foyerData.vehicles?.length || 1);
+    const vehicleCount = params.vehicleCount && params.vehicleCount >= 1
+      ? params.vehicleCount
+      : Math.max(1, foyerData.vehicles?.length || 1);
 
     const cookieStore = await cookies();
     const userEmail = cookieStore.get("gcal_user_email")?.value || (foyer as any)?.metadata?.user_email || "conducteur@lavigieauto.fr";

@@ -67,3 +67,47 @@ export async function checkDocumentQuota(userId: string): Promise<QuotaCheckResu
     freeDocumentUsed: true,
   };
 }
+
+export interface VehicleQuotaCheckResult {
+  allowed: boolean;
+  currentActiveCount: number;
+  maxAllowed: number;
+  isSubscribed: boolean;
+  reason?: string;
+}
+
+/**
+ * Vérifie si le foyer peut ajouter ou réactiver un véhicule selon son quota d'abonnement
+ */
+export function checkVehicleQuota(
+  activeVehiclesCount: number,
+  foyerMetadata?: any
+): VehicleQuotaCheckResult {
+  const metadata = foyerMetadata || {};
+  const isSubscribed = metadata.stripe_subscription_status === "active";
+
+  // Formule Découverte : 1 véhicule max
+  // Formule Premium : quota souscrit (ex: 1, 2, 3, 4+ véhicules)
+  const maxAllowed = isSubscribed
+    ? Number(metadata.max_vehicles || metadata.vehicle_quota || 4)
+    : 1;
+
+  if (activeVehiclesCount < maxAllowed) {
+    return {
+      allowed: true,
+      currentActiveCount: activeVehiclesCount,
+      maxAllowed,
+      isSubscribed,
+    };
+  }
+
+  return {
+    allowed: false,
+    currentActiveCount: activeVehiclesCount,
+    maxAllowed,
+    isSubscribed,
+    reason: isSubscribed
+      ? `Votre abonnement actuel couvre ${maxAllowed} véhicule(s). Pour activer ce véhicule supplémentaire, ajustez la capacité de votre formule.`
+      : `La formule Découverte permet de suivre 1 véhicule. Passez en Premium (à partir de 2,90€ / mois) pour gérer plusieurs véhicules dans votre foyer.`,
+  };
+}

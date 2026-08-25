@@ -26,7 +26,7 @@ export function SubscriptionModal({ isOpen, onClose, billingStatus }: Subscripti
   const handleCheckout = async () => {
     setIsLoading(true);
     try {
-      const res = await createCheckoutSessionAction({ interval });
+      const res = await createCheckoutSessionAction({ interval, vehicleCount });
       if (res.success && res.url) {
         window.location.href = res.url;
       } else {

@@ -21,6 +21,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { getFoyerOverviewAction, invalidateFoyerCache } from "@/app/actions/foyer";
+import { checkVehicleQuota } from "@/lib/integrations/stripe/quota";
 
 export interface EnrichedVehicle extends Partial<Vehicule> {
   id: string;
@@ -521,6 +522,27 @@ export async function toggleVehicleTrackingStatusAction(
   try {
     const rawId = decodeURIComponent(vehicleId).trim();
     const cleanPlate = rawId.toUpperCase().replace(/[\s-]/g, "");
+
+    // 0. Vérification du quota d'abonnement en cas de reprise de suivi (activation)
+    if (newStatus === "actif") {
+      const foyerData = await getFoyerOverviewAction();
+      const allVehs = foyerData.vehicles || [];
+      const currentActiveCount = allVehs.filter(
+        (v) =>
+          !isVehicleTrackingSuspended(v) &&
+          v.id !== rawId &&
+          v.immatriculation?.replace(/[\s-]/g, "") !== cleanPlate
+      ).length;
+
+      const quotaCheck = checkVehicleQuota(currentActiveCount, foyerData.foyer?.metadata);
+      if (!quotaCheck.allowed) {
+        return {
+          success: false,
+          status: "suspendu",
+          error: quotaCheck.reason || "Quota de véhicules atteint pour votre formule.",
+        };
+      }
+    }
 
     // 1. Sauvegarde instantanée dans les cookies sécurisés du client (persistance 1 an)
     try {
