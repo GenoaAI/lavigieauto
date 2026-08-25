@@ -60,21 +60,91 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+
+        if (customerId) {
+          const { data: foyer } = await (supabase as any)
+            .from("foyers")
+            .select("metadata")
+            .eq("metadata->>stripe_customer_id", customerId)
+            .single();
+
+          if (foyer) {
+            await (supabase as any)
+              .from("foyers")
+              .update({
+                metadata: {
+                  ...foyer.metadata,
+                  stripe_subscription_status: "active",
+                  last_payment_date: new Date().toISOString(),
+                },
+              })
+              .eq("metadata->>stripe_customer_id", customerId);
+          }
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+
+        if (customerId) {
+          const { data: foyer } = await (supabase as any)
+            .from("foyers")
+            .select("metadata")
+            .eq("metadata->>stripe_customer_id", customerId)
+            .single();
+
+          if (foyer) {
+            await (supabase as any)
+              .from("foyers")
+              .update({
+                metadata: {
+                  ...foyer.metadata,
+                  stripe_subscription_status: "past_due",
+                  last_payment_error: invoice.last_finalization_error?.message || "Échec du prélèvement",
+                },
+              })
+              .eq("metadata->>stripe_customer_id", customerId);
+          }
+        }
+        break;
+      }
+
       case "customer.subscription.updated": {
         const subscription = event.data.object;
         const customerId = subscription.customer;
 
         const status = subscription.status === "active" || subscription.status === "trialing" ? "active" : "canceled";
 
-        await (supabase as any)
+        const { data: foyer } = await (supabase as any)
           .from("foyers")
-          .update({
-            metadata: {
-              stripe_subscription_status: status,
-              stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            },
-          })
-          .eq("metadata->>stripe_customer_id", customerId);
+          .select("metadata")
+          .eq("metadata->>stripe_customer_id", customerId)
+          .single();
+
+        if (foyer) {
+          const existingMeta = foyer.metadata || {};
+          const metaVehicleCount = subscription.metadata?.vehicle_count
+            ? parseInt(subscription.metadata.vehicle_count, 10)
+            : existingMeta.max_vehicles;
+
+          await (supabase as any)
+            .from("foyers")
+            .update({
+              metadata: {
+                ...existingMeta,
+                stripe_subscription_status: status,
+                max_vehicles: metaVehicleCount || existingMeta.max_vehicles || 1,
+                vehicle_quota: metaVehicleCount || existingMeta.vehicle_quota || 1,
+                stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              },
+            })
+            .eq("metadata->>stripe_customer_id", customerId);
+        }
         break;
       }
 
@@ -82,15 +152,26 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object;
         const customerId = subscription.customer;
 
-        await (supabase as any)
+        const { data: foyer } = await (supabase as any)
           .from("foyers")
-          .update({
-            metadata: {
-              stripe_subscription_status: "canceled",
-              canceled_at: new Date().toISOString(),
-            },
-          })
-          .eq("metadata->>stripe_customer_id", customerId);
+          .select("metadata")
+          .eq("metadata->>stripe_customer_id", customerId)
+          .single();
+
+        if (foyer) {
+          await (supabase as any)
+            .from("foyers")
+            .update({
+              metadata: {
+                ...foyer.metadata,
+                stripe_subscription_status: "canceled",
+                max_vehicles: 1,
+                vehicle_quota: 1,
+                canceled_at: new Date().toISOString(),
+              },
+            })
+            .eq("metadata->>stripe_customer_id", customerId);
+        }
         break;
       }
 

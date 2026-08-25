@@ -102,11 +102,13 @@ export async function createCheckoutSessionAction(params: {
 
     const cookieStore = await cookies();
     const userEmail = cookieStore.get("gcal_user_email")?.value || (foyer as any)?.metadata?.user_email || "conducteur@lavigieauto.fr";
+    const customerId = (foyer as any)?.metadata?.stripe_customer_id;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const session = await createHouseholdSubscriptionCheckout({
       foyerId: foyer?.id || "foyer-demo",
       userEmail,
+      customerId,
       vehicleCount,
       interval: params.interval,
       returnUrl: `${appUrl}/dashboard`,

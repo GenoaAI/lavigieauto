@@ -1,9 +1,5 @@
-/**
- * Pricing logic for progressive household tiers
- * - 1st vehicle: 2.90 € / month (29 € / year)
- * - 2nd vehicle: +1.60 € / month (+16 € / year -> Total 45 € / year)
- * - 3rd+ vehicle: +1.00 € / month (+10 € / year / vehicle)
- */
+import { STRIPE_PRICING_CONFIG } from "@/config/stripe.config";
+
 export interface TierPricingResult {
   vehicleCount: number;
   monthlyTotalEur: number;
@@ -16,18 +12,18 @@ export function calculateHouseholdSubscriptionPrice(vehicleCount: number): TierP
     return { vehicleCount: 0, monthlyTotalEur: 0, annualTotalEur: 0, savingsAnnualEur: 0 };
   }
 
-  let monthly = 2.90;
-  let annual = 29.00;
+  let monthly = STRIPE_PRICING_CONFIG.baseTier.monthlyEur;
+  let annual = STRIPE_PRICING_CONFIG.baseTier.annualEur;
 
   if (vehicleCount >= 2) {
-    monthly += 1.60;
-    annual += 16.00;
+    monthly += STRIPE_PRICING_CONFIG.secondVehicleTier.monthlyEur;
+    annual += STRIPE_PRICING_CONFIG.secondVehicleTier.annualEur;
   }
 
   if (vehicleCount >= 3) {
     const additional = vehicleCount - 2;
-    monthly += additional * 1.00;
-    annual += additional * 10.00;
+    monthly += additional * STRIPE_PRICING_CONFIG.additionalVehicleTier.monthlyEur;
+    annual += additional * STRIPE_PRICING_CONFIG.additionalVehicleTier.annualEur;
   }
 
   const monthlyAnnualized = monthly * 12;
