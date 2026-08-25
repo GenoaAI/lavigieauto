@@ -59,11 +59,11 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     return false;
   }) || foyerData.vehicles[0];
 
-  if (!matched) {
-    return null;
-  }
-
   const vehicle = matched as EnrichedVehicle;
+
+  if (!vehicle.image_url && (vehicle.metadata as any)?.image_url) {
+    vehicle.image_url = (vehicle.metadata as any).image_url;
+  }
 
   if (vehicle.lignes_interventions) {
     vehicle.lignes_interventions.sort(

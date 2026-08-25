@@ -20,6 +20,7 @@ export const DEFAULT_VEHICLES_SEED: EnrichedVehicle[] = [
     usage_type: "quotidien",
     km_annuel_moyen: 15000,
     statut: "actif",
+    image_url: "/images/vehicles/suzuki-vitara-2016.jpg",
     metadata: {
       image_url: "/images/vehicles/suzuki-vitara-2016.jpg",
       tracking_status: "actif",
@@ -116,6 +117,7 @@ export const DEFAULT_VEHICLES_SEED: EnrichedVehicle[] = [
     usage_type: "quotidien",
     km_annuel_moyen: 15000,
     statut: "actif",
+    image_url: "/images/vehicles/renault-espace-noir-etoile-2021.jpg",
     metadata: {
       image_url: "/images/vehicles/renault-espace-noir-etoile-2021.jpg",
       tracking_status: "actif",
@@ -244,6 +246,7 @@ export const DEFAULT_VEHICLES_SEED: EnrichedVehicle[] = [
     usage_type: "secondaire",
     km_annuel_moyen: 9000,
     statut: "actif",
+    image_url: "/images/vehicles/renault-clio-2007.jpg",
     metadata: {
       image_url: "/images/vehicles/renault-clio-2007.jpg",
       tracking_status: "actif",
@@ -304,6 +307,7 @@ export const DEFAULT_VEHICLES_SEED: EnrichedVehicle[] = [
     usage_type: "collection",
     km_annuel_moyen: 2500,
     statut: "actif",
+    image_url: "/images/vehicles/jeep-cj.jpg",
     metadata: {
       image_url: "/images/vehicles/jeep-cj.jpg",
       tracking_status: "actif",

@@ -218,10 +218,10 @@ export default function VehicleDetailPage() {
         </div>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center gap-4 sm:gap-5">
-            {v.image_url ? (
+            {(v.metadata as any)?.image_url || v.image_url ? (
               <div className="relative w-24 h-16 sm:w-32 sm:h-20 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 shadow-sm group">
                 <img
-                  src={v.image_url}
+                  src={(v.metadata as any)?.image_url || v.image_url}
                   alt={`${v.marque} ${v.modele}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

@@ -126,10 +126,10 @@ export default async function PublicResaleReportPage({
             Certificat Officiel de Santé & Revente
           </div>
 
-          {vehicle.image_url && (
+          {((vehicle.metadata as any)?.image_url || vehicle.image_url) && (
             <div className="max-w-xs mx-auto rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
               <img
-                src={vehicle.image_url}
+                src={(vehicle.metadata as any)?.image_url || vehicle.image_url}
                 alt={`${vehicle.marque} ${vehicle.modele}`}
                 className="w-full h-40 object-cover"
               />
