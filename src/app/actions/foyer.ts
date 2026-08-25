@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { Foyer, FoyerMember } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "./vehicles";
 import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED } from "@/config/foyer.seed";
@@ -20,10 +20,21 @@ const CACHE_TTL_MS = 30000; // 30 seconds
 
 export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
   const now = Date.now();
-  const cookieStore = await cookies();
-  const userEmail = cookieStore.get("gcal_user_email")?.value || "charlesdeforges@gmail.com";
-  const userName = cookieStore.get("gcal_user_name")?.value || "Charles de Forges";
-  const userPicture = cookieStore.get("gcal_user_picture")?.value;
+  let userEmail = "charlesdeforges@gmail.com";
+  let userName = "Charles de Forges";
+  let userPicture: string | undefined = undefined;
+
+  try {
+    const cookieStore = await cookies();
+    const cEmail = cookieStore.get("gcal_user_email")?.value;
+    const cName = cookieStore.get("gcal_user_name")?.value;
+    const cPic = cookieStore.get("gcal_user_picture")?.value;
+    if (cEmail) userEmail = cEmail;
+    if (cName) userName = cName;
+    if (cPic) userPicture = cPic;
+  } catch {
+    // Safe fallback when cookies are unavailable
+  }
 
   const defaultFoyer: any = {
     id: DEFAULT_FOYER_ID,
