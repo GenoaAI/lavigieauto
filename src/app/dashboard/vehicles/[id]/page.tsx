@@ -81,10 +81,32 @@ export default function VehicleDetailPage() {
   const handleToggleStatus = async () => {
     if (!v) return;
     setIsStatusToggling(true);
+    const currentlySuspended = isVehicleTrackingSuspended(v);
+    const nextStatus: "actif" | "suspendu" = currentlySuspended ? "actif" : "suspendu";
+
+    // Mise à jour optimiste immédiate (0ms)
+    setVehicleData((prev: any) => {
+      if (!prev?.vehicle) return prev;
+      return {
+        ...prev,
+        vehicle: {
+          ...prev.vehicle,
+          statut: nextStatus,
+          metadata: {
+            ...((prev.vehicle.metadata as any) || {}),
+            tracking_status: nextStatus,
+            tracking_paused: nextStatus === "suspendu",
+          },
+        },
+      };
+    });
+
     try {
-      const currentlySuspended = isVehicleTrackingSuspended(v);
-      const nextStatus = currentlySuspended ? "actif" : "suspendu";
-      await toggleVehicleTrackingStatusAction(v.id, nextStatus);
+      const targetId = v.id || v.immatriculation || vehicleId;
+      const res = await toggleVehicleTrackingStatusAction(targetId, nextStatus);
+      if (res && !res.success && res.error) {
+        alert(res.error);
+      }
       await loadVehicle();
     } catch (err: any) {
       alert(err.message || "Erreur lors du changement de statut.");

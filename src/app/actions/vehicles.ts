@@ -19,7 +19,8 @@ import {
   snapToBusinessDay,
 } from "@/lib/types/database.types";
 import { revalidatePath } from "next/cache";
-import { getFoyerOverviewAction } from "@/app/actions/foyer";
+import { cookies } from "next/headers";
+import { getFoyerOverviewAction, invalidateFoyerCache } from "@/app/actions/foyer";
 
 export interface EnrichedVehicle extends Partial<Vehicule> {
   id: string;
@@ -60,6 +61,25 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
   }) || foyerData.vehicles[0];
 
   const vehicle = matched as EnrichedVehicle;
+
+  try {
+    const cookieStore = await cookies();
+    const cleanPlate = (vehicle.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
+    const cookieStatus =
+      cookieStore.get(`tracking_status_${vehicle.id}`)?.value ||
+      cookieStore.get(`tracking_status_${cleanPlate}`)?.value;
+
+    if (cookieStatus === "suspendu" || cookieStatus === "actif") {
+      vehicle.statut = cookieStatus === "suspendu" ? "suspendu" : "actif";
+      vehicle.metadata = {
+        ...((vehicle.metadata as any) || {}),
+        tracking_status: cookieStatus,
+        tracking_paused: cookieStatus === "suspendu",
+      };
+    }
+  } catch {
+    // Ignore cookie read error
+  }
 
   if (!vehicle.image_url && (vehicle.metadata as any)?.image_url) {
     vehicle.image_url = (vehicle.metadata as any).image_url;
@@ -499,40 +519,55 @@ export async function toggleVehicleTrackingStatusAction(
   newStatus: "actif" | "suspendu"
 ): Promise<{ success: boolean; status: "actif" | "suspendu"; error?: string }> {
   try {
-    const supabase = createAdminClient();
+    const rawId = decodeURIComponent(vehicleId).trim();
+    const cleanPlate = rawId.toUpperCase().replace(/[\s-]/g, "");
 
-    // 1. Récupérer les métadonnées actuelles du véhicule
-    const { data: vehicle } = await (supabase as any)
-      .from("vehicules")
-      .select("id, metadata, statut")
-      .eq("id", vehicleId)
-      .single();
-
-    const currentMetadata = (vehicle?.metadata && typeof vehicle.metadata === "object") ? vehicle.metadata : {};
-    const updatedMetadata = {
-      ...currentMetadata,
-      tracking_status: newStatus,
-      tracking_paused: newStatus === "suspendu",
-    };
-
-    // Utiliser 'archive' pour être 100% compatible avec les contraintes SQL PostgreSQL
-    const dbStatut = newStatus === "suspendu" ? "archive" : "actif";
-
-    const { error } = await (supabase as any)
-      .from("vehicules")
-      .update({
-        statut: dbStatut,
-        metadata: updatedMetadata,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", vehicleId);
-
-    if (error) {
-      console.error("Erreur mise à jour statut véhicule:", error);
-      throw new Error(`Erreur base de données: ${error.message}`);
+    // 1. Sauvegarde instantanée dans les cookies sécurisés du client (persistance 1 an)
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set(`tracking_status_${rawId}`, newStatus, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+      cookieStore.set(`tracking_status_${cleanPlate}`, newStatus, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+    } catch {
+      // Ignore cookie write failure
     }
 
-    // 2. Synchroniser / nettoyer l'agenda Google Calendar en arrière-plan
+    // 2. Invalidation du cache mémoire foyer
+    await invalidateFoyerCache();
+
+    // 3. Mise à jour Supabase si accessible
+    try {
+      const supabase = createAdminClient();
+      const dbStatut = newStatus === "suspendu" ? "archive" : "actif";
+
+      const { data: vehList } = await (supabase as any)
+        .from("vehicules")
+        .select("id, metadata, statut, immatriculation");
+
+      const target = (vehList || []).find((v: any) =>
+        v.id === rawId ||
+        v.immatriculation?.replace(/[\s-]/g, "") === cleanPlate
+      );
+
+      if (target) {
+        const currentMeta = (target.metadata && typeof target.metadata === "object") ? target.metadata : {};
+        await (supabase as any)
+          .from("vehicules")
+          .update({
+            statut: dbStatut,
+            metadata: {
+              ...currentMeta,
+              tracking_status: newStatus,
+              tracking_paused: newStatus === "suspendu",
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", target.id);
+      }
+    } catch (dbErr) {
+      console.warn("Supabase tracking update warning:", dbErr);
+    }
+
+    // 4. Synchroniser / nettoyer l'agenda Google Calendar en arrière-plan
     try {
       const { syncGoogleCalendarAction } = await import("./calendar");
       await syncGoogleCalendarAction();
@@ -543,6 +578,7 @@ export async function toggleVehicleTrackingStatusAction(
     try {
       revalidatePath("/dashboard");
       revalidatePath(`/dashboard/vehicles/${vehicleId}`);
+      revalidatePath(`/dashboard/vehicles/${cleanPlate}`);
     } catch {
       // Ignore
     }

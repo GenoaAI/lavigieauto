@@ -18,14 +18,20 @@ let memoryCacheResult: FoyerOverviewResult | null = null;
 let lastCacheTimestamp = 0;
 const CACHE_TTL_MS = 30000; // 30 seconds
 
+export async function invalidateFoyerCache(): Promise<void> {
+  memoryCacheResult = null;
+  lastCacheTimestamp = 0;
+}
+
 export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
   const now = Date.now();
   let userEmail = "charlesdeforges@gmail.com";
   let userName = "Charles de Forges";
   let userPicture: string | undefined = undefined;
+  let cookieStore: any = null;
 
   try {
-    const cookieStore = await cookies();
+    cookieStore = await cookies();
     const cEmail = cookieStore.get("gcal_user_email")?.value;
     const cName = cookieStore.get("gcal_user_name")?.value;
     const cPic = cookieStore.get("gcal_user_picture")?.value;
@@ -69,16 +75,42 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     },
   ];
 
+  function applyTrackingOverrides(vehs: EnrichedVehicle[]): EnrichedVehicle[] {
+    if (!cookieStore || !vehs) return vehs;
+    return vehs.map((v) => {
+      const cleanPlate = (v.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
+      const cookieStatus =
+        cookieStore.get(`tracking_status_${v.id}`)?.value ||
+        cookieStore.get(`tracking_status_${cleanPlate}`)?.value;
+
+      if (cookieStatus === "suspendu" || cookieStatus === "actif") {
+        return {
+          ...v,
+          statut: cookieStatus === "suspendu" ? "suspendu" : "actif",
+          metadata: {
+            ...((v.metadata as any) || {}),
+            tracking_status: cookieStatus,
+            tracking_paused: cookieStatus === "suspendu",
+          },
+        };
+      }
+      return v;
+    });
+  }
+
   // Return from in-memory cache if fresh (< 30s)
   if (memoryCacheResult && now - lastCacheTimestamp < CACHE_TTL_MS) {
-    return memoryCacheResult;
+    return {
+      ...memoryCacheResult,
+      vehicles: applyTrackingOverrides(memoryCacheResult.vehicles),
+    };
   }
 
   // Fast resolution: default result ready immediately in 0ms
   const fallbackResult: FoyerOverviewResult = {
     foyer: defaultFoyer,
     role: "owner",
-    vehicles: DEFAULT_VEHICLES_SEED,
+    vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
     members: defaultMembers,
   };
 
@@ -108,7 +140,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         const liveResult: FoyerOverviewResult = {
           foyer: (foyerRes.data || defaultFoyer) as Foyer,
           role: "owner",
-          vehicles: vehRes.data as EnrichedVehicle[],
+          vehicles: applyTrackingOverrides(vehRes.data as EnrichedVehicle[]),
           members: defaultMembers as FoyerMember[],
         };
         memoryCacheResult = liveResult;

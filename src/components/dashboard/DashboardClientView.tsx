@@ -84,13 +84,29 @@ export function DashboardClientView({
   const handleToggleTracking = async (vehicleId: string, currentStatus: string) => {
     setStatusLoadingId(vehicleId);
     setActionMenuVehicleId(null);
+    const targetVehicle = vehicles.find((x) => x.id === vehicleId || x.immatriculation === vehicleId);
+    const currentlySuspended = isVehicleTrackingSuspended(targetVehicle);
+    const nextStatus: "actif" | "suspendu" = currentlySuspended ? "actif" : "suspendu";
+
+    // Optimistic UI update (0ms)
+    setVehicles((prev) =>
+      prev.map((v) =>
+        v.id === vehicleId || v.immatriculation === vehicleId
+          ? {
+              ...v,
+              statut: nextStatus,
+              metadata: {
+                ...((v.metadata as any) || {}),
+                tracking_status: nextStatus,
+                tracking_paused: nextStatus === "suspendu",
+              },
+            }
+          : v
+      )
+    );
+
     try {
-      const targetVehicle = vehicles.find((x) => x.id === vehicleId);
-      const currentlySuspended = isVehicleTrackingSuspended(targetVehicle);
-      await toggleVehicleTrackingStatusAction(
-        vehicleId,
-        currentlySuspended ? "actif" : "suspendu"
-      );
+      await toggleVehicleTrackingStatusAction(vehicleId, nextStatus);
       await loadData();
     } catch (err) {
       console.error("Erreur changement de statut:", err);
