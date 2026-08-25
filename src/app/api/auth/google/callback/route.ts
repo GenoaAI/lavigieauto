@@ -8,12 +8,17 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
 
+  const proto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+  const host = req.headers.get("host") || "www.lavigieauto.com";
+  const origin = `${proto}://${host}`;
+  const redirectUri = `${origin}/api/auth/google/callback`;
+
   if (!code) {
-    return NextResponse.redirect(new URL("/dashboard?error=missing_code", req.url));
+    return NextResponse.redirect(new URL("/dashboard?error=missing_code", origin));
   }
 
   try {
-    const tokens = await exchangeCodeForTokens(code);
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
 
     // Récupérer le profil Google (Nom, Email, Photo)
     let googleProfile: { email?: string; name?: string; picture?: string } = {};
@@ -130,9 +135,9 @@ export async function GET(req: NextRequest) {
       path: "/",
     });
 
-    return NextResponse.redirect(new URL("/dashboard?calendar_connected=true&calendar_synced=true", req.url));
+    return NextResponse.redirect(new URL("/dashboard?calendar_connected=true&calendar_synced=true", origin));
   } catch (err: any) {
     console.error("Google OAuth error:", err);
-    return NextResponse.redirect(new URL(`/dashboard?error=oauth_failed&msg=${encodeURIComponent(err.message)}`, req.url));
+    return NextResponse.redirect(new URL(`/dashboard?error=oauth_failed&msg=${encodeURIComponent(err.message)}`, origin));
   }
 }
