@@ -15,6 +15,8 @@ import {
 } from "@/app/actions/vehicles";
 import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
 import { UiModeSwitch, useUiViewMode } from "@/components/ui/UiModeSwitch";
+import { UniversalCalendarDropdown } from "@/components/calendar/UniversalCalendarDropdown";
+import type { UniversalCalendarEvent } from "@/lib/calendar/universal-calendar";
 import {
   Car,
   Calendar,
@@ -256,6 +258,28 @@ export default function VehicleDetailPage() {
     },
   };
 
+  const vehicleCalendarEvents: UniversalCalendarEvent[] = echeances.length > 0
+    ? echeances.map((ech: any, idx: number) => ({
+        id: `ech-${v.id}-${idx}-${Date.now()}`,
+        title: `🔧 ${ech.libelle || "Entretien"} — ${v.marque} ${v.modele}`,
+        startDate: ech.date_preconisee || new Date().toISOString().slice(0, 10),
+        vehicleMakeModel: `${v.marque} ${v.modele}`,
+        licensePlate: v.immatriculation,
+        dueMileage: ech.km_preconise,
+        estimatedCostEur: ech.cout_estime_max,
+        description: `${ech.description || ech.libelle || "Opération d'entretien constructeur"}\nKilométrage butoir : ${(ech.km_preconise || 0).toLocaleString("fr-FR")} km\nBudget estimé : ~${ech.cout_estime_max || 180} € TTC`,
+      }))
+    : [
+        {
+          id: `ech-${v.id}-default`,
+          title: `🔧 Entretien Périodique — ${v.marque} ${v.modele}`,
+          startDate: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+          vehicleMakeModel: `${v.marque} ${v.modele}`,
+          licensePlate: v.immatriculation,
+          description: `Entretien préconisé constructeur pour ${v.marque} ${v.modele}`,
+        },
+      ];
+
   return (
     <div className="space-y-8">
       {/* Top Breadcrumb & Mode Switch */}
@@ -331,6 +355,15 @@ export default function VehicleDetailPage() {
               <PhoneCall className="w-3.5 h-3.5" />
               Geste 1 : Kit RDV
             </button>
+
+            {/* EXPORT AGENDA UNIVERSEL (.ICS, GOOGLE, OUTLOOK, YAHOO) */}
+            <UniversalCalendarDropdown
+              events={vehicleCalendarEvents}
+              variant="outline"
+              buttonLabel="Ajouter à l'agenda (.ics / Web)"
+              size="md"
+              filename={`echeances-${v.marque}-${v.modele}-${v.immatriculation}`}
+            />
 
             {/* BOUTON METTRE EN PAUSE / REPRENDRE LE SUIVI */}
             <button

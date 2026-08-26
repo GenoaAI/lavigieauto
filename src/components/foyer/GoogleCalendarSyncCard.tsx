@@ -24,6 +24,8 @@ import {
   GoogleCalendarState,
   SyncCalendarResult,
 } from "@/app/actions/calendar";
+import { UniversalCalendarDropdown } from "@/components/calendar/UniversalCalendarDropdown";
+import type { UniversalCalendarEvent } from "@/lib/calendar/universal-calendar";
 
 export function GoogleCalendarSyncCard() {
   const [state, setState] = useState<GoogleCalendarState | null>(null);
@@ -125,6 +127,27 @@ export function GoogleCalendarSyncCard() {
   const hasOAuthConfig = state?.hasOAuthConfig ?? false;
   const allVehicles = state?.allVehicles || [];
 
+  // Événements pour export universel (.ics) du foyer
+  const exportEvents: UniversalCalendarEvent[] = syncFeedback?.events && syncFeedback.events.length > 0
+    ? syncFeedback.events.map((ev, i) => ({
+        id: `foyer-sync-ev-${i}-${Date.now()}`,
+        title: `🔧 RDV ${ev.vehicle} — ${ev.title}`,
+        startDate: ev.dueDate || new Date().toISOString().slice(0, 10),
+        vehicleMakeModel: ev.vehicle,
+        licensePlate: ev.licensePlate,
+        dueMileage: ev.dueMileage,
+        estimatedCostEur: ev.estimatedCost,
+        description: `${ev.title}\nScript atelier : ${ev.phoneScript}`,
+      }))
+    : allVehicles.map((v, i) => ({
+        id: `foyer-veh-ev-${v.id}-${i}`,
+        title: `🚗 Entretien Prévisionnel : ${v.marque} ${v.modele}`,
+        startDate: new Date(Date.now() + (30 + i * 45) * 24 * 3600 * 1000).toISOString().slice(0, 10),
+        vehicleMakeModel: `${v.marque} ${v.modele}`,
+        licensePlate: v.immatriculation,
+        description: `Entretien planifié pour ${v.marque} ${v.modele} [${v.immatriculation}]`,
+      }));
+
   return (
     <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-indigo-500/20 space-y-5 relative overflow-hidden">
       {/* Background Glow */}
@@ -137,19 +160,19 @@ export function GoogleCalendarSyncCard() {
             <Calendar className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-white">Synchronisation Google Calendar</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-white">Synchronisation d'Agenda & Export Universel</h3>
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
                 isConnected
                   ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                   : "bg-slate-800 text-slate-300 border-slate-700"
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
-                {isConnected ? "Connecté & Actif" : "Non connecté"}
+                {isConnected ? "Google Calendar Actif" : "Export .ics & Google"}
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              Sous-agenda dédié : <strong className="text-indigo-200">{state?.calendarName || "🚗 Entretien Véhicules (LaVigieAuto)"}</strong>
+              Agenda dédié : <strong className="text-indigo-200">{state?.calendarName || "🚗 Entretien Véhicules (LaVigieAuto)"}</strong> • Compatible Yahoo, Outlook, Apple, Google
             </p>
           </div>
         </div>
@@ -168,7 +191,7 @@ export function GoogleCalendarSyncCard() {
                 <span>
                   {syncing
                     ? "Synchronisation..."
-                    : `Synchroniser ma sélection (${selectedVehicleIds.length}/${allVehicles.length})`}
+                    : `Synchroniser Google (${selectedVehicleIds.length}/${allVehicles.length})`}
                 </span>
               </button>
 
@@ -204,9 +227,18 @@ export function GoogleCalendarSyncCard() {
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 />
               </svg>
-              <span>Connecter mon Google Agenda</span>
+              <span>Lier Google Agenda</span>
             </a>
           )}
+
+          {/* Export Universel .ics (Yahoo / Outlook / Apple) */}
+          <UniversalCalendarDropdown
+            events={exportEvents}
+            variant="dark"
+            buttonLabel="Exporter .ics (Yahoo, Outlook...)"
+            size="md"
+            filename="agenda-entretien-foyer"
+          />
 
           <a
             href="https://calendar.google.com"
@@ -214,7 +246,7 @@ export function GoogleCalendarSyncCard() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-semibold border border-white/10 transition"
           >
-            <span>Ouvrir Google Agenda</span>
+            <span>Google Agenda</span>
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
           </a>
         </div>
@@ -303,10 +335,13 @@ export function GoogleCalendarSyncCard() {
         <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2 text-xs">
           <div className="flex items-start gap-2.5">
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-slate-200">Comment fonctionne la synchronisation personnalisée ?</p>
+            <div className="space-y-1.5">
+              <p className="font-bold text-slate-200">Synchronisation sur-mesure & Liberté de choix de messagerie :</p>
               <p className="text-slate-300 leading-relaxed text-[11.5px]">
-                Chaque conducteur du foyer peut connecter son propre Google Calendar et <strong>choisir précisément les véhicules qu'il conduit</strong> (ex: le 4x4 Jeep + la citadine Clio) sans encombrer son agenda avec les véhicules des autres membres.
+                Vous êtes libre d'utiliser <strong>n'importe quelle adresse email</strong> (Yahoo, Outlook, Gmail, Orange, iCloud...). Vous pouvez au choix lier un Google Agenda dédié en un clic, ou <strong>exporter l'intégralité de vos échéances au format .ics</strong> directement lisible par Apple Calendar, Yahoo Mail et Microsoft Outlook.
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                Chaque conducteur du foyer peut également <strong>sélectionner uniquement les véhicules qu'il conduit</strong> afin de ne recevoir que les alertes pertinentes pour son quotidien.
               </p>
             </div>
           </div>

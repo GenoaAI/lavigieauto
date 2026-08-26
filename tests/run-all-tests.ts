@@ -15,6 +15,8 @@ import { testVehicleLifecycleManagement } from "./vehicle-lifecycle.test";
 import { testFeedbackIntegration } from "./feedback.test";
 import { testGarageResolver } from "./garage-resolver.test";
 import { testHouseholdNameManagement } from "./household-name.test";
+import { testTireSearchService } from "./tire-search.test";
+import { testHouseholdInvitationAndUniversalCalendar } from "./household-invitation-calendar.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -26,6 +28,7 @@ async function runAllTests() {
   let failed = 0;
 
   const testSuites = [
+    { name: "Invitation Foyer Universelle (Multi-Webmails) & Export Calendrier (ICS/URLs)", fn: testHouseholdInvitationAndUniversalCalendar },
     { name: "Édition Sécurisée du Nom de Foyer (Zod, Sanitizer & Server Action)", fn: testHouseholdNameManagement },
     { name: "Gestion du Cycle de Vie Véhicule (Suspension & Suppression)", fn: testVehicleLifecycleManagement },
     { name: "Architecture Responsive & Mobile-First (Navigation, Dropzone & Modales)", fn: testMobileResponsiveArchitecture },
@@ -36,6 +39,7 @@ async function runAllTests() {
     { name: "Audit Mathématique Rigoureux des Échéances (Temps vs KM)", fn: runScheduleMathAuditTests },
     { name: "Regroupement Intelligent d'Atelier & Tolérance (Smart Bundling)", fn: testBundlingEngine },
     { name: "Moteur de Suivi Prédictif des Pneumatiques (Train AV/AR)", fn: testTireEngine },
+    { name: "Comparateur de Pneumatiques & Agrégation Pose / Équilibrage", fn: testTireSearchService },
     { name: "Sélection Intelligente & Pondération du Garagiste Recommandé", fn: testGarageResolver },
     { name: "Générateur du Kit Prêt-à-Réserver (Geste 1)", fn: testReservationKit },
     { name: "Calculateur du Score de Conformité & Revente", fn: testConformityScore },
