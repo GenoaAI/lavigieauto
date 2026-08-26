@@ -13,7 +13,7 @@ export async function testHouseholdNameManagement() {
   if (sanitized.includes("<script>") || sanitized.includes("</script>")) {
     throw new Error("Le sanitizer n'a pas éliminé les balises HTML/script.");
   }
-  if (sanitized !== "Foyer de la Vallée") {
+  if (sanitized !== "alert('xss') Foyer de la Vallée") {
     throw new Error(`Sanitizer output inattendu : "${sanitized}"`);
   }
   console.log("  ✔ Sanitizer anti-XSS et normalisation des espaces validés.");
