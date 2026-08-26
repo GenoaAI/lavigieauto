@@ -22,4 +22,12 @@ export async function testMobileResponsiveArchitecture() {
     throw new Error("Le composant ReservationKitModal n'est pas exporté.");
   }
   console.log("  ✔ ReservationKitModal validé en Bottom Sheet coulissante pour mobile.");
+
+  // 4. Validation des critères Safe-Area & Tap Target mobile
+  const fs = await import("fs");
+  const navSource = fs.readFileSync("src/components/layout/MobileBottomNav.tsx", "utf-8");
+  if (!navSource.includes("safe-area-inset-bottom") || !navSource.includes("min-w-[48px]")) {
+    throw new Error("MobileBottomNav ne respecte pas les critères safe-area et tap-target minimum.");
+  }
+  console.log("  ✔ MobileBottomNav validé avec intégration safe-area et cibles tactiles >= 48px.");
 }

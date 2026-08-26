@@ -162,7 +162,7 @@ export function FeedbackDrawer() {
       {/* Bouton Flottant (FAB) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="feedback-trigger-btn fixed bottom-20 md:bottom-6 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 active:scale-95 transition duration-200 border border-blue-400/30"
+        className="feedback-trigger-btn fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 active:scale-95 transition duration-200 border border-blue-400/30 touch-manipulation"
         title="Donner un avis / Signaler un bug"
         aria-label="Ouvrir le formulaire de feedback"
       >

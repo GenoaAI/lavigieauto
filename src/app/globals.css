@@ -33,6 +33,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 @keyframes slideInRight {
   from {
     opacity: 0;
