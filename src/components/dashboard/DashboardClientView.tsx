@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
@@ -79,12 +79,51 @@ export function DashboardClientView({
     }
   };
 
+  useEffect(() => {
+    try {
+      setVehicles((prev) =>
+        prev.map((v) => {
+          const cleanPlate = (v.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
+          const localStatus =
+            localStorage.getItem(`tracking_status_${v.id}`) ||
+            localStorage.getItem(`tracking_status_${cleanPlate}`);
+          if (localStatus === "suspendu" || localStatus === "actif") {
+            return {
+              ...v,
+              statut: localStatus as any,
+              metadata: {
+                ...((v.metadata as any) || {}),
+                tracking_status: localStatus,
+                tracking_paused: localStatus === "suspendu",
+              },
+            };
+          }
+          return v;
+        })
+      );
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   const handleToggleTracking = async (vehicleId: string, currentStatus: string) => {
     setStatusLoadingId(vehicleId);
     setActionMenuVehicleId(null);
     const targetVehicle = vehicles.find((x) => x.id === vehicleId || x.immatriculation === vehicleId);
     const currentlySuspended = isVehicleTrackingSuspended(targetVehicle);
     const nextStatus: "actif" | "suspendu" = currentlySuspended ? "actif" : "suspendu";
+
+    try {
+      if (targetVehicle?.id) localStorage.setItem(`tracking_status_${targetVehicle.id}`, nextStatus);
+      if (targetVehicle?.immatriculation) {
+        const cleanPlate = targetVehicle.immatriculation.toUpperCase().replace(/[\s-]/g, "");
+        localStorage.setItem(`tracking_status_${cleanPlate}`, nextStatus);
+        localStorage.setItem(`tracking_status_${targetVehicle.immatriculation}`, nextStatus);
+      }
+      localStorage.setItem(`tracking_status_${vehicleId}`, nextStatus);
+    } catch {
+      // Ignore
+    }
 
     // Optimistic UI update (0ms)
     setVehicles((prev) =>

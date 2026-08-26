@@ -54,12 +54,17 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
   const isCharlesDeForges = userEmail.toLowerCase() === "charlesdeforges@gmail.com";
 
   function applyTrackingOverrides(vehs: EnrichedVehicle[]): EnrichedVehicle[] {
-    if (!cookieStore || !vehs) return vehs;
+    if (!vehs) return [];
     return vehs.map((v) => {
       const cleanPlate = (v.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
-      const cookieStatus =
-        cookieStore.get(`tracking_status_${v.id}`)?.value ||
-        cookieStore.get(`tracking_status_${cleanPlate}`)?.value;
+      const cleanId = (v.id || "").toUpperCase().replace(/[\s-]/g, "");
+      const rawPlate = (v.immatriculation || "").toUpperCase().trim();
+      const cookieStatus = cookieStore
+        ? cookieStore.get(`tracking_status_${v.id}`)?.value ||
+          cookieStore.get(`tracking_status_${cleanId}`)?.value ||
+          (rawPlate ? cookieStore.get(`tracking_status_${rawPlate}`)?.value : undefined) ||
+          (cleanPlate ? cookieStore.get(`tracking_status_${cleanPlate}`)?.value : undefined)
+        : undefined;
 
       if (cookieStatus === "suspendu" || cookieStatus === "actif") {
         return {
@@ -72,6 +77,25 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
           },
         };
       }
+
+      // Si enregistré en base de données comme archivé/suspendu
+      if (
+        v.statut === "suspendu" ||
+        v.statut === "archive" ||
+        (v.metadata as any)?.tracking_status === "suspendu" ||
+        (v.metadata as any)?.tracking_paused === true
+      ) {
+        return {
+          ...v,
+          statut: "suspendu",
+          metadata: {
+            ...((v.metadata as any) || {}),
+            tracking_status: "suspendu",
+            tracking_paused: true,
+          },
+        };
+      }
+
       return v;
     });
   }
@@ -133,7 +157,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
           .order("created_at", { ascending: true }),
       ]);
 
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 600));
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
       const raceResult: any = await Promise.race([dbQueryPromise, timeoutPromise]);
 
       if (raceResult && Array.isArray(raceResult)) {

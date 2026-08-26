@@ -66,9 +66,13 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
   try {
     const cookieStore = await cookies();
     const cleanPlate = (vehicle.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
+    const cleanId = (vehicle.id || "").toUpperCase().replace(/[\s-]/g, "");
+    const rawPlate = (vehicle.immatriculation || "").toUpperCase().trim();
     const cookieStatus =
       cookieStore.get(`tracking_status_${vehicle.id}`)?.value ||
-      cookieStore.get(`tracking_status_${cleanPlate}`)?.value;
+      cookieStore.get(`tracking_status_${cleanId}`)?.value ||
+      (rawPlate ? cookieStore.get(`tracking_status_${rawPlate}`)?.value : undefined) ||
+      (cleanPlate ? cookieStore.get(`tracking_status_${cleanPlate}`)?.value : undefined);
 
     if (cookieStatus === "suspendu" || cookieStatus === "actif") {
       vehicle.statut = cookieStatus === "suspendu" ? "suspendu" : "actif";
@@ -76,6 +80,18 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
         ...((vehicle.metadata as any) || {}),
         tracking_status: cookieStatus,
         tracking_paused: cookieStatus === "suspendu",
+      };
+    } else if (
+      vehicle.statut === "suspendu" ||
+      vehicle.statut === "archive" ||
+      (vehicle.metadata as any)?.tracking_status === "suspendu" ||
+      (vehicle.metadata as any)?.tracking_paused === true
+    ) {
+      vehicle.statut = "suspendu";
+      vehicle.metadata = {
+        ...((vehicle.metadata as any) || {}),
+        tracking_status: "suspendu",
+        tracking_paused: true,
       };
     }
   } catch {
@@ -520,18 +536,35 @@ export async function toggleVehicleTrackingStatusAction(
   newStatus: "actif" | "suspendu"
 ): Promise<{ success: boolean; status: "actif" | "suspendu"; error?: string }> {
   try {
-    const rawId = decodeURIComponent(vehicleId).trim();
-    const cleanPlate = rawId.toUpperCase().replace(/[\s-]/g, "");
+    const rawQuery = decodeURIComponent(vehicleId || "").trim();
+    const cleanQuery = rawQuery.toUpperCase().replace(/[\s-]/g, "");
 
-    // 0. Vérification du quota d'abonnement en cas de reprise de suivi (activation)
+    // 0. Résolution du véhicule ciblé pour obtenir tous ses identifiants
+    const foyerData = await getFoyerOverviewAction();
+    const allVehs = foyerData.vehicles || [];
+    const matchedVehicle = allVehs.find((v) => {
+      if (v.id === vehicleId || v.id === rawQuery) return true;
+      if (v.immatriculation) {
+        const vImm = v.immatriculation.trim().toUpperCase();
+        const vClean = vImm.replace(/[\s-]/g, "");
+        return vImm === rawQuery.toUpperCase() || vClean === cleanQuery;
+      }
+      return false;
+    });
+
+    const vId = matchedVehicle?.id || rawQuery;
+    const cleanId = (vId || "").toUpperCase().replace(/[\s-]/g, "");
+    const rawPlate = matchedVehicle?.immatriculation || (rawQuery.includes("-") || rawQuery.length <= 10 ? rawQuery : "");
+    const cleanPlate = rawPlate ? rawPlate.toUpperCase().replace(/[\s-]/g, "") : cleanQuery;
+
+    // 1. Vérification du quota d'abonnement en cas de reprise de suivi (activation)
     if (newStatus === "actif") {
-      const foyerData = await getFoyerOverviewAction();
-      const allVehs = foyerData.vehicles || [];
       const currentActiveCount = allVehs.filter(
         (v) =>
           !isVehicleTrackingSuspended(v) &&
-          v.id !== rawId &&
-          v.immatriculation?.replace(/[\s-]/g, "") !== cleanPlate
+          v.id !== vId &&
+          v.id !== rawQuery &&
+          v.immatriculation?.replace(/[\s-]/g, "").toUpperCase() !== cleanPlate
       ).length;
 
       const quotaCheck = checkVehicleQuota(currentActiveCount, foyerData.foyer?.metadata);
@@ -544,19 +577,33 @@ export async function toggleVehicleTrackingStatusAction(
       }
     }
 
-    // 1. Sauvegarde instantanée dans les cookies sécurisés du client (persistance 1 an)
+    // 2. Sauvegarde exhaustive et instantanée dans les cookies sécurisés (persistance 1 an)
     try {
       const cookieStore = await cookies();
-      cookieStore.set(`tracking_status_${rawId}`, newStatus, { path: "/", maxAge: 60 * 60 * 24 * 365 });
-      cookieStore.set(`tracking_status_${cleanPlate}`, newStatus, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+      const cookieKeys = Array.from(
+        new Set(
+          [
+            vId ? `tracking_status_${vId}` : null,
+            cleanId ? `tracking_status_${cleanId}` : null,
+            rawPlate ? `tracking_status_${rawPlate}` : null,
+            cleanPlate ? `tracking_status_${cleanPlate}` : null,
+            rawQuery ? `tracking_status_${rawQuery}` : null,
+            cleanQuery ? `tracking_status_${cleanQuery}` : null,
+          ].filter(Boolean) as string[]
+        )
+      );
+
+      for (const key of cookieKeys) {
+        cookieStore.set(key, newStatus, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+      }
     } catch {
       // Ignore cookie write failure
     }
 
-    // 2. Invalidation du cache mémoire foyer
+    // 3. Invalidation du cache mémoire foyer
     await invalidateFoyerCache();
 
-    // 3. Mise à jour Supabase si accessible
+    // 4. Mise à jour Supabase si accessible
     try {
       const supabase = createAdminClient();
       const dbStatut = newStatus === "suspendu" ? "archive" : "actif";
@@ -566,8 +613,10 @@ export async function toggleVehicleTrackingStatusAction(
         .select("id, metadata, statut, immatriculation");
 
       const target = (vehList || []).find((v: any) =>
-        v.id === rawId ||
-        v.immatriculation?.replace(/[\s-]/g, "") === cleanPlate
+        v.id === vId ||
+        v.id === rawQuery ||
+        (v.immatriculation && v.immatriculation.replace(/[\s-]/g, "").toUpperCase() === cleanPlate) ||
+        (v.immatriculation && v.immatriculation.trim().toUpperCase() === rawQuery.toUpperCase())
       );
 
       if (target) {
@@ -589,7 +638,7 @@ export async function toggleVehicleTrackingStatusAction(
       console.warn("Supabase tracking update warning:", dbErr);
     }
 
-    // 4. Synchroniser / nettoyer l'agenda Google Calendar en arrière-plan
+    // 5. Synchroniser / nettoyer l'agenda Google Calendar en arrière-plan
     try {
       const { syncGoogleCalendarAction } = await import("./calendar");
       await syncGoogleCalendarAction();
@@ -599,8 +648,9 @@ export async function toggleVehicleTrackingStatusAction(
 
     try {
       revalidatePath("/dashboard");
-      revalidatePath(`/dashboard/vehicles/${vehicleId}`);
-      revalidatePath(`/dashboard/vehicles/${cleanPlate}`);
+      if (vId) revalidatePath(`/dashboard/vehicles/${vId}`);
+      if (rawPlate) revalidatePath(`/dashboard/vehicles/${rawPlate}`);
+      if (cleanPlate) revalidatePath(`/dashboard/vehicles/${cleanPlate}`);
     } catch {
       // Ignore
     }

@@ -84,6 +84,18 @@ export default function VehicleDetailPage() {
     const currentlySuspended = isVehicleTrackingSuspended(v);
     const nextStatus: "actif" | "suspendu" = currentlySuspended ? "actif" : "suspendu";
 
+    try {
+      if (v.id) localStorage.setItem(`tracking_status_${v.id}`, nextStatus);
+      if (v.immatriculation) {
+        const cleanPlate = v.immatriculation.toUpperCase().replace(/[\s-]/g, "");
+        localStorage.setItem(`tracking_status_${cleanPlate}`, nextStatus);
+        localStorage.setItem(`tracking_status_${v.immatriculation}`, nextStatus);
+      }
+      if (vehicleId) localStorage.setItem(`tracking_status_${vehicleId}`, nextStatus);
+    } catch {
+      // Ignore
+    }
+
     // Mise à jour optimiste immédiate (0ms)
     setVehicleData((prev: any) => {
       if (!prev?.vehicle) return prev;

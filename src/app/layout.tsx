@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText } from "lucide-react";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { UserNavHeader } from "@/components/layout/UserNavHeader";
+import { FeedbackDrawer } from "@/components/feedback/FeedbackDrawer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -59,8 +60,12 @@ export default function RootLayout({
         {/* Main Content */}
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
 
+        {/* Module Feedback MicroKanban Intégré */}
+        <FeedbackDrawer />
+
         {/* Barre de navigation basse pour mobile */}
         <MobileBottomNav />
+
 
         {/* Footer */}
         <footer className="bg-slate-900 text-white py-12 border-t border-slate-800">

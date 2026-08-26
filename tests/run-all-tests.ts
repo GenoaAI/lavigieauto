@@ -12,6 +12,7 @@ import { runSkillsLoaderTest } from "./skills-loader.test";
 import { testCalendarSyncEngine } from "./calendar-sync.test";
 import { testMobileResponsiveArchitecture } from "./mobile-responsive.test";
 import { testVehicleLifecycleManagement } from "./vehicle-lifecycle.test";
+import { testFeedbackIntegration } from "./feedback.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -37,7 +38,9 @@ async function runAllTests() {
     { name: "Facturation Dégressive Stripe (Foyer Multi-Véhicules)", fn: testStripePricing },
     { name: "Normalisation Multi-Documents (Cartes Grises, Factures, PV CT)", fn: runDocumentExtractionTests },
     { name: "Coffre-fort Documentaire (Supabase Storage & Nomenclature)", fn: testVaultStorageConfiguration },
+    { name: "Système de Feedback Intégré & Webhook MicroKanban", fn: testFeedbackIntegration },
   ];
+
 
   for (const suite of testSuites) {
     try {
