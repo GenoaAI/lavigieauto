@@ -28,15 +28,20 @@ export async function createClient() {
   );
 }
 
+let cachedAdminClient: any = null;
+
 export function createAdminClient() {
-  return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://mock.supabase.co",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || "mock-service-role-key",
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
+  if (!cachedAdminClient) {
+    cachedAdminClient = createSupabaseClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://mock.supabase.co",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || "mock-service-role-key",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+  }
+  return cachedAdminClient;
 }

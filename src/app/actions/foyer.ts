@@ -14,8 +14,12 @@ export interface FoyerOverviewResult {
   garages: Garage[];
 }
 
+// Cache mémoire en arrière-plan ultra-rapide (TTL: 10 secondes)
+let memoryCache: { key: string; data: FoyerOverviewResult; timestamp: number } | null = null;
+const MEMORY_CACHE_TTL_MS = 10000;
+
 export async function invalidateFoyerCache(): Promise<void> {
-  // Invalidation sans état global partagé
+  memoryCache = null;
 }
 
 export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
@@ -101,6 +105,16 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     });
   }
 
+  // Vérifier si un cache récent existe pour cet utilisateur
+  const cacheKey = `${userEmail.toLowerCase()}_${cookieStore?.get("gcal_access_token")?.value ? "gcal" : "nogcal"}`;
+  const now = Date.now();
+  if (memoryCache && memoryCache.key === cacheKey && (now - memoryCache.timestamp) < MEMORY_CACHE_TTL_MS) {
+    return {
+      ...memoryCache.data,
+      vehicles: applyTrackingOverrides(memoryCache.data.vehicles),
+    };
+  }
+
   // 1. CAS DU FOYER PRINCIPAL CHARLES DE FORGES
   if (isCharlesDeForges) {
     const defaultFoyer: Foyer = {
@@ -138,49 +152,71 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
     try {
       const adminSupabase = createAdminClient();
-      const dbQueryPromise = Promise.all([
-        (adminSupabase as any)
-          .from("foyers")
-          .select("*")
-          .eq("id", DEFAULT_FOYER_ID)
-          .maybeSingle(),
-        (adminSupabase as any)
-          .from("vehicules")
-          .select(`
-            *,
-            documents_sources (*),
-            lignes_interventions (*),
-            defaillances_ct (*),
-            echeances_previsionnelles (*),
-            audits_conformite (*)
-          `)
-          .eq("foyer_id", DEFAULT_FOYER_ID)
-          .order("created_at", { ascending: true }),
-        (adminSupabase as any)
-          .from("garages")
-          .select("*")
-          .eq("foyer_id", DEFAULT_FOYER_ID)
-          .order("nom", { ascending: true }),
+      const [foyerRes, vehRes, docsRes, linesRes, defsRes, echsRes, auditsRes, garagesRes] = await Promise.all([
+        (adminSupabase as any).from("foyers").select("*").eq("id", DEFAULT_FOYER_ID).maybeSingle(),
+        (adminSupabase as any).from("vehicules").select("*").eq("foyer_id", DEFAULT_FOYER_ID).order("created_at", { ascending: true }),
+        (adminSupabase as any).from("documents_sources").select("*").eq("foyer_id", DEFAULT_FOYER_ID).order("date_document", { ascending: false }),
+        (adminSupabase as any).from("lignes_interventions").select("*").eq("foyer_id", DEFAULT_FOYER_ID).order("date_intervention", { ascending: false }),
+        (adminSupabase as any).from("defaillances_ct").select("*").eq("foyer_id", DEFAULT_FOYER_ID),
+        (adminSupabase as any).from("echeances_previsionnelles").select("*").eq("foyer_id", DEFAULT_FOYER_ID),
+        (adminSupabase as any).from("audits_conformite").select("*").eq("foyer_id", DEFAULT_FOYER_ID),
+        (adminSupabase as any).from("garages").select("*").eq("foyer_id", DEFAULT_FOYER_ID).order("nom", { ascending: true }),
       ]);
 
-      const [foyerRes, vehRes, garagesRes] = await dbQueryPromise;
-      const fetchedGarages = garagesRes?.data && garagesRes.data.length > 0 ? (garagesRes.data as Garage[]) : (DEFAULT_GARAGES_SEED as Garage[]);
-      const fetchedVehicles = vehRes?.data && vehRes.data.length > 0 ? (vehRes.data as EnrichedVehicle[]) : (DEFAULT_VEHICLES_SEED as EnrichedVehicle[]);
+      const rawVehicles = (vehRes?.data || []) as any[];
+      const allDocs = (docsRes?.data || []) as any[];
+      const allLines = (linesRes?.data || []) as any[];
+      const allDefs = (defsRes?.data || []) as any[];
+      const allEchs = (echsRes?.data || []) as any[];
+      const allAudits = (auditsRes?.data || []) as any[];
 
-      return {
+      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.length > 0
+        ? rawVehicles.map((v) => ({
+            ...v,
+            documents_sources: allDocs.filter((d) => d.vehicule_id === v.id),
+            lignes_interventions: allLines.filter((l) => l.vehicule_id === v.id),
+            defaillances_ct: allDefs.filter((d) => d.vehicule_id === v.id),
+            echeances_previsionnelles: allEchs.filter((e) => e.vehicule_id === v.id),
+            audits_conformite: allAudits.filter((a) => a.vehicule_id === v.id),
+          }))
+        : (DEFAULT_VEHICLES_SEED as EnrichedVehicle[]);
+
+      const fetchedGarages = garagesRes?.data && garagesRes.data.length > 0 ? (garagesRes.data as Garage[]) : (DEFAULT_GARAGES_SEED as Garage[]);
+
+      const result: FoyerOverviewResult = {
         foyer: (foyerRes?.data || defaultFoyer) as Foyer,
         role: "owner",
-        vehicles: applyTrackingOverrides(fetchedVehicles),
+        vehicles: fetchedVehicles,
         members: defaultMembers,
         garages: fetchedGarages,
       };
-    } catch {
+
+      memoryCache = {
+        key: cacheKey,
+        data: result,
+        timestamp: Date.now(),
+      };
+
       return {
+        ...result,
+        vehicles: applyTrackingOverrides(fetchedVehicles),
+      };
+    } catch {
+      const fallbackResult: FoyerOverviewResult = {
         foyer: defaultFoyer,
         role: "owner",
-        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
+        vehicles: DEFAULT_VEHICLES_SEED,
         members: defaultMembers,
         garages: DEFAULT_GARAGES_SEED as Garage[],
+      };
+      memoryCache = {
+        key: cacheKey,
+        data: fallbackResult,
+        timestamp: Date.now(),
+      };
+      return {
+        ...fallbackResult,
+        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
       };
     }
   }
@@ -209,7 +245,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     {
       id: `mem-${userId || userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`,
       foyer_id: customFoyerId,
-      user_id: userId || `user-${userEmail}`,
+      user_id: userId || `user-${userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`,
       role: "owner",
       metadata: {
         name: userName || userEmail.split("@")[0],
@@ -235,32 +271,49 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     );
 
     if (matchedFoyer) {
-      const [vehRes, garagesRes] = await Promise.all([
-        (adminSupabase as any)
-          .from("vehicules")
-          .select(`
-            *,
-            documents_sources (*),
-            lignes_interventions (*),
-            defaillances_ct (*),
-            echeances_previsionnelles (*),
-            audits_conformite (*)
-          `)
-          .eq("foyer_id", matchedFoyer.id)
-          .order("created_at", { ascending: true }),
-        (adminSupabase as any)
-          .from("garages")
-          .select("*")
-          .eq("foyer_id", matchedFoyer.id)
-          .order("nom", { ascending: true }),
+      const [vehRes, docsRes, linesRes, defsRes, echsRes, auditsRes, garagesRes] = await Promise.all([
+        (adminSupabase as any).from("vehicules").select("*").eq("foyer_id", matchedFoyer.id).order("created_at", { ascending: true }),
+        (adminSupabase as any).from("documents_sources").select("*").eq("foyer_id", matchedFoyer.id).order("date_document", { ascending: false }),
+        (adminSupabase as any).from("lignes_interventions").select("*").eq("foyer_id", matchedFoyer.id).order("date_intervention", { ascending: false }),
+        (adminSupabase as any).from("defaillances_ct").select("*").eq("foyer_id", matchedFoyer.id),
+        (adminSupabase as any).from("echeances_previsionnelles").select("*").eq("foyer_id", matchedFoyer.id),
+        (adminSupabase as any).from("audits_conformite").select("*").eq("foyer_id", matchedFoyer.id),
+        (adminSupabase as any).from("garages").select("*").eq("foyer_id", matchedFoyer.id).order("nom", { ascending: true }),
       ]);
 
-      return {
+      const rawVehicles = (vehRes?.data || []) as any[];
+      const allDocs = (docsRes?.data || []) as any[];
+      const allLines = (linesRes?.data || []) as any[];
+      const allDefs = (defsRes?.data || []) as any[];
+      const allEchs = (echsRes?.data || []) as any[];
+      const allAudits = (auditsRes?.data || []) as any[];
+
+      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => ({
+        ...v,
+        documents_sources: allDocs.filter((d) => d.vehicule_id === v.id),
+        lignes_interventions: allLines.filter((l) => l.vehicule_id === v.id),
+        defaillances_ct: allDefs.filter((d) => d.vehicule_id === v.id),
+        echeances_previsionnelles: allEchs.filter((e) => e.vehicule_id === v.id),
+        audits_conformite: allAudits.filter((a) => a.vehicule_id === v.id),
+      }));
+
+      const customResult: FoyerOverviewResult = {
         foyer: matchedFoyer as Foyer,
         role: "owner",
-        vehicles: applyTrackingOverrides((vehRes.data || []) as EnrichedVehicle[]),
+        vehicles: fetchedVehicles,
         members: customMembers,
-        garages: (garagesRes.data || []) as Garage[],
+        garages: (garagesRes?.data || []) as Garage[],
+      };
+
+      memoryCache = {
+        key: cacheKey,
+        data: customResult,
+        timestamp: Date.now(),
+      };
+
+      return {
+        ...customResult,
+        vehicles: applyTrackingOverrides(fetchedVehicles),
       };
     }
 
