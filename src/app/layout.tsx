@@ -8,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "LaVigieAuto — La Vigie Automobile Intelligente du Foyer",
-  description: "Zéro oubli mécanique, zéro facture égarée. Pilotez l'entretien de tous les véhicules de votre foyer en 2 gestes simples grâce à l'IA.",
+  description: "Zéro oubli mécanique, zéro facture égarée. Pilotez l'entretien de tous les véhicules de votre foyer en 2 gestes simples grâce à l'assistant.",
 };
 
 export default function RootLayout({

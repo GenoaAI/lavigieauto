@@ -136,7 +136,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
 
     const data = extractionResult.data;
 
-    // Auto-détection intelligente du type de document d'après le contenu réel extrait par l'IA
+    // Auto-détection intelligente du type de document d'après le contenu réel extrait par l'assistant
     if (data.control_technique || data.inspectionResult || data.centre_controle || data.defaillances || (data.defects && data.defects.length > 0)) {
       documentType = "controle_technique";
     } else if (data["D.1"] || data.typeVariantVersion || (data.firstRegistrationDate && !data.invoice && !data.facture && !data.garage && !data.prestations)) {

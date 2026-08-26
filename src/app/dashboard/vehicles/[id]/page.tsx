@@ -394,7 +394,7 @@ export default function VehicleDetailPage() {
                 ? pace.readingsCount >= 2
                   ? `Calculé sur ${pace.readingsCount} relevés certifiés (~${pace.annualMileageKm.toLocaleString("fr-FR")} km/an)`
                   : `Rythme de roulage estimé : ~${pace.annualMileageKm.toLocaleString("fr-FR")} km/an (~${pace.dailyKmRate} km/jour)`
-                : "L'IA calculera le rythme dès votre 1ère facture"}
+                : "L'assistant calculera le rythme dès votre 1ère facture"}
             </p>
           </div>
 

@@ -125,7 +125,7 @@ export default function LandingPage() {
           totalTTC: 85.0,
           operations: [
             { label: "Contrôle réglementaire périodique VL", category: "Contrôle Technique", verified: true },
-            { label: "Défaillance Mineure : 5.2.3.e.1 Pneumatiques usure anormale AVD", category: "Vulgarisé par l'IA", verified: false },
+            { label: "Défaillance Mineure : 5.2.3.e.1 Pneumatiques usure anormale AVD", category: "Vulgarisé par l'assistant", verified: false },
           ],
         },
         conformityImpact: {
@@ -361,7 +361,7 @@ export default function LandingPage() {
             La Promesse des 2 Gestes. Rien de plus.
           </h2>
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Vous ne perdez plus jamais votre samedi matin à chercher une référence d'huile ou un devis. L'IA gère la mécanique, vous ne faites que 2 actions rapides par an.
+            Vous ne perdez plus jamais votre samedi matin à chercher une référence d'huile ou un devis. L'assistant gère la mécanique, vous ne faites que 2 actions rapides par an.
           </p>
         </div>
 
@@ -385,7 +385,7 @@ export default function LandingPage() {
                   Vous appelez le garage
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  L'IA génère votre <strong>Kit Prêt-à-Réserver</strong>. Vous lisez simplement le script verbal fourni ou copiez le texte par SMS. Vous demandez exactement les bonnes pièces sans risque de devis gonflé.
+                  L'assistant génère votre <strong>Kit Prêt-à-Réserver</strong>. Vous lisez simplement le script verbal fourni ou copiez le texte par SMS. Vous demandez exactement les bonnes pièces sans risque de devis gonflé.
                 </p>
               </div>
 

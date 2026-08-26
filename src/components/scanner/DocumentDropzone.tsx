@@ -49,7 +49,7 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
         formData.append("documentType", "facture");
       }
 
-      setProgressStep("Extraction visuelle par l'IA en cours...");
+      setProgressStep("Extraction visuelle par l'assistant en cours...");
       const result = await processDocumentAction(formData);
 
       if (result.success && result.extraction) {
@@ -190,7 +190,7 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
         <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-3">
           <div className="flex items-center gap-2 font-bold text-sm">
             <CheckCircle className="w-5 h-5 text-emerald-600" />
-            <span>Document analysé avec succès par l'IA</span>
+            <span>Document analysé avec succès par l'assistant</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="bg-white/80 p-3 rounded-xl space-y-0.5">

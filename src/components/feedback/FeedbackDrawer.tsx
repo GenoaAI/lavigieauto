@@ -316,7 +316,7 @@ export function FeedbackDrawer() {
 
             {/* Note d'information */}
             <div className="rounded-lg bg-blue-50/60 p-2.5 border border-blue-100 text-[11px] text-slate-600">
-              <span className="font-semibold text-blue-800">Auto-rédaction MicroKanban :</span> Votre retour est automatiquement qualifié par l&apos;IA pour créer un ticket actionnable avec prompt de correctif dans le projet LaVigieAuto.
+              <span className="font-semibold text-blue-800">Auto-rédaction MicroKanban :</span> Votre retour est automatiquement qualifié par l&apos;assistant pour créer un ticket actionnable avec prompt de correctif dans le projet LaVigieAuto.
             </div>
           </div>
 

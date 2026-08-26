@@ -78,7 +78,7 @@ export default async function PublicResaleReportPage({
     {
       title: "Cohérence de la progression kilométrique",
       status: "VALID",
-      detail: `Kilométrage certifié cohérent (${(vehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km) avec progression linéaire vérifiée par l'IA.`,
+      detail: `Kilométrage certifié cohérent (${(vehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km) avec progression linéaire vérifiée par l'assistant.`,
     },
     {
       title: "Contrôle Technique & Organes de sécurité",
@@ -95,7 +95,7 @@ export default async function PublicResaleReportPage({
     {
       title: "Traçabilité des factures d'ateliers",
       status: "VALID",
-      detail: "Toutes les opérations proviennent de factures professionnelles numérisées et vérifiées par l'IA.",
+      detail: "Toutes les opérations proviennent de factures professionnelles numérisées et vérifiées par l'assistant.",
     },
   ];
 
