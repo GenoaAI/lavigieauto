@@ -27,3 +27,34 @@ export function sanitizeString(input: string): string {
 export function sanitizeHouseholdName(input: string): string {
   return sanitizeString(input);
 }
+
+/**
+ * Assainit une dimension de pneumatique (ex: "215/55 R17 94W" ou "225/55R18")
+ */
+export function sanitizeTireDimension(input: string): string {
+  const cleaned = sanitizeString(input);
+  // Ne conserver que les caractères valides pour une dimension de pneu (chiffres, lettres, /, espaces, tirets)
+  return cleaned.replace(/[^a-zA-Z0-9\/\s\-]/g, "").trim().toUpperCase();
+}
+
+/**
+ * Assainit un code postal (5 chiffres pour la France)
+ */
+export function sanitizePostalCode(input?: string): string {
+  if (!input) return "";
+  const cleaned = sanitizeString(input).replace(/\D/g, "");
+  return cleaned.slice(0, 5);
+}
+
+/**
+ * Vérifie et assainit une URL externe pour s'assurer qu'elle est sécurisée (http ou https uniquement)
+ */
+export function sanitizeExternalUrl(url: string): string {
+  if (!url || typeof url !== "string") return "#";
+  const trimmed = url.trim();
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+    return trimmed;
+  }
+  return "#";
+}
+
