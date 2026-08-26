@@ -2,16 +2,27 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogOut, User, Sparkles, ChevronDown, CheckCircle2 } from "lucide-react";
+import { LogOut, User, Sparkles, ChevronDown, CheckCircle2, Home, Pencil } from "lucide-react";
 import { getCurrentUserAction, signOutAction, CurrentUserSummary } from "@/app/actions/auth";
+import { getFoyerOverviewAction } from "@/app/actions/foyer";
+import { FoyerNameEditor } from "@/components/foyer/FoyerNameEditor";
+import { DEFAULT_FOYER_ID } from "@/config/foyer.seed";
 
 export function UserNavHeader() {
   const [user, setUser] = useState<CurrentUserSummary | null>(null);
+  const [foyerName, setFoyerName] = useState<string>("Foyer LaVigieAuto");
+  const [foyerId, setFoyerId] = useState<string>(DEFAULT_FOYER_ID);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     getCurrentUserAction().then(setUser);
+    getFoyerOverviewAction().then((overview) => {
+      if (overview?.foyer) {
+        setFoyerName(overview.foyer.nom || "Foyer LaVigieAuto");
+        setFoyerId(overview.foyer.id || DEFAULT_FOYER_ID);
+      }
+    }).catch(() => {});
   }, []);
 
   const handleLogout = async () => {
@@ -22,6 +33,12 @@ export function UserNavHeader() {
   if (!user || !user.isAuthenticated) {
     return (
       <div className="flex items-center gap-2">
+        <FoyerNameEditor
+          initialName={foyerName}
+          householdId={foyerId}
+          variant="header"
+          className="hidden sm:inline-flex"
+        />
         <Link
           href="/login"
           className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-slate-700 hover:text-blue-600 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition"
@@ -40,12 +57,21 @@ export function UserNavHeader() {
   }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 transition shadow-sm"
-      >
+    <div className="flex items-center gap-2">
+      {/* Badge éditable du Foyer dans le bandeau du haut */}
+      <FoyerNameEditor
+        initialName={foyerName}
+        householdId={foyerId}
+        variant="header"
+        className="hidden md:inline-flex"
+      />
+
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 transition shadow-sm"
+        >
         {user.picture ? (
           <img src={user.picture} alt={user.name || "Profil"} className="w-7 h-7 rounded-lg object-cover" />
         ) : (
@@ -93,6 +119,7 @@ export function UserNavHeader() {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

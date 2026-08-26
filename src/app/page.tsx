@@ -25,17 +25,23 @@ import {
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import type { ProcessDocumentResult } from "@/app/actions/documents";
 import { getFoyerOverviewAction } from "@/app/actions/foyer";
+import { FoyerNameEditor } from "@/components/foyer/FoyerNameEditor";
+import { DEFAULT_FOYER_ID } from "@/config/foyer.seed";
 
 export default function LandingPage() {
   const [demoResult, setDemoResult] = useState<any | null>(null);
   const [simulatorKm, setSimulatorKm] = useState<number>(85000);
   const [simulatorAgeYears, setSimulatorAgeYears] = useState<number>(5);
   const [simulatorHasAllInvoices, setSimulatorHasAllInvoices] = useState<boolean>(true);
+  const [foyer, setFoyer] = useState<any | null>(null);
   const [foyerVehicles, setFoyerVehicles] = useState<any[]>([]);
 
   useEffect(() => {
     getFoyerOverviewAction()
       .then((res) => {
+        if (res?.foyer) {
+          setFoyer(res.foyer);
+        }
         if (res?.vehicles && res.vehicles.length > 0) {
           setFoyerVehicles(res.vehicles);
         }
@@ -167,10 +173,20 @@ export default function LandingPage() {
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            {/* Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100/80 text-blue-800 text-xs font-semibold shadow-sm border border-blue-200/60 animate-fade-in">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              <span>L'assistant d'entretien auto intelligent du foyer</span>
+            {/* Pill & Foyer Identifier */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100/80 text-blue-800 text-xs font-semibold shadow-sm border border-blue-200/60 animate-fade-in">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span>L'assistant d'entretien auto intelligent du foyer</span>
+              </div>
+
+              {foyer && (
+                <FoyerNameEditor
+                  initialName={foyer.nom || "Foyer LaVigieAuto"}
+                  householdId={foyer.id || DEFAULT_FOYER_ID}
+                  variant="hero"
+                />
+              )}
             </div>
 
             {/* Headline */}

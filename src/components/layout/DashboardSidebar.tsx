@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -27,7 +27,26 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [currentFoyerName, setCurrentFoyerName] = useState(foyer?.nom || "Foyer LaVigieAuto");
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (foyer?.nom) {
+      setCurrentFoyerName(foyer.nom);
+    }
+  }, [foyer?.nom]);
+
+  useEffect(() => {
+    const handleUpdate = (e: CustomEvent<{ householdId: string; name: string }>) => {
+      if (e.detail?.name && (!foyer?.id || e.detail.householdId === foyer.id)) {
+        setCurrentFoyerName(e.detail.name);
+      }
+    };
+    window.addEventListener("foyerNameUpdated" as any, handleUpdate);
+    return () => {
+      window.removeEventListener("foyerNameUpdated" as any, handleUpdate);
+    };
+  }, [foyer?.id]);
 
   return (
     <aside
@@ -45,7 +64,7 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               </div>
               <p className="text-xs font-bold text-slate-900 truncate">
-                {foyer?.nom || "Foyer LaVigieAuto"}
+                {currentFoyerName}
               </p>
               <p className="text-[10px] text-slate-500 truncate">
                 {vehicles.length} véhicule(s) • {Math.max(1, members.length)} conducteur(s)

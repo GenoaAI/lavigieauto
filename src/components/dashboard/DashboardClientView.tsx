@@ -7,6 +7,8 @@ import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
 import { DeleteVehicleModal } from "@/components/vehicles/DeleteVehicleModal";
 import { FoyerMembersManager } from "@/components/foyer/FoyerMembersManager";
 import { GoogleCalendarSyncCard } from "@/components/foyer/GoogleCalendarSyncCard";
+import { FoyerNameEditor } from "@/components/foyer/FoyerNameEditor";
+import { DEFAULT_FOYER_ID } from "@/config/foyer.seed";
 import { getFoyerOverviewAction } from "@/app/actions/foyer";
 import {
   getVehicleDetailsAction,
@@ -255,8 +257,16 @@ export function DashboardClientView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              {foyerData?.nom || "Tableau de bord Foyer"}
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center">
+              <FoyerNameEditor
+                initialName={foyerData?.nom || "Tableau de bord Foyer"}
+                householdId={foyerData?.id || DEFAULT_FOYER_ID}
+                onUpdated={(newName) => {
+                  if (foyerData) {
+                    setFoyerData({ ...foyerData, nom: newName });
+                  }
+                }}
+              />
             </h1>
             <button
               onClick={loadData}
