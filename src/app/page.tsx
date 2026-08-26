@@ -358,10 +358,10 @@ export default function LandingPage() {
             La Règle d'Or LaVigieAuto
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            La Promesse des 2 Gestes. Rien de plus.
+            Deux gestes clefs. Rien de plus.
           </h2>
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Vous ne perdez plus jamais votre samedi matin à chercher une référence d'huile ou un devis. L'assistant gère la mécanique, vous ne faites que 2 actions rapides par an.
+            Pas besoin d&apos;aller chercher le manuel dans la boîte à gants ni de vous en remettre les yeux fermés à votre garagiste.
           </p>
         </div>
 
