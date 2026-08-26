@@ -33,6 +33,7 @@ export function sanitizeHouseholdName(input: string): string {
  */
 export function sanitizeTireDimension(input: string): string {
   const cleaned = sanitizeString(input);
+  // Ne conserver que les caractères valides pour une dimension de pneu (chiffres, lettres, /, espaces, tirets)
   return cleaned.replace(/[^a-zA-Z0-9\/\s\-]/g, "").trim().toUpperCase();
 }
 

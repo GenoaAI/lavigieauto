@@ -75,33 +75,26 @@ export const tireSearchQuerySchema = z.object({
     .trim()
     .min(3, "Dimension trop courte.")
     .max(60, "Dimension trop longue.")
-    .transform((val) => sanitizeTireDimension(val)),
+    .transform((val): string => sanitizeTireDimension(val)),
   brandAndModel: z
     .string()
-    .trim()
-    .max(100)
     .optional()
-    .transform((val) => (val ? sanitizeString(val) : undefined)),
+    .transform((val): string | undefined => (val ? sanitizeString(val) : undefined)),
   quantity: z
     .union([z.literal(2), z.literal(4), z.literal(1)])
     .default(2),
   postalCode: z
     .string()
-    .trim()
     .optional()
-    .transform((val) => (val ? sanitizePostalCode(val) : undefined)),
+    .transform((val): string | undefined => (val ? sanitizePostalCode(val) : undefined)),
   vehicleMake: z
     .string()
-    .trim()
-    .max(50)
     .optional()
-    .transform((val) => (val ? sanitizeString(val) : undefined)),
+    .transform((val): string | undefined => (val ? sanitizeString(val) : undefined)),
   vehicleModel: z
     .string()
-    .trim()
-    .max(50)
     .optional()
-    .transform((val) => (val ? sanitizeString(val) : undefined)),
+    .transform((val): string | undefined => (val ? sanitizeString(val) : undefined)),
   season: z
     .enum(["ALL", "SUMMER", "WINTER", "ALL_SEASON"])
     .default("ALL"),
@@ -109,7 +102,6 @@ export const tireSearchQuerySchema = z.object({
 
 export type TireSearchInput = z.input<typeof tireSearchQuerySchema>;
 export type TireSearchQuery = z.infer<typeof tireSearchQuerySchema>;
-
 
 /**
  * Schéma pour une offre de pneumatique individuelle avec détail du coût de pose
@@ -158,4 +150,3 @@ export const tireOffersResponseSchema = z.object({
 });
 
 export type TireOffersResponse = z.infer<typeof tireOffersResponseSchema>;
-

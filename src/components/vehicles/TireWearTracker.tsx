@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Disc, CheckCircle2, AlertTriangle, Info, Calendar, Gauge, ArrowRight, Sparkles, Wrench } from "lucide-react";
 import { VehicleTireAssessment } from "@/lib/engine/tires";
+import { TireOffersCard } from "@/components/tires/TireOffersCard";
+
 
 interface TireWearTrackerProps {
   assessment: VehicleTireAssessment;
@@ -255,6 +257,15 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate }: TireW
           </div>
         </div>
       </div>
+
+      {/* COMPARATEUR D'OFFRES DE PNEUMATIQUES EN LIGNE (3 MEILLEURES OFFRES AVEC POSE & ÉQUILIBRAGE) */}
+      <TireOffersCard
+        initialDimension={activeAxle.dimension || assessment.recommendedDimension}
+        initialBrand={activeAxle.brandAndModel}
+        vehicleName={vehicleName}
+        className="mt-6 border-slate-200/80 bg-slate-50/40"
+      />
     </div>
   );
 }
+
