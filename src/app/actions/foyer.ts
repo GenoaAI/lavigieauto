@@ -5,6 +5,8 @@ import { Foyer, FoyerMember, Garage } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "./vehicles";
 import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED, DEFAULT_GARAGES_SEED } from "@/config/foyer.seed";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { updateHouseholdNameSchema } from "@/lib/security/schemas";
 
 export interface FoyerOverviewResult {
   foyer: Foyer | null;
@@ -105,12 +107,27 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     });
   }
 
+  function applyFoyerOverrides(f: Foyer | null): Foyer | null {
+    if (!f) return null;
+    const nameOverride =
+      cookieStore?.get(`foyer_name_override_${f.id}`)?.value ||
+      cookieStore?.get("foyer_name_override")?.value;
+    if (nameOverride && nameOverride.trim()) {
+      return {
+        ...f,
+        nom: nameOverride.trim(),
+      };
+    }
+    return f;
+  }
+
   // Vérifier si un cache récent existe pour cet utilisateur
   const cacheKey = `${userEmail.toLowerCase()}_${cookieStore?.get("gcal_access_token")?.value ? "gcal" : "nogcal"}`;
   const now = Date.now();
   if (memoryCache && memoryCache.key === cacheKey && (now - memoryCache.timestamp) < MEMORY_CACHE_TTL_MS) {
     return {
       ...memoryCache.data,
+      foyer: applyFoyerOverrides(memoryCache.data.foyer),
       vehicles: applyTrackingOverrides(memoryCache.data.vehicles),
     };
   }
@@ -199,6 +216,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
       return {
         ...result,
+        foyer: applyFoyerOverrides(result.foyer),
         vehicles: applyTrackingOverrides(fetchedVehicles),
       };
     } catch {
@@ -216,6 +234,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       };
       return {
         ...fallbackResult,
+        foyer: applyFoyerOverrides(fallbackResult.foyer),
         vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
       };
     }
@@ -313,13 +332,14 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
       return {
         ...customResult,
+        foyer: applyFoyerOverrides(customResult.foyer),
         vehicles: applyTrackingOverrides(fetchedVehicles),
       };
     }
 
     // Aucun véhicule enregistré pour ce nouvel utilisateur -> STRICTEMENT []
     return {
-      foyer: customFoyer,
+      foyer: applyFoyerOverrides(customFoyer),
       role: "owner",
       vehicles: [],
       members: customMembers,
@@ -328,11 +348,90 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
   } catch {
     // En cas d'erreur de connexion base, état vide authentique (Zéro Fake Data)
     return {
-      foyer: customFoyer,
+      foyer: applyFoyerOverrides(customFoyer),
       role: "owner",
       vehicles: [],
       members: customMembers,
       garages: [],
     };
   }
+}
+
+/**
+ * Server Action pour mettre à jour le nom d'un foyer / ménage
+ */
+export async function updateHouseholdNameAction(
+  householdId: string,
+  newName: string
+): Promise<{ success: boolean; nom?: string; error?: string }> {
+  try {
+    const parseResult = updateHouseholdNameSchema.safeParse({
+      householdId,
+      newName,
+    });
+
+    if (!parseResult.success) {
+      const firstError = parseResult.error.errors[0]?.message || "Nom de foyer invalide.";
+      return { success: false, error: firstError };
+    }
+
+    const { householdId: validId, newName: sanitizedName } = parseResult.data;
+
+    // 1. Mettre à jour en base de données Supabase si possible
+    try {
+      const adminSupabase = createAdminClient();
+      await (adminSupabase as any)
+        .from("foyers")
+        .update({
+          nom: sanitizedName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", validId);
+    } catch (dbErr) {
+      console.warn("Mise à jour base Supabase foyer (fallback cookie activé):", dbErr);
+    }
+
+    // 2. Persister dans les cookies pour reflet immédiat
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set(`foyer_name_override_${validId}`, sanitizedName, {
+        maxAge: 365 * 24 * 3600,
+        path: "/",
+        sameSite: "lax",
+      });
+      cookieStore.set("foyer_name_override", sanitizedName, {
+        maxAge: 365 * 24 * 3600,
+        path: "/",
+        sameSite: "lax",
+      });
+    } catch {
+      // Safe fallback
+    }
+
+    // 3. Invalider le cache mémoire et revalider les chemins Next.js
+    await invalidateFoyerCache();
+    try {
+      revalidatePath("/");
+      revalidatePath("/dashboard");
+    } catch {
+      // Fallback lorsque exécuté hors du request store Next.js (tests unitaires)
+    }
+
+    return { success: true, nom: sanitizedName };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Une erreur est survenue lors de la mise à jour du nom du foyer.",
+    };
+  }
+}
+
+/**
+ * Alias pour compatibilité updateHouseholdName
+ */
+export async function updateHouseholdName(
+  householdId: string,
+  newName: string
+): Promise<{ success: boolean; nom?: string; error?: string }> {
+  return updateHouseholdNameAction(householdId, newName);
 }

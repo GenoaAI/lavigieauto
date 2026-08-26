@@ -14,6 +14,7 @@ import { testMobileResponsiveArchitecture } from "./mobile-responsive.test";
 import { testVehicleLifecycleManagement } from "./vehicle-lifecycle.test";
 import { testFeedbackIntegration } from "./feedback.test";
 import { testGarageResolver } from "./garage-resolver.test";
+import { testHouseholdNameManagement } from "./household-name.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -25,6 +26,7 @@ async function runAllTests() {
   let failed = 0;
 
   const testSuites = [
+    { name: "Édition Sécurisée du Nom de Foyer (Zod, Sanitizer & Server Action)", fn: testHouseholdNameManagement },
     { name: "Gestion du Cycle de Vie Véhicule (Suspension & Suppression)", fn: testVehicleLifecycleManagement },
     { name: "Architecture Responsive & Mobile-First (Navigation, Dropzone & Modales)", fn: testMobileResponsiveArchitecture },
     { name: "Découplage LLM & Prompts Markdown (Zero Hardcoding Skills)", fn: runSkillsLoaderTest },
