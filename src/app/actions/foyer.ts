@@ -163,36 +163,24 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
           .order("nom", { ascending: true }),
       ]);
 
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
-      const raceResult: any = await Promise.race([dbQueryPromise, timeoutPromise]);
-
-      if (raceResult && Array.isArray(raceResult)) {
-        const [foyerRes, vehRes, garagesRes] = raceResult;
-        const fetchedGarages = (garagesRes?.data || []) as Garage[];
-        const fetchedVehicles = (vehRes?.data || []) as EnrichedVehicle[];
-        return {
-          foyer: (foyerRes?.data || defaultFoyer) as Foyer,
-          role: "owner",
-          vehicles: applyTrackingOverrides(fetchedVehicles),
-          members: defaultMembers,
-          garages: fetchedGarages,
-        };
-      }
+      const [foyerRes, vehRes, garagesRes] = await dbQueryPromise;
+      const fetchedGarages = garagesRes?.data && garagesRes.data.length > 0 ? (garagesRes.data as Garage[]) : (DEFAULT_GARAGES_SEED as Garage[]);
+      const fetchedVehicles = vehRes?.data && vehRes.data.length > 0 ? (vehRes.data as EnrichedVehicle[]) : (DEFAULT_VEHICLES_SEED as EnrichedVehicle[]);
 
       return {
-        foyer: defaultFoyer,
+        foyer: (foyerRes?.data || defaultFoyer) as Foyer,
         role: "owner",
-        vehicles: [],
+        vehicles: applyTrackingOverrides(fetchedVehicles),
         members: defaultMembers,
-        garages: [],
+        garages: fetchedGarages,
       };
     } catch {
       return {
         foyer: defaultFoyer,
         role: "owner",
-        vehicles: [],
+        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
         members: defaultMembers,
-        garages: [],
+        garages: DEFAULT_GARAGES_SEED as Garage[],
       };
     }
   }
