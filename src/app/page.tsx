@@ -385,7 +385,7 @@ export default function LandingPage() {
                   Vous appelez le garage
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  L'assistant génère votre <strong>Kit Prêt-à-Réserver</strong>. Vous lisez simplement le script verbal fourni ou copiez le texte par SMS. Vous demandez exactement les bonnes pièces sans risque de devis gonflé.
+                  L&apos;assistant vous propose un email à envoyer à votre garagiste (ou le guide pour lui téléphoner), vous demandez exactement ce dont vous avez besoin pour maintenir votre voiture en bonnes conditions.
                 </p>
               </div>
 
