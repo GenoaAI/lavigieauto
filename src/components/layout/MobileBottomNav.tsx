@@ -66,13 +66,13 @@ export function MobileBottomNav() {
                   key={idx}
                   type="button"
                   onClick={item.onClick}
-                  className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+                  className="flex flex-col items-center justify-center -mt-7 group focus:outline-none focus:ring-0"
                   aria-label="Scanner un document"
                 >
-                  <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 group-active:scale-95 transition-transform border-4 border-slate-50">
-                    <Camera className="w-6 h-6" />
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 via-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-xl shadow-blue-600/40 group-active:scale-95 transition-all duration-200 border-4 border-white">
+                    <Camera className="w-7 h-7 stroke-[2.2]" />
                   </div>
-                  <span className="text-[10px] font-bold text-blue-600 mt-0.5">
+                  <span className="text-[11px] font-bold text-blue-600 mt-1 tracking-tight">
                     {item.label}
                   </span>
                 </button>
