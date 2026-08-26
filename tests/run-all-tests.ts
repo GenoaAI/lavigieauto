@@ -15,6 +15,7 @@ import { testVehicleLifecycleManagement } from "./vehicle-lifecycle.test";
 import { testFeedbackIntegration } from "./feedback.test";
 import { testGarageResolver } from "./garage-resolver.test";
 import { testHouseholdNameManagement } from "./household-name.test";
+import { testHouseholdInvitationAndUniversalCalendar } from "./household-invitation-calendar.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -26,6 +27,7 @@ async function runAllTests() {
   let failed = 0;
 
   const testSuites = [
+    { name: "Invitation Foyer Universelle (Multi-Webmails) & Export Calendrier (ICS/URLs)", fn: testHouseholdInvitationAndUniversalCalendar },
     { name: "Édition Sécurisée du Nom de Foyer (Zod, Sanitizer & Server Action)", fn: testHouseholdNameManagement },
     { name: "Gestion du Cycle de Vie Véhicule (Suspension & Suppression)", fn: testVehicleLifecycleManagement },
     { name: "Architecture Responsive & Mobile-First (Navigation, Dropzone & Modales)", fn: testMobileResponsiveArchitecture },

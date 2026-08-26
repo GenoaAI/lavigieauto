@@ -40,15 +40,20 @@ export async function GET(req: NextRequest) {
     const adminSupabase = createAdminClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    const cookieStore = await cookies();
+    const sessionEmail = cookieStore.get("gcal_user_email")?.value;
+    const effectiveEmail = user?.email || sessionEmail || resolvedEmail;
+
     // 1. Initialiser le service Google Calendar et créer/récupérer l'agenda dédié
     const calendarService = new GoogleCalendarService(tokens.access_token);
     const calendarId = await calendarService.getOrCreateLaVigieAutoCalendar();
 
     // 2. Mémoriser les jetons et le profil en base de données avec isolation stricte du Foyer
     const memberMetadata = {
-      name: resolvedName,
-      email: resolvedEmail,
-      picture: googleProfile.picture,
+      name: user?.user_metadata?.full_name || resolvedName,
+      email: effectiveEmail,
+      google_email: resolvedEmail,
+      picture: user?.user_metadata?.avatar_url || googleProfile.picture,
       google_calendar_connected: true,
       google_calendar_id: calendarId,
       google_access_token: tokens.access_token,
@@ -57,7 +62,38 @@ export async function GET(req: NextRequest) {
     };
 
     try {
-      if (resolvedEmail.toLowerCase() === "charlesdeforges@gmail.com") {
+      if (user?.id) {
+        // L'utilisateur est déjà connecté (ex: avec user@yahoo.fr ou user@outlook.com) -> on associe Google Calendar à son profil
+        const { data: existingMember } = await (adminSupabase as any)
+          .from("foyer_members")
+          .select("id, foyer_id, metadata")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingMember) {
+          await (adminSupabase as any)
+            .from("foyer_members")
+            .update({
+              metadata: {
+                ...(existingMember.metadata || {}),
+                ...memberMetadata,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingMember.id);
+
+          await (adminSupabase as any)
+            .from("foyers")
+            .update({
+              metadata: {
+                calendar_synced: true,
+                google_calendar_connected: true,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingMember.foyer_id);
+        }
+      } else if (resolvedEmail.toLowerCase() === "charlesdeforges@gmail.com" || effectiveEmail.toLowerCase() === "charlesdeforges@gmail.com") {
         // Foyer principal de référence Charles de Forges
         await (adminSupabase as any)
           .from("foyers")
@@ -88,7 +124,7 @@ export async function GET(req: NextRequest) {
           .select("id, metadata");
 
         const userFoyer = (existingFoyers || []).find(
-          (f: any) => (f.metadata as any)?.user_email?.toLowerCase() === resolvedEmail.toLowerCase()
+          (f: any) => (f.metadata as any)?.user_email?.toLowerCase() === effectiveEmail.toLowerCase()
         );
 
         if (userFoyer) {
@@ -98,7 +134,7 @@ export async function GET(req: NextRequest) {
               nom: `Foyer ${resolvedName}`,
               metadata: {
                 ...(userFoyer.metadata || {}),
-                user_email: resolvedEmail,
+                user_email: effectiveEmail,
                 owner_name: resolvedName,
                 calendar_synced: true,
               },
@@ -115,7 +151,7 @@ export async function GET(req: NextRequest) {
               nom: `Foyer ${resolvedName}`,
               description: `Espace automobile personnel de ${resolvedName}`,
               metadata: {
-                user_email: resolvedEmail,
+                user_email: effectiveEmail,
                 owner_name: resolvedName,
                 calendar_synced: true,
                 stripe_subscription_status: "none",
@@ -139,7 +175,6 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Mémoriser les jetons et profil dans les cookies de la session
-    const cookieStore = await cookies();
     cookieStore.set("gcal_access_token", tokens.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

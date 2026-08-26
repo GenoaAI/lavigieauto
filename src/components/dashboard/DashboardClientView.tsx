@@ -360,7 +360,7 @@ export function DashboardClientView({
               <div>
                 <p className="text-[10px] uppercase font-extrabold tracking-wider text-blue-200">Geste 1 Conducteur</p>
                 <p className="text-sm font-bold text-white">Ouvrir le Kit Prêt-à-Réserver</p>
-                <p className="text-[11px] text-blue-100">Script garagiste & export Google Calendar</p>
+                <p className="text-[11px] text-blue-100">Script garagiste & export agenda universel (.ics, Google, Yahoo...)</p>
               </div>
             </button>
 
@@ -624,6 +624,7 @@ export function DashboardClientView({
       <FoyerMembersManager
         members={members}
         vehicles={vehicles}
+        householdId={foyerData?.id || "11111111-1111-1111-1111-111111111111"}
       />
 
       {/* SYNCHRONISATION GOOGLE CALENDAR */}
