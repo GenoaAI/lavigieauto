@@ -47,6 +47,30 @@ export function isVehicleTrackingSuspended(v: any): boolean {
 }
 
 /**
+ * Résout un véhicule depuis une liste selon un identifiant (UUID ou immatriculation nettoyée/slug)
+ */
+export function resolveVehicleFromList<T extends { id?: string; immatriculation?: string | null }>(
+  vehicles: T[],
+  identifier: string
+): T | null {
+  if (!vehicles || vehicles.length === 0 || !identifier) return null;
+  const rawQuery = decodeURIComponent(identifier || "").trim().toUpperCase();
+  const cleanQuery = rawQuery.replace(/[\s-]/g, "");
+
+  return (
+    vehicles.find((v) => {
+      if (v.id === identifier || v.id?.toUpperCase() === rawQuery) return true;
+      if (v.immatriculation) {
+        const vImm = v.immatriculation.trim().toUpperCase();
+        const vClean = vImm.replace(/[\s-]/g, "");
+        return vImm === rawQuery || vClean === cleanQuery;
+      }
+      return false;
+    }) || null
+  );
+}
+
+/**
  * Ajuste une date pour qu'elle tombe obligatoirement sur un jour ouvré (Lundi - Vendredi).
  * Les garages et centres de CT étant fermés le dimanche et le week-end,
  * toute échéance ou rendez-vous tombant un samedi ou dimanche est automatiquement décalé au lundi ouvré suivant.
@@ -304,11 +328,62 @@ export interface Database {
         ];
       };
 
+      garages: {
+        Row: {
+          id: string;
+          foyer_id: string;
+          nom: string;
+          adresse: string | null;
+          telephone: string | null;
+          email: string | null;
+          marque: string | null;
+          siret: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          foyer_id: string;
+          nom: string;
+          adresse?: string | null;
+          telephone?: string | null;
+          email?: string | null;
+          marque?: string | null;
+          siret?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          foyer_id?: string;
+          nom?: string;
+          adresse?: string | null;
+          telephone?: string | null;
+          email?: string | null;
+          marque?: string | null;
+          siret?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'garages_foyer_id_fkey';
+            columns: ['foyer_id'];
+            referencedRelation: 'foyers';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+
       documents_sources: {
         Row: {
           id: string;
           foyer_id: string;
           vehicule_id: string | null;
+          garage_id: string | null;
           nom_fichier: string;
           storage_path: string;
           file_type: DocumentType;
@@ -333,6 +408,7 @@ export interface Database {
           id?: string;
           foyer_id: string;
           vehicule_id?: string | null;
+          garage_id?: string | null;
           nom_fichier: string;
           storage_path: string;
           file_type: DocumentType;
@@ -357,6 +433,7 @@ export interface Database {
           id?: string;
           foyer_id?: string;
           vehicule_id?: string | null;
+          garage_id?: string | null;
           nom_fichier?: string;
           storage_path?: string;
           file_type?: DocumentType;
@@ -389,6 +466,12 @@ export interface Database {
             columns: ['vehicule_id'];
             referencedRelation: 'vehicules';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'documents_sources_garage_id_fkey';
+            columns: ['garage_id'];
+            referencedRelation: 'garages';
+            referencedColumns: ['id'];
           }
         ];
       };
@@ -399,6 +482,7 @@ export interface Database {
           foyer_id: string;
           vehicule_id: string;
           document_source_id: string | null;
+          garage_id: string | null;
           categorie: InterventionCategorie;
           operation: string;
           description: string | null;
@@ -421,6 +505,7 @@ export interface Database {
           foyer_id: string;
           vehicule_id: string;
           document_source_id?: string | null;
+          garage_id?: string | null;
           categorie: InterventionCategorie;
           operation: string;
           description?: string | null;
@@ -443,7 +528,8 @@ export interface Database {
           foyer_id?: string;
           vehicule_id?: string;
           document_source_id?: string | null;
-          categorie?: InterventionCategorie;
+          garage_id?: string | null;
+          categorie: InterventionCategorie;
           operation?: string;
           description?: string | null;
           quantite?: number;
@@ -477,6 +563,12 @@ export interface Database {
             foreignKeyName: 'lignes_interventions_document_source_id_fkey';
             columns: ['document_source_id'];
             referencedRelation: 'documents_sources';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'lignes_interventions_garage_id_fkey';
+            columns: ['garage_id'];
+            referencedRelation: 'garages';
             referencedColumns: ['id'];
           }
         ];
@@ -817,6 +909,7 @@ export type TablesUpdate<T extends keyof Database['public']['Tables']> =
 export type Foyer = Tables<'foyers'>;
 export type FoyerMember = Tables<'foyer_members'>;
 export type Vehicule = Tables<'vehicules'>;
+export type Garage = Tables<'garages'>;
 export type DocumentSource = Tables<'documents_sources'>;
 export type LigneIntervention = Tables<'lignes_interventions'>;
 export type DefaillanceCT = Tables<'defaillances_ct'>;

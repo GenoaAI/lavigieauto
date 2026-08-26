@@ -13,6 +13,7 @@ import { testCalendarSyncEngine } from "./calendar-sync.test";
 import { testMobileResponsiveArchitecture } from "./mobile-responsive.test";
 import { testVehicleLifecycleManagement } from "./vehicle-lifecycle.test";
 import { testFeedbackIntegration } from "./feedback.test";
+import { testGarageResolver } from "./garage-resolver.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -33,6 +34,7 @@ async function runAllTests() {
     { name: "Audit Mathématique Rigoureux des Échéances (Temps vs KM)", fn: runScheduleMathAuditTests },
     { name: "Regroupement Intelligent d'Atelier & Tolérance (Smart Bundling)", fn: testBundlingEngine },
     { name: "Moteur de Suivi Prédictif des Pneumatiques (Train AV/AR)", fn: testTireEngine },
+    { name: "Sélection Intelligente & Pondération du Garagiste Recommandé", fn: testGarageResolver },
     { name: "Générateur du Kit Prêt-à-Réserver (Geste 1)", fn: testReservationKit },
     { name: "Calculateur du Score de Conformité & Revente", fn: testConformityScore },
     { name: "Facturation Dégressive Stripe (Foyer Multi-Véhicules)", fn: testStripePricing },

@@ -35,7 +35,6 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { DEFAULT_VEHICLES_SEED } from "@/config/foyer.seed";
 import { Foyer, FoyerMember } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "@/app/actions/vehicles";
 import { ReservationKit } from "@/lib/engine/reservation-kit";
@@ -58,6 +57,7 @@ export function DashboardClientView({
   const [members, setMembers] = useState<FoyerMember[]>(initialMembers || []);
   const [isKitOpen, setIsKitOpen] = useState(false);
   const [selectedVehicleKit, setSelectedVehicleKit] = useState<ReservationKit | null>(null);
+  const [selectedGarageRecommendation, setSelectedGarageRecommendation] = useState<any>(null);
   const [loadingKitId, setLoadingKitId] = useState<string | null>(null);
   const [actionMenuVehicleId, setActionMenuVehicleId] = useState<string | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<EnrichedVehicle | null>(null);
@@ -158,6 +158,7 @@ export function DashboardClientView({
       const res = await getVehicleDetailsAction(vehicle.id);
       if (res && res.reservationKit) {
         setSelectedVehicleKit(res.reservationKit);
+        setSelectedGarageRecommendation(res.garageRecommendation || null);
         setIsKitOpen(true);
         return;
       }
@@ -624,8 +625,18 @@ export function DashboardClientView({
       {selectedVehicleKit && (
         <ReservationKitModal
           isOpen={isKitOpen}
-          onClose={() => setIsKitOpen(false)}
+          onClose={() => {
+            setIsKitOpen(false);
+            setSelectedVehicleKit(null);
+            setSelectedGarageRecommendation(null);
+          }}
           kit={selectedVehicleKit}
+          recommendedGarage={selectedGarageRecommendation?.recommendedGarage}
+          availableGarages={selectedGarageRecommendation?.allGarages}
+          garagePhoneNumber={selectedGarageRecommendation?.recommendedGarage?.telephone || undefined}
+          garageName={selectedGarageRecommendation?.recommendedGarage?.nom || undefined}
+          garageAddress={selectedGarageRecommendation?.recommendedGarage?.adresse || undefined}
+          garageEmail={selectedGarageRecommendation?.recommendedGarage?.email || undefined}
         />
       )}
 

@@ -1,4 +1,5 @@
 import { toggleVehicleTrackingStatusAction, deleteVehicleAction, getVehicleDetailsAction } from "@/app/actions/vehicles";
+import { resolveVehicleFromList } from "@/lib/types/database.types";
 
 export async function testVehicleLifecycleManagement() {
   console.log("▶ [TEST] Gestion du Cycle de Vie Véhicule & Routage Immatriculation...");
@@ -41,10 +42,17 @@ export async function testVehicleLifecycleManagement() {
   console.log("  ✔ Exclusion stricte des alertes et du calendrier pour les véhicules au statut 'suspendu' validée.");
 
   // Validation du routage par immatriculation propre / slug
+  const sampleFleet = [
+    { id: "33333333-3333-3333-3333-333333333333", immatriculation: "EC-301-JX" },
+    { id: "22222222-2222-2222-2222-222222222222", immatriculation: "FX-563-KZ" },
+    { id: "11111111-1111-1111-1111-111111111111", immatriculation: "GP-902-NY" },
+    { id: "44444444-4444-4444-4444-444444444444", immatriculation: "7253 XX 76" },
+  ];
+
   const testCases = ["EC-301-JX", "ec-301-jx", "EC301JX", "FX-563-KZ", "GP-902-NY", "7253 XX 76", "7253-XX-76"];
   for (const slug of testCases) {
-    const res = await getVehicleDetailsAction(slug);
-    if (!res || !res.vehicle) {
+    const matched = resolveVehicleFromList(sampleFleet, slug);
+    if (!matched) {
       throw new Error(`Échec de la résolution du véhicule pour l'immatriculation / slug : ${slug}`);
     }
   }

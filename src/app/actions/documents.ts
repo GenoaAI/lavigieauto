@@ -368,6 +368,79 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       (await (adminSupabase as any).from("foyers").select("id").order("created_at", { ascending: true }).limit(1).maybeSingle())?.data?.id ||
       "unassigned";
 
+    // 2.bis Détection, dédoublonnage et enregistrement automatique du GARAGISTE dans public.garages
+    let resolvedGarageId: string | null = null;
+    const rawGarageName =
+      (data.garage?.name && data.garage?.name !== "Atelier Professionnel" ? data.garage.name : null) ||
+      (data.emetteur?.nom && data.emetteur.nom !== "Atelier Professionnel" ? data.emetteur.nom : null) ||
+      data.garage?.nom ||
+      null;
+
+    const rawGarageAddress = data.garage?.address || data.emetteur?.adresse || data.adresse_garage || null;
+    const rawGaragePhone = data.garage?.phone || data.emetteur?.telephone || data.telephone_garage || null;
+    const rawGarageEmail = data.garage?.email || data.emetteur?.email || data.email_garage || null;
+    const rawGarageBrand = data.garage?.brandNetwork || data.garage?.marque || data.reseau || (matchedVehicle?.marque ? `${matchedVehicle.marque} (Atelier)` : null);
+    const rawGarageSiret = data.garage?.siret || data.emetteur?.siret || null;
+
+    if (rawGarageName && documentType !== "carte_grise" && foyerId !== "unassigned") {
+      try {
+        const { data: existingGarages } = await (adminSupabase as any)
+          .from("garages")
+          .select("*")
+          .eq("foyer_id", foyerId);
+
+        const cleanName = rawGarageName.trim().toLowerCase();
+        const existingGarage = (existingGarages || []).find((g: any) => {
+          if (rawGarageSiret && g.siret && g.siret.trim() === rawGarageSiret.trim()) return true;
+          if (g.nom && g.nom.trim().toLowerCase() === cleanName) return true;
+          if (g.nom && (g.nom.toLowerCase().includes(cleanName) || cleanName.includes(g.nom.toLowerCase()))) return true;
+          return false;
+        });
+
+        if (existingGarage) {
+          resolvedGarageId = existingGarage.id;
+          // Enrichissement des coordonnées manquantes
+          const updateGaragePayload: Record<string, unknown> = {};
+          if (rawGarageAddress && !existingGarage.adresse) updateGaragePayload.adresse = rawGarageAddress;
+          if (rawGaragePhone && !existingGarage.telephone) updateGaragePayload.telephone = rawGaragePhone;
+          if (rawGarageEmail && !existingGarage.email) updateGaragePayload.email = rawGarageEmail;
+          if (rawGarageBrand && !existingGarage.marque) updateGaragePayload.marque = rawGarageBrand;
+          if (rawGarageSiret && !existingGarage.siret) updateGaragePayload.siret = rawGarageSiret;
+
+          if (Object.keys(updateGaragePayload).length > 0) {
+            await (adminSupabase as any)
+              .from("garages")
+              .update(updateGaragePayload)
+              .eq("id", existingGarage.id);
+          }
+        } else {
+          const { data: newGarage } = await (adminSupabase as any)
+            .from("garages")
+            .insert({
+              foyer_id: foyerId,
+              nom: rawGarageName.trim(),
+              adresse: rawGarageAddress,
+              telephone: rawGaragePhone,
+              email: rawGarageEmail,
+              marque: rawGarageBrand,
+              siret: rawGarageSiret,
+              metadata: {
+                extracted_by: "ia_vision_gemini",
+                source_file: file.name,
+              },
+            })
+            .select("id")
+            .single();
+
+          if (newGarage) {
+            resolvedGarageId = newGarage.id;
+          }
+        }
+      } catch (garageErr) {
+        console.warn("[Document Action] Erreur lors de l'enregistrement du garage:", garageErr);
+      }
+    }
+
     const vaultUpload = await vaultStorageService.uploadToVault({
       fileBuffer: buffer,
       mimeType: file.type || "application/pdf",
@@ -417,6 +490,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           .update({
             nom_fichier: finalFileName,
             storage_path: finalStoragePath,
+            garage_id: resolvedGarageId,
             mime_type: file.type || "application/pdf",
             taille_octets: buffer.byteLength,
             statut_ocr: "traite",
@@ -443,6 +517,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         .insert({
           vehicule_id: vehicleId || null,
           foyer_id: foyerId,
+          garage_id: resolvedGarageId,
           nom_fichier: finalFileName,
           storage_path: finalStoragePath,
           file_type: documentType,
@@ -594,6 +669,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           foyer_id: foyerId,
           vehicule_id: vehicleId,
           document_source_id: documentId,
+          garage_id: resolvedGarageId,
           categorie: normalizedCat,
           operation: desc,
           description: desc,
@@ -619,22 +695,22 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     let operationsList: Array<{ label: string; category: string; verified: boolean }> = [];
     if (documentType === "carte_grise") {
       operationsList = [
-        { label: `Numéro de série VIN certifié : ${extractedVin || "TSMLYD21S00162450"} (Ligne E)`, category: "Carte Grise", verified: true },
-        { label: `Date 1ère mise en circulation : ${extractedFirstReg || "2016-05-24"} (Ligne B)`, category: "Carte Grise", verified: true },
-        { label: `Motorisation homologuée : ${extractedVersion || "Standard"} (${extractedFiscalPower || 6} CV)`, category: "Caractéristiques", verified: true },
+        { label: `Numéro de série VIN certifié : ${extractedVin || matchedVehicle?.vin || "Non renseigné"} (Ligne E)`, category: "Carte Grise", verified: true },
+        { label: `Date 1ère mise en circulation : ${extractedFirstReg || matchedVehicle?.date_premiere_immatriculation || "Non renseignée"} (Ligne B)`, category: "Carte Grise", verified: true },
+        { label: `Motorisation homologuée : ${extractedVersion || matchedVehicle?.version || "Standard"} (${extractedFiscalPower || matchedVehicle?.puissance_fiscale || 6} CV)`, category: "Caractéristiques", verified: true },
         { label: "Plan d'entretien constructeur officiel activé", category: "Plan Constructeur", verified: true },
       ];
     } else if (documentType === "controle_technique") {
-      const resultStatus = data.inspectionResult?.status || data.resultat_global || "A (Favorable)";
+      const resultStatus = data.inspectionResult?.status || data.resultat_global || "Favorable";
       operationsList = [
-        { label: `PV de Contrôle Technique Favorable (Résultat: ${resultStatus})`, category: "Réglementaire", verified: true },
-        { label: `Validité jusqu'au : ${data.inspectionResult?.expiryDate || data.date_limite_validite || "2028-08-19"}`, category: "Validité", verified: true },
-        { label: `Kilométrage relevé : ${(extractedMileage || 125789).toLocaleString("fr-FR")} km`, category: "Odomètre", verified: true },
+        { label: `PV de Contrôle Technique (Résultat: ${resultStatus})`, category: "Réglementaire", verified: true },
+        { label: `Validité jusqu'au : ${data.inspectionResult?.expiryDate || data.date_limite_validite || "À échéance 2 ans"}`, category: "Validité", verified: true },
+        { label: `Kilométrage relevé : ${(extractedMileage || matchedVehicle?.kilometrage_actuel || 0).toLocaleString("fr-FR")} km`, category: "Odomètre", verified: true },
       ];
     } else if (rawLineItems.length > 0) {
       operationsList = rawLineItems.map((l: any) => ({
         label: l.description || l.libelle || "Opération",
-        category: l.category || "Pneumatiques",
+        category: l.category || "Entretien",
         verified: true,
       }));
     }
@@ -643,25 +719,25 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       documentType,
       garage: { name: docEmitter },
       center: data.center || data.centre_controle,
-      make: extractedMake || matchedVehicle?.marque || "Suzuki",
-      model: extractedModel || matchedVehicle?.modele || "Vitara",
+      make: extractedMake || matchedVehicle?.marque || "Véhicule",
+      model: extractedModel || matchedVehicle?.modele || "Modèle",
       version: extractedVersion || matchedVehicle?.version || "",
-      licensePlate: extractedPlate || matchedVehicle?.immatriculation || "EC-301-JX",
-      vin: extractedVin || matchedVehicle?.vin || "TSMLYD21S00162450",
-      firstRegistrationDate: extractedFirstReg || matchedVehicle?.date_premiere_immatriculation || "2016-05-24",
-      currentMileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 125789,
-      fiscalPower: extractedFiscalPower || matchedVehicle?.puissance_fiscale || 6,
-      fuelType: extractedFuel || matchedVehicle?.energie || "Essence",
+      licensePlate: extractedPlate || matchedVehicle?.immatriculation || "",
+      vin: extractedVin || matchedVehicle?.vin || "",
+      firstRegistrationDate: extractedFirstReg || matchedVehicle?.date_premiere_immatriculation || "",
+      currentMileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 0,
+      fiscalPower: extractedFiscalPower || matchedVehicle?.puissance_fiscale || 0,
+      fuelType: extractedFuel || matchedVehicle?.energie || "",
       vehicle: {
-        brand: extractedMake || matchedVehicle?.marque || "Suzuki",
-        make: extractedMake || matchedVehicle?.marque || "Suzuki",
-        model: extractedModel || matchedVehicle?.modele || "Vitara",
+        brand: extractedMake || matchedVehicle?.marque || "Véhicule",
+        make: extractedMake || matchedVehicle?.marque || "Véhicule",
+        model: extractedModel || matchedVehicle?.modele || "Modèle",
         version: extractedVersion || matchedVehicle?.version || "",
-        licensePlate: extractedPlate || matchedVehicle?.immatriculation || "EC-301-JX",
-        vin: extractedVin || matchedVehicle?.vin || "TSMLYD21S00162450",
-        mileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 125789,
-        currentMileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 125789,
-        firstRegistrationDate: extractedFirstReg || matchedVehicle?.date_premiere_immatriculation || "2016-05-24",
+        licensePlate: extractedPlate || matchedVehicle?.immatriculation || "",
+        vin: extractedVin || matchedVehicle?.vin || "",
+        mileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 0,
+        currentMileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 0,
+        firstRegistrationDate: extractedFirstReg || matchedVehicle?.date_premiere_immatriculation || "",
       },
       invoice: {
         date: docDate,

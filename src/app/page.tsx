@@ -79,9 +79,9 @@ export default function LandingPage() {
       setDemoResult({
         documentType: "Facture d'Entretien",
         garage: {
-          name: "Garage des Lilas — Réseau Précisium",
-          siret: "482 918 302 00019",
-          address: "14 Rue des Artisans, 69003 Lyon",
+          name: "SARL GARAGE HELIERE C. & S.",
+          siret: "49995278600014",
+          address: "Route de Vibraye, 72320 Saint-Maixent",
         },
         vehicle: {
           licensePlate: "GB-412-XZ",

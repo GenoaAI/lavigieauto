@@ -7,15 +7,18 @@ import { MaintenanceCategory } from "@/lib/ai";
 import { generateReservationKit, ReservationKit } from "@/lib/engine/reservation-kit";
 import { calculateVehicleTireAssessment, VehicleTireAssessment } from "@/lib/engine/tires";
 import { fetchOnlineManufacturerPlan, OfficialMaintenancePlan } from "@/lib/engine/manufacturer-retriever";
+import { resolveRecommendedGarage, ResolveGarageResult, EnrichedGarage } from "@/lib/engine/garage-resolver";
 import {
   Vehicule,
   VehiculeStatut,
+  Garage,
   DocumentSource,
   LigneIntervention,
   DefaillanceCT,
   EcheancePrevisionnelle,
   AuditConformite,
   isVehicleTrackingSuspended,
+  resolveVehicleFromList,
   snapToBusinessDay,
 } from "@/lib/types/database.types";
 import { revalidatePath } from "next/cache";
@@ -44,22 +47,16 @@ export interface VehicleDetailsActionResult {
   conformity: ConformityAuditResult;
   reservationKit: ReservationKit;
   tires: VehicleTireAssessment;
+  garageRecommendation?: ResolveGarageResult;
 }
 
 export async function getVehicleDetailsAction(identifier: string): Promise<VehicleDetailsActionResult | null> {
   const foyerData = await getFoyerOverviewAction();
-  const rawQuery = decodeURIComponent(identifier || "").trim().toUpperCase();
-  const cleanQuery = rawQuery.replace(/[\s-]/g, "");
+  const matched = resolveVehicleFromList(foyerData.vehicles, identifier);
 
-  const matched = foyerData.vehicles.find((v) => {
-    if (v.id === identifier || v.id === rawQuery) return true;
-    if (v.immatriculation) {
-      const vImm = v.immatriculation.trim().toUpperCase();
-      const vClean = vImm.replace(/[\s-]/g, "");
-      return vImm === rawQuery || vClean === cleanQuery;
-    }
-    return false;
-  }) || foyerData.vehicles[0];
+  if (!matched) {
+    return null;
+  }
 
   const vehicle = matched as EnrichedVehicle;
 
@@ -178,7 +175,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
 
   const lastServices = Array.from(lastServicesMap.values());
 
-  const regDate = vehicle.date_premiere_immatriculation || "2016-05-24";
+  const regDate = vehicle.date_premiere_immatriculation || (vehicle.annee_mise_en_circulation ? `${vehicle.annee_mise_en_circulation}-01-01` : new Date().toISOString().split("T")[0]);
 
   const forecast = recalculateMaintenanceForecast({
     readings: mileageReadings,
@@ -194,7 +191,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
       const defs = vehicle.defaillances_ct || [];
       return {
         id: d.id || "doc-ct",
-        inspectionDate: d.date_document || "2026-08-20",
+        inspectionDate: d.date_document || new Date().toISOString().split("T")[0],
         mileage: d.kilometrage_document || vehicle.kilometrage_actuel || 0,
         result: (ocr.resultat_global === "A" || ocr.inspectionResult?.status === "FAVORABLE") ? "FAVORABLE" : "FAVORABLE",
         minorDefectsCount: defs.filter((def) => def.niveau_gravite === "mineure").length,
@@ -213,7 +210,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
       performedDate: l.date_intervention || new Date().toISOString(),
       mileage: l.kilometrage_intervention || 0,
       totalCostTTC: Number(l.prix_total_ttc) || 0,
-      garageName: (l as any).emetteur || "Garage Professionnel",
+      garageName: (l as any).emetteur || "Atelier",
       invoiceUrl: l.document_source_id ? `vault://${l.document_source_id}` : "vault://doc",
     })),
     ctHistory,
@@ -253,12 +250,20 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     })),
   });
 
+  const garageRecommendation = resolveRecommendedGarage({
+    vehicle,
+    garages: foyerData.garages || [],
+    documents: vehicle.documents_sources || [],
+    interventions: vehicle.lignes_interventions || [],
+  });
+
   return {
     vehicle,
     forecast,
     conformity,
     reservationKit,
     tires,
+    garageRecommendation,
   };
 }
 
@@ -425,7 +430,7 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     ];
 
     // 5. Generate projected echeances from official manufacturer intervals & real history
-    const regDateStr = vehicle.date_premiere_immatriculation || "2016-05-24";
+    const regDateStr = vehicle.date_premiere_immatriculation || (vehicle.annee_mise_en_circulation ? `${vehicle.annee_mise_en_circulation}-01-01` : new Date().toISOString().split("T")[0]);
     const regDate = new Date(regDateStr);
 
     const newEcheances = ops.map((op: any) => {

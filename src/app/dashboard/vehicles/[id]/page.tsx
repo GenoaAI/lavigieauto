@@ -176,12 +176,12 @@ export default function VehicleDetailPage() {
   const groupedInterventionsMap = new Map<string, any>();
 
   (v.lignes_interventions || []).forEach((l: any) => {
-    const key = `${l.date_intervention}_${l.emetteur || "Garage"}`;
+    const key = `${l.date_intervention || "sans-date"}_${l.emetteur || "Garage"}`;
     if (!groupedInterventionsMap.has(key)) {
       groupedInterventionsMap.set(key, {
-        date: l.date_intervention || "2026-08-21",
+        date: l.date_intervention,
         kilometrage: l.kilometrage_intervention || v.kilometrage_actuel,
-        garage: l.emetteur || "Garage Professionnel",
+        garage: l.emetteur || "Atelier",
         montantTTC: 0,
         items: [],
       });
@@ -191,8 +191,28 @@ export default function VehicleDetailPage() {
     group.items.push(l.operation || l.description || "Prestation");
   });
 
+  // Fusionner les factures et CT scannés des documents sources
+  (v.documents_sources || []).forEach((d: any) => {
+    if (d.file_type === "carte_grise") return;
+    const dateKey = `${d.date_document || "sans-date"}_${d.emetteur || "Garage"}`;
+    
+    if (!groupedInterventionsMap.has(dateKey)) {
+      groupedInterventionsMap.set(dateKey, {
+        date: d.date_document,
+        kilometrage: d.kilometrage_document || v.kilometrage_actuel,
+        garage: d.emetteur || (d.file_type === "controle_technique" ? "Centre de Contrôle Technique" : "Atelier"),
+        montantTTC: Number(d.montant_ttc) || 0,
+        items: [
+          d.file_type === "controle_technique"
+            ? "Contrôle Technique Périodique (Favorable)"
+            : (d.nom_fichier ? `Facture : ${d.nom_fichier}` : "Facture d'intervention atelier")
+        ],
+      });
+    }
+  });
+
   const interventions = Array.from(groupedInterventionsMap.values()).sort(
-    (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime() || (b.kilometrage || 0) - (a.kilometrage || 0)
+    (a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime() || (b.kilometrage || 0) - (a.kilometrage || 0)
   );
 
   const forecast = vehicleData?.forecast || {
@@ -1312,21 +1332,17 @@ export default function VehicleDetailPage() {
       )}
 
       {/* MODAL DU KIT PRÊT-À-RÉSERVER */}
-      {(() => {
-        const lastInvoice = (v.documents_sources || []).find((d: any) => d.emetteur);
-        const detectedGarageName = lastInvoice?.emetteur || (interventions[0]?.garage && interventions[0]?.garage !== "Garage Professionnel" ? interventions[0]?.garage : undefined);
-        const detectedPhone = (lastInvoice?.metadata as any)?.phone || (v.metadata as any)?.garage_phone;
-
-        return (
-          <ReservationKitModal
-            isOpen={isKitOpen}
-            onClose={() => setIsKitOpen(false)}
-            kit={kit}
-            garagePhoneNumber={detectedPhone}
-            garageName={detectedGarageName}
-          />
-        );
-      })()}
+      <ReservationKitModal
+        isOpen={isKitOpen}
+        onClose={() => setIsKitOpen(false)}
+        kit={kit}
+        recommendedGarage={vehicleData?.garageRecommendation?.recommendedGarage}
+        availableGarages={vehicleData?.garageRecommendation?.allGarages}
+        garagePhoneNumber={vehicleData?.garageRecommendation?.recommendedGarage?.telephone || undefined}
+        garageName={vehicleData?.garageRecommendation?.recommendedGarage?.nom || undefined}
+        garageAddress={vehicleData?.garageRecommendation?.recommendedGarage?.adresse || undefined}
+        garageEmail={vehicleData?.garageRecommendation?.recommendedGarage?.email || undefined}
+      />
 
       {/* MODALE DE CONFIRMATION DE SUPPRESSION */}
       <DeleteVehicleModal

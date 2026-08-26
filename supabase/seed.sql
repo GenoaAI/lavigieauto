@@ -122,4 +122,25 @@ BEGIN
         kilometrage_actuel = EXCLUDED.kilometrage_actuel,
         metadata = EXCLUDED.metadata;
 
+    -- 8.bis Garages Référencés
+    INSERT INTO public.garages (id, foyer_id, nom, adresse, telephone, email, marque, siret, metadata)
+    VALUES
+    (
+        '55555555-5555-5555-5555-555555555551',
+        v_foyer_id,
+        'SARL GARAGE HELIERE C. & S.',
+        NULL,
+        NULL,
+        NULL,
+        'Multimarque / Agent Réparateur',
+        '49995278600014',
+        '{"extracted_from_invoice": true, "siret": "49995278600014"}'::JSONB
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        nom = EXCLUDED.nom,
+        siret = EXCLUDED.siret,
+        marque = EXCLUDED.marque;
+
 END $$;
+
+

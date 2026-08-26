@@ -1,9 +1,9 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { Foyer, FoyerMember } from "@/lib/types/database.types";
+import { Foyer, FoyerMember, Garage } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "./vehicles";
-import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED } from "@/config/foyer.seed";
+import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED, DEFAULT_GARAGES_SEED } from "@/config/foyer.seed";
 import { cookies } from "next/headers";
 
 export interface FoyerOverviewResult {
@@ -11,6 +11,7 @@ export interface FoyerOverviewResult {
   role: string;
   vehicles: EnrichedVehicle[];
   members: FoyerMember[];
+  garages: Garage[];
 }
 
 export async function invalidateFoyerCache(): Promise<void> {
@@ -155,35 +156,43 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
           `)
           .eq("foyer_id", DEFAULT_FOYER_ID)
           .order("created_at", { ascending: true }),
+        (adminSupabase as any)
+          .from("garages")
+          .select("*")
+          .eq("foyer_id", DEFAULT_FOYER_ID)
+          .order("nom", { ascending: true }),
       ]);
 
       const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
       const raceResult: any = await Promise.race([dbQueryPromise, timeoutPromise]);
 
       if (raceResult && Array.isArray(raceResult)) {
-        const [foyerRes, vehRes] = raceResult;
-        if (!vehRes.error && vehRes.data && vehRes.data.length > 0) {
-          return {
-            foyer: (foyerRes?.data || defaultFoyer) as Foyer,
-            role: "owner",
-            vehicles: applyTrackingOverrides(vehRes.data as EnrichedVehicle[]),
-            members: defaultMembers,
-          };
-        }
+        const [foyerRes, vehRes, garagesRes] = raceResult;
+        const fetchedGarages = (garagesRes?.data || []) as Garage[];
+        const fetchedVehicles = (vehRes?.data || []) as EnrichedVehicle[];
+        return {
+          foyer: (foyerRes?.data || defaultFoyer) as Foyer,
+          role: "owner",
+          vehicles: applyTrackingOverrides(fetchedVehicles),
+          members: defaultMembers,
+          garages: fetchedGarages,
+        };
       }
 
       return {
         foyer: defaultFoyer,
         role: "owner",
-        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
+        vehicles: [],
         members: defaultMembers,
+        garages: [],
       };
     } catch {
       return {
         foyer: defaultFoyer,
         role: "owner",
-        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
+        vehicles: [],
         members: defaultMembers,
+        garages: [],
       };
     }
   }
@@ -238,24 +247,32 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     );
 
     if (matchedFoyer) {
-      const { data: vehList } = await (adminSupabase as any)
-        .from("vehicules")
-        .select(`
-          *,
-          documents_sources (*),
-          lignes_interventions (*),
-          defaillances_ct (*),
-          echeances_previsionnelles (*),
-          audits_conformite (*)
-        `)
-        .eq("foyer_id", matchedFoyer.id)
-        .order("created_at", { ascending: true });
+      const [vehRes, garagesRes] = await Promise.all([
+        (adminSupabase as any)
+          .from("vehicules")
+          .select(`
+            *,
+            documents_sources (*),
+            lignes_interventions (*),
+            defaillances_ct (*),
+            echeances_previsionnelles (*),
+            audits_conformite (*)
+          `)
+          .eq("foyer_id", matchedFoyer.id)
+          .order("created_at", { ascending: true }),
+        (adminSupabase as any)
+          .from("garages")
+          .select("*")
+          .eq("foyer_id", matchedFoyer.id)
+          .order("nom", { ascending: true }),
+      ]);
 
       return {
         foyer: matchedFoyer as Foyer,
         role: "owner",
-        vehicles: applyTrackingOverrides((vehList || []) as EnrichedVehicle[]),
+        vehicles: applyTrackingOverrides((vehRes.data || []) as EnrichedVehicle[]),
         members: customMembers,
+        garages: (garagesRes.data || []) as Garage[],
       };
     }
 
@@ -265,6 +282,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       role: "owner",
       vehicles: [],
       members: customMembers,
+      garages: [],
     };
   } catch {
     // En cas d'erreur de connexion base, état vide authentique (Zéro Fake Data)
@@ -273,6 +291,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       role: "owner",
       vehicles: [],
       members: customMembers,
+      garages: [],
     };
   }
 }
