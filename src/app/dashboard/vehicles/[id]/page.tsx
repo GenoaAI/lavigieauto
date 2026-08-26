@@ -659,25 +659,25 @@ export default function VehicleDetailPage() {
                       return (
                         <div
                           key={idx}
-                          className={`p-3.5 rounded-2xl transition space-y-2 text-xs border ${
+                          className={`p-3.5 sm:p-4 rounded-2xl transition space-y-2 text-xs border w-full ${
                             isOverdue
                               ? "bg-rose-50/70 border-rose-200 text-rose-950 shadow-sm ring-1 ring-rose-500/10"
                               : "bg-white border-slate-200/80 hover:border-slate-300 shadow-sm"
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 font-bold text-slate-900 truncate">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="flex items-start gap-1.5 font-bold text-slate-900 min-w-0 flex-1">
                               {isOverdue ? (
-                                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 animate-pulse" />
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
                               ) : (
-                                <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                               )}
-                              <span className={isOverdue ? "text-rose-950 font-extrabold truncate" : "truncate"}>
+                              <span className={`break-words ${isOverdue ? "text-rose-950 font-extrabold" : ""}`}>
                                 {ech.libelle}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
                                 isOverdue
                                   ? "bg-rose-100 text-rose-800 border border-rose-200"
                                   : "bg-slate-100 text-slate-600"
@@ -689,15 +689,15 @@ export default function VehicleDetailPage() {
                           </div>
 
                           {/* DÉCLENCHEUR 1ER TERME CONDENSÉ */}
-                          <div className="flex items-center justify-between text-[10.5px]">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold ${
+                          <div className="flex flex-wrap items-center justify-between text-[10.5px] gap-1.5">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold max-w-full break-words ${
                               isOverdue
                                 ? "bg-rose-100 text-rose-900"
                                 : triggerFactor === "KM_FIRST"
                                 ? "bg-blue-50 text-blue-800"
                                 : "bg-emerald-50 text-emerald-800"
                             }`}>
-                              {isOverdue ? <AlertCircle className="w-3 h-3 text-rose-600" /> : <TrendingUp className="w-3 h-3 text-blue-600" />}
+                              {isOverdue ? <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" /> : <TrendingUp className="w-3 h-3 text-blue-600 shrink-0" />}
                               <span>{triggerExplanation}</span>
                             </span>
 
@@ -713,15 +713,15 @@ export default function VehicleDetailPage() {
 
                           {/* DÉTAIL DÉPLIABLE AU CLIC */}
                           {isExpanded && (
-                            <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 text-[11px] leading-relaxed text-slate-600">
+                            <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 text-[11px] leading-relaxed text-slate-600 break-words">
                               <p>{ech.description}</p>
                             </div>
                           )}
 
-                          <div className={`pt-1.5 flex items-center justify-between text-[10.5px] font-semibold border-t ${
+                          <div className={`pt-2 flex flex-wrap sm:flex-nowrap items-center justify-between text-xs font-semibold border-t gap-y-1 gap-x-2 w-full ${
                             isOverdue ? "border-rose-200 text-rose-900" : "border-slate-100 text-slate-600"
                           }`}>
-                            <span>
+                            <span className="min-w-0">
                               {isOverdue ? "Échu le :" : "À planifier le :"} {" "}
                               <strong className={
                                 isOverdue
@@ -733,7 +733,7 @@ export default function VehicleDetailPage() {
                                 {ech.date_preconisee || "À calculer"} {isOverdue && "(Dépassé)"}
                               </strong>
                             </span>
-                            <span>
+                            <span className="min-w-0">
                               Butoir :{" "}
                               <strong className={
                                 isOverdue && currentKm >= targetKm
@@ -1036,25 +1036,25 @@ export default function VehicleDetailPage() {
                   return (
                     <div
                       key={idx}
-                      className={`p-4 rounded-2xl transition space-y-2.5 text-xs border ${
+                      className={`p-3.5 sm:p-4 rounded-2xl transition space-y-2.5 text-xs border w-full ${
                         isOverdue
                           ? "bg-rose-50/70 border-rose-200 text-rose-950 shadow-sm ring-1 ring-rose-500/10"
                           : "bg-white border-slate-200/80 hover:border-slate-300 shadow-sm"
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 font-bold text-slate-900 truncate">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="flex items-start gap-1.5 font-bold text-slate-900 min-w-0 flex-1">
                           {isOverdue ? (
-                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-pulse" />
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
                           ) : (
-                            <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                           )}
-                          <span className={isOverdue ? "text-rose-950 font-extrabold truncate" : "truncate"}>
+                          <span className={`break-words ${isOverdue ? "text-rose-950 font-extrabold" : ""}`}>
                             {ech.libelle}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
                             isOverdue
                               ? "bg-rose-100 text-rose-800 border border-rose-200"
                               : "bg-slate-100 text-slate-600"
@@ -1065,12 +1065,12 @@ export default function VehicleDetailPage() {
                         </div>
                       </div>
 
-                      <p className={`text-[11px] leading-relaxed ${isOverdue ? "text-rose-800/90" : "text-slate-500"}`}>
+                      <p className={`text-[11px] leading-relaxed break-words ${isOverdue ? "text-rose-800/90" : "text-slate-500"}`}>
                         {ech.description}
                       </p>
 
                       <div className="pt-1">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border max-w-full break-words ${
                           isOverdue
                             ? "bg-rose-100/90 text-rose-900 border-rose-300"
                             : triggerFactor === "KM_FIRST"
@@ -1090,10 +1090,10 @@ export default function VehicleDetailPage() {
                         </span>
                       </div>
 
-                      <div className={`pt-2 flex items-center justify-between text-[11px] font-semibold border-t ${
+                      <div className={`pt-2 flex flex-wrap sm:flex-nowrap items-center justify-between text-xs font-semibold border-t gap-y-1 gap-x-2 w-full ${
                         isOverdue ? "border-rose-200 text-rose-900" : "border-slate-100 text-slate-600"
                       }`}>
-                        <span>
+                        <span className="min-w-0">
                           {isOverdue ? "Échu le :" : "À planifier le :"} {" "}
                           <strong className={
                             isOverdue
@@ -1105,7 +1105,7 @@ export default function VehicleDetailPage() {
                             {ech.date_preconisee || "À calculer"} {isOverdue && "(Dépassé)"}
                           </strong>
                         </span>
-                        <span>
+                        <span className="min-w-0">
                           Butoir :{" "}
                           <strong className={
                             isOverdue && currentKm >= targetKm

@@ -30,4 +30,11 @@ export async function testMobileResponsiveArchitecture() {
     throw new Error("MobileBottomNav ne respecte pas les critères safe-area et tap-target minimum.");
   }
   console.log("  ✔ MobileBottomNav validé avec intégration safe-area et cibles tactiles >= 48px.");
+
+  // 5. Validation de la mise en page responsive des fiches d'intervention
+  const vehiclePageSource = fs.readFileSync("src/app/dashboard/vehicles/[id]/page.tsx", "utf-8");
+  if (!vehiclePageSource.includes("flex-wrap items-start justify-between") || !vehiclePageSource.includes("flex-wrap sm:flex-nowrap items-center justify-between")) {
+    throw new Error("Les fiches d'action d'intervention ne comportent pas le wrapping responsive attendu.");
+  }
+  console.log("  ✔ Fiches d'échéances prédictives validées en disposition adaptative (flex-wrap & anti-débordement).");
 }
