@@ -175,15 +175,15 @@ export default function LandingPage() {
 
             {/* Headline */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.15]">
-              Pilotez l'entretien de tous vos véhicules{" "}
+              Sécurisez le suivi de l&apos;entretien de vos voitures{" "}
               <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 bg-clip-text text-transparent">
-                en 2 gestes simples.
+                en deux gestes simples.
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-              Fini les classeurs perdus et les pièges au garage. Déposez votre Carte Grise ou vos factures : l'IA analyse, calcule le carnet constructeur et génère votre script d'appel garage au juste prix.
+              Plus de factures perdues voire d&apos;échéances dépassées et de risques de panne. Déposez votre carte grise et vos factures, l&apos;assistant construit votre plan d&apos;entretien, vous annonce les échéances, et vous aide à prendre rendez-vous simplement avec votre garagiste.
             </p>
           </div>
 
