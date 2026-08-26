@@ -426,7 +426,7 @@ export default function LandingPage() {
                   Vous scannez la facture
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  Prenez une photo avec votre smartphone ou glissez le PDF. LaVigieAuto extrait les kilomètres, pièces, garanties et met à jour automatiquement le carnet numérique du foyer.
+                  Prenez une photo avec votre smartphone ou glissez le PDF. L&apos;assistant analyse chaque document et intègre les éléments détaillés dans le carnet d&apos;entretien du véhicule.
                 </p>
               </div>
 
