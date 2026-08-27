@@ -140,17 +140,17 @@ export function generateReservationKit(options: {
   inspectionReport?: TechnicalInspectionExtraction;
 }): ReservationKit {
   const vehicle = options.vehicleContext || options.vehicle || {
-    make: 'Peugeot',
-    model: '3008',
-    licensePlate: 'XX-123-YY',
-    currentMileage: 60000,
-    fuelType: 'Essence',
+    make: 'Véhicule',
+    model: '',
+    licensePlate: '',
+    currentMileage: 0,
+    fuelType: '',
   };
 
   const milestones = options.milestonesToBook || options.upcomingMilestones || [];
   const makeModel = `${vehicle.make || 'Véhicule'} ${vehicle.model || ''}`.trim();
-  const licensePlate = vehicle.licensePlate || 'XX-123-YY';
-  const currentMileage = vehicle.currentMileage || 60000;
+  const licensePlate = vehicle.licensePlate || '';
+  const currentMileage = vehicle.currentMileage || 0;
 
   const interventionsToRequest: ReservationKit['interventionsToRequest'] = [];
   const popularizedDefects: DefectPopularization[] = [];

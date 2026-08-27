@@ -174,9 +174,9 @@ export function VehicleDetailClientView({
     marque: "Véhicule",
     modele: "",
     version: "",
-    immatriculation: "XX-123-YY",
-    kilometrage_actuel: 50000,
-    date_premiere_immatriculation: "2021-01-01",
+    immatriculation: "",
+    kilometrage_actuel: 0,
+    date_premiere_immatriculation: "",
   };
 
   const conformity = vehicleData?.conformity || {

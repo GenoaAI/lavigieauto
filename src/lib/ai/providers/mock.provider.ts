@@ -17,8 +17,25 @@ export class MockLLMProvider extends BaseLLMProvider {
     _systemPrompt?: string,
     _images?: ImageAttachment[]
   ): Promise<{ text: string; usage?: ExtractionUsage }> {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new Error(
+        "[AI Provider Error] Aucune clé API IA (GEMINI_API_KEY ou OPENAI_API_KEY) n'est configurée sur le serveur. " +
+        "Le mode simulation (Mock) est formellement interdit en production (Règle Strict Zéro Fake Data). " +
+        "Veuillez configurer GEMINI_API_KEY dans vos variables d'environnement Vercel."
+      );
+    }
+
+    // Extraction dynamique du contexte de test si présent dans le prompt
+    const makeMatch = prompt.match(/(?:Marque|make|Véhicule)\s*[:=]?\s*([A-Za-z]+)/i);
+    const modelMatch = prompt.match(/(?:Modèle|model)\s*[:=]?\s*([A-Za-z0-9\s]+?)(?:\n|\r|\(|$)/i);
+    const plateMatch = prompt.match(/([A-Z]{2}[-\s]?[0-9]{3}[-\s]?[A-Z]{2})/i);
+
+    const testMake = makeMatch ? makeMatch[1].trim() : 'TestVehicle';
+    const testModel = modelMatch ? modelMatch[1].trim() : 'TestModel';
+    const testPlate = plateMatch ? plateMatch[1].trim().toUpperCase() : 'TEST-001';
+
     // Return structured mock response depending on prompt content
-    if (prompt.includes('Contrôle Technique') || prompt.includes('contrôle technique')) {
+    if (prompt.includes('Contrôle Technique') || prompt.includes('contrôle technique') || prompt.includes('technical-inspection')) {
       return {
         text: JSON.stringify({
           center: {
@@ -29,10 +46,10 @@ export class MockLLMProvider extends BaseLLMProvider {
             inspectionDate: '2026-03-15',
           },
           vehicle: {
-            licensePlate: 'AA-123-BB',
+            licensePlate: testPlate,
             vin: 'VF3XXXXXXXXXXXXXX',
-            make: 'Peugeot',
-            model: '308',
+            make: testMake,
+            model: testModel,
             firstRegistrationDate: '2019-04-10',
             mileage: 82450,
             fuelType: 'Diesel',
@@ -145,11 +162,11 @@ export class MockLLMProvider extends BaseLLMProvider {
           brandNetwork: 'Eurorepar',
         },
         vehicle: {
-          licensePlate: 'AA-123-BB',
+          licensePlate: testPlate,
           vin: 'VF3XXXXXXXXXXXXXX',
-          make: 'Peugeot',
-          model: '308',
-          version: '1.5 BlueHDi 130 S&S',
+          make: testMake,
+          model: testModel,
+          version: 'Standard',
           currentMileage: 82450,
         },
         invoice: {
