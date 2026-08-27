@@ -59,7 +59,9 @@ export function resolveVehicleFromList<T extends { id?: string; immatriculation?
 
   return (
     vehicles.find((v) => {
-      if (v.id === identifier || v.id?.toUpperCase() === rawQuery) return true;
+      const vId = (v.id || "").toUpperCase().trim();
+      const vIdClean = vId.replace(/[\s-]/g, "");
+      if (vId === rawQuery || vIdClean === cleanQuery) return true;
       if (v.immatriculation) {
         const vImm = v.immatriculation.trim().toUpperCase();
         const vClean = vImm.replace(/[\s-]/g, "");
@@ -68,6 +70,33 @@ export function resolveVehicleFromList<T extends { id?: string; immatriculation?
       return false;
     }) || null
   );
+}
+
+/**
+ * Associe de façon résiliente un enregistrement enfant (facture, intervention, CT...)
+ * à un véhicule, que la clé étrangère soit un UUID ou directement l'immatriculation.
+ */
+export function matchesVehicleId(
+  recordVehiculeId: string | null | undefined,
+  vehicle: { id?: string; immatriculation?: string | null }
+): boolean {
+  if (!recordVehiculeId || !vehicle) return false;
+  const recRaw = recordVehiculeId.trim().toUpperCase();
+  const recClean = recRaw.replace(/[\s-]/g, "");
+
+  if (vehicle.id) {
+    const vId = vehicle.id.trim().toUpperCase();
+    const vIdClean = vId.replace(/[\s-]/g, "");
+    if (recRaw === vId || recClean === vIdClean) return true;
+  }
+
+  if (vehicle.immatriculation) {
+    const vPlate = vehicle.immatriculation.trim().toUpperCase();
+    const vPlateClean = vPlate.replace(/[\s-]/g, "");
+    if (recRaw === vPlate || recClean === vPlateClean) return true;
+  }
+
+  return false;
 }
 
 /**

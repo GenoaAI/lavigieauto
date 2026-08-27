@@ -51,9 +51,19 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate }: TireW
                 ? "text-emerald-600"
                 : assessment.globalHealthScore >= 50
                 ? "text-blue-600"
-                : "text-amber-600"
+                : assessment.globalHealthScore >= 20
+                ? "text-amber-600"
+                : "text-rose-600"
             }`}>
-              {assessment.globalHealthScore}% ({assessment.globalHealthScore >= 80 ? "Optimal" : "Bon état"})
+              {assessment.globalHealthScore}% ({
+                assessment.globalHealthScore >= 80
+                  ? "Optimal"
+                  : assessment.globalHealthScore >= 50
+                  ? "Bon état"
+                  : assessment.globalHealthScore >= 20
+                  ? "À surveiller"
+                  : "Critique"
+              })
             </span>
           </div>
           <button
@@ -234,7 +244,9 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate }: TireW
             <p className="text-[10px] text-slate-500">
               {activeAxle.sourceType === "WORKSHOP_INSPECTION"
                 ? `${100 - activeAxle.wearPercentage}% de vie restante selon relevé atelier`
-                : `${activeAxle.kmDrivenSinceEvent.toLocaleString()} km parcourus depuis la pose neuve`}
+                : activeAxle.kmDrivenSinceEvent === 0
+                ? "Pneumatiques fraîchement posés (0 km parcourus)"
+                : `${activeAxle.kmDrivenSinceEvent.toLocaleString("fr-FR")} km parcourus depuis la pose neuve`}
             </p>
           </div>
 

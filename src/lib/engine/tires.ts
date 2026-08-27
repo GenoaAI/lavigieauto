@@ -83,12 +83,82 @@ export function getStandardHomologatedTireSize(make?: string, model?: string, ve
   return "Dimensions Homologuées Constructeur";
 }
 
+export function extractTireDimension(text?: string, defaultDim: string = "Dimensions Homologuées"): string {
+  if (!text) return defaultDim;
+  const dimMatch = text.match(/\b(\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}(?:\s*\d{2,3}[A-Z])?)\b/i)
+    || text.match(/\b(\d{3}\s*\/\s*\d{2}\s*R\d{2}(?:\s*\d{2,3}[A-Z])?)\b/i);
+  if (dimMatch) {
+    return dimMatch[1].replace(/(\d{2})R(\d{2})/, "$1 R$2").toUpperCase().trim();
+  }
+  return defaultDim;
+}
+
+export function extractTireBrandAndModel(text?: string): string {
+  const t = (text || "").toLowerCase();
+  if (t.includes("kleber")) {
+    return t.includes("dynaxer") ? "Kleber Dynaxer HP5" : "Kleber Dynaxer";
+  }
+  if (t.includes("michelin")) {
+    if (t.includes("crossclimate")) return "Michelin CrossClimate 2";
+    if (t.includes("primacy")) return "Michelin Primacy 4";
+    if (t.includes("pilot")) return "Michelin Pilot Sport 5";
+    if (t.includes("energy")) return "Michelin Energy Saver";
+    return "Michelin Primacy";
+  }
+  if (t.includes("continental")) {
+    if (t.includes("ecocontact")) return "Continental EcoContact 6";
+    if (t.includes("premiumcontact")) return "Continental PremiumContact 7";
+    if (t.includes("allseason")) return "Continental AllSeasonContact";
+    return "Continental";
+  }
+  if (t.includes("bridgestone")) {
+    if (t.includes("turanza")) return "Bridgestone Turanza T001";
+    if (t.includes("weather")) return "Bridgestone Weather Control";
+    if (t.includes("blizzak")) return "Bridgestone Blizzak";
+    return "Bridgestone Turanza";
+  }
+  if (t.includes("turanza")) return "Bridgestone Turanza T001";
+  if (t.includes("goodyear")) {
+    if (t.includes("vector") || t.includes("4season")) return "Goodyear Vector 4Seasons";
+    if (t.includes("efficient")) return "Goodyear EfficientGrip";
+    return "Goodyear EfficientGrip";
+  }
+  if (t.includes("pirelli")) {
+    if (t.includes("cinturato")) return "Pirelli Cinturato";
+    if (t.includes("p zero") || t.includes("pzero")) return "Pirelli P Zero";
+    return "Pirelli Cinturato";
+  }
+  if (t.includes("hankook")) {
+    if (t.includes("ventus")) return "Hankook Ventus Prime";
+    if (t.includes("kinergy")) return "Hankook Kinergy";
+    return "Hankook Ventus";
+  }
+  if (t.includes("dunlop")) return "Dunlop Sport BluResponse";
+  if (t.includes("nokian")) return "Nokian Seasonproof";
+  if (t.includes("firestone")) return "Firestone Roadhawk";
+  if (t.includes("uniroyal")) return "Uniroyal RainExpert";
+  if (t.includes("falken")) return "Falken Ziex";
+  if (t.includes("kumho")) return "Kumho Ecwing";
+  if (t.includes("yokohama")) return "Yokohama BluEarth";
+  if (t.includes("toyo")) return "Toyo Proxes";
+
+  return "Pneumatiques Neufs";
+}
+
 export function calculateVehicleTireAssessment(params: TireCalculationParams): VehicleTireAssessment {
   const { vehicleId, currentMileage, dailyKmRate, make, model, version, invoices } = params;
   const safeDailyRate = Math.max(5, dailyKmRate || 35);
   const defaultDimension = getStandardHomologatedTireSize(make, model, version);
 
-  // 1. Détection des montes de pneus dans l'historique de factures
+  // 1. Tri systématique des factures par date descendante (plus récentes en premier)
+  const sortedInvoices = [...(invoices || [])].sort((a, b) => {
+    const timeA = new Date(a.date || 0).getTime();
+    const timeB = new Date(b.date || 0).getTime();
+    if (timeB !== timeA) return timeB - timeA;
+    return (b.mileage || 0) - (a.mileage || 0);
+  });
+
+  // Détection des montes de pneus dans l'historique de factures
   let frontTireState = {
     date: "2021-01-01",
     mileage: Math.max(0, currentMileage - 30000),
@@ -109,77 +179,184 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     eventLabel: "Estimation standard",
   };
 
-  // Analyse des factures
-  for (const inv of invoices) {
-    const op = (inv.operation || '').toLowerCase();
+  let frontAssigned = false;
+  let rearAssigned = false;
+
+  // Analyse chronologique inversée (du plus récent au plus ancien)
+  for (const inv of sortedInvoices) {
+    const op = (inv.operation || "").toLowerCase();
     
-    // Kleber Dynaxer 4 pneus neufs posés
-    if (op.includes('kleber') || (op.includes('pneu') && (op.includes('4') || op.includes('montage')) && !op.includes('ctrl') && !op.includes('usure'))) {
-      const brand = op.includes('kleber') ? 'Kleber Dynaxer HP5' : 'Pneumatiques Neufs';
-      const dim = op.includes('215/55') ? '215/55 R17 94W' : 'Dimensions Homologuées';
-      
+    // Ignorer les simples contrôles de pression de routine sans mention d'usure ni de pose neuve
+    const isOnlyPressureCheck = (op.includes("pression") || op.includes("gonflage")) && 
+      !op.includes("%") && !op.includes("usure") && !op.includes("montage") && !op.includes("remplacement") && !op.includes("neuf") && !op.includes("kleber") && !op.includes("michelin") && !op.includes("bridgestone") && !op.includes("continental") && !op.includes("turanza");
+
+    if (isOnlyPressureCheck) {
+      continue;
+    }
+
+    const detectedDim = extractTireDimension(inv.operation, defaultDimension);
+    const detectedBrand = extractTireBrandAndModel(inv.operation);
+
+    // Cas A : Relevé d'usure en atelier (ex: CTRL PNEUS AV 30% D'USURE, CTRL PNEUS AR 20% D'USURE)
+    const hasWearInspection = op.includes("%") || op.includes("usure") || op.includes("ctrl");
+    const frontWearMatch = op.match(/pneus?\s*(?:av|avant)\s*(\d+)\s*%/i) || op.match(/(?:usure|ctrl)\s*pneus?\s*(?:av|avant)\s*(\d+)\s*%/i);
+    const rearWearMatch = op.match(/pneus?\s*(?:ar|arrière|arriere)\s*(\d+)\s*%/i) || op.match(/(?:usure|ctrl)\s*pneus?\s*(?:ar|arrière|arriere)\s*(\d+)\s*%/i);
+    const genericWearMatch = op.match(/pneus?\s*(\d+)\s*%/i);
+
+    if (frontWearMatch && !frontAssigned) {
+      const wearVal = parseInt(frontWearMatch[1], 10);
       frontTireState = {
         date: inv.date,
         mileage: inv.mileage,
-        brand,
-        dimension: dim,
-        sourceType: 'NEW_TIRES_INSTALLED',
-        wearPercentReported: 0,
-        eventLabel: 'Montage de 4 pneus neufs',
+        brand: detectedBrand !== "Pneumatiques Neufs" ? detectedBrand : "Pneumatiques Homologués",
+        dimension: detectedDim,
+        sourceType: "WORKSHOP_INSPECTION",
+        wearPercentReported: wearVal,
+        eventLabel: `Contrôle d'usure en atelier (${wearVal}% mesuré)`,
+      };
+      frontAssigned = true;
+    }
+
+    if (rearWearMatch && !rearAssigned) {
+      const wearVal = parseInt(rearWearMatch[1], 10);
+      rearTireState = {
+        date: inv.date,
+        mileage: inv.mileage,
+        brand: detectedBrand !== "Pneumatiques Neufs" ? detectedBrand : "Pneumatiques Homologués",
+        dimension: detectedDim,
+        sourceType: "WORKSHOP_INSPECTION",
+        wearPercentReported: wearVal,
+        eventLabel: `Contrôle d'usure en atelier (${wearVal}% mesuré)`,
+      };
+      rearAssigned = true;
+    }
+
+    if (hasWearInspection && (frontAssigned || rearAssigned)) {
+      if (frontAssigned && rearAssigned) break;
+      continue;
+    }
+
+    if (hasWearInspection && genericWearMatch && !frontAssigned && !rearAssigned) {
+      const wearVal = parseInt(genericWearMatch[1], 10);
+      frontTireState = {
+        date: inv.date,
+        mileage: inv.mileage,
+        brand: detectedBrand !== "Pneumatiques Neufs" ? detectedBrand : "Pneumatiques Homologués",
+        dimension: detectedDim,
+        sourceType: "WORKSHOP_INSPECTION",
+        wearPercentReported: wearVal,
+        eventLabel: `Contrôle d'usure en atelier (${wearVal}% mesuré)`,
       };
       rearTireState = {
         date: inv.date,
         mileage: inv.mileage,
-        brand,
-        dimension: dim,
-        sourceType: 'NEW_TIRES_INSTALLED',
-        wearPercentReported: 0,
-        eventLabel: 'Montage de 4 pneus neufs',
+        brand: detectedBrand !== "Pneumatiques Neufs" ? detectedBrand : "Pneumatiques Homologués",
+        dimension: detectedDim,
+        sourceType: "WORKSHOP_INSPECTION",
+        wearPercentReported: wearVal,
+        eventLabel: `Contrôle d'usure en atelier (${wearVal}% mesuré)`,
       };
+      frontAssigned = true;
+      rearAssigned = true;
       break;
     }
 
-    // Relevé d'usure atelier (ex: révision Espace CTRL PNEUS AV 30%, CTRL PNEUS AR 20%)
-    if (op.includes('pneus av') && (op.includes('%') || op.includes('usure'))) {
-      const match = op.match(/pneus av\s*(\d+)%/i);
-      const wearVal = match ? parseInt(match[1]) : 30;
+    // Cas B : Montage de 4 pneus neufs
+    const is4Tires = (op.includes("4") && (op.includes("pneu") || op.includes("pneumatique") || op.includes("roue") || op.includes("montage") || op.includes("remplacement")))
+      || (op.includes("4 pneus") || op.includes("4 pneumatiques") || op.includes("train complet"));
+
+    if (is4Tires) {
+      if (!frontAssigned) {
+        frontTireState = {
+          date: inv.date,
+          mileage: inv.mileage,
+          brand: detectedBrand,
+          dimension: detectedDim,
+          sourceType: "NEW_TIRES_INSTALLED",
+          wearPercentReported: 0,
+          eventLabel: "Montage de 4 pneus neufs",
+        };
+        frontAssigned = true;
+      }
+      if (!rearAssigned) {
+        rearTireState = {
+          date: inv.date,
+          mileage: inv.mileage,
+          brand: detectedBrand,
+          dimension: detectedDim,
+          sourceType: "NEW_TIRES_INSTALLED",
+          wearPercentReported: 0,
+          eventLabel: "Montage de 4 pneus neufs",
+        };
+        rearAssigned = true;
+      }
+      if (frontAssigned && rearAssigned) break;
+      continue;
+    }
+
+    // Cas C : 2 pneus avant spécifiques
+    const isFrontTires = (op.includes("av") || op.includes("avant")) && (op.includes("pneu") || op.includes("montage") || op.includes("remplacement") || op.includes("pose"));
+    if (isFrontTires && !frontAssigned) {
       frontTireState = {
         date: inv.date,
         mileage: inv.mileage,
-        brand: 'Michelin Primacy / Continental',
-        dimension: '225/55 R18',
-        sourceType: 'WORKSHOP_INSPECTION',
-        wearPercentReported: wearVal,
-        eventLabel: `Contrôle d'usure en révision (${wearVal}% mesuré)`,
+        brand: detectedBrand,
+        dimension: detectedDim,
+        sourceType: "NEW_TIRES_INSTALLED",
+        wearPercentReported: 0,
+        eventLabel: "Montage de 2 pneus neufs avant",
       };
+      frontAssigned = true;
+      if (frontAssigned && rearAssigned) break;
+      continue;
     }
-    if (op.includes('pneus ar') && (op.includes('%') || op.includes('usure'))) {
-      const match = op.match(/pneus ar\s*(\d+)%/i);
-      const wearVal = match ? parseInt(match[1]) : 20;
+
+    // Cas D : 2 pneus arrière spécifiques
+    const isRearTires = (op.includes("ar") || op.includes("arrière") || op.includes("arriere")) && (op.includes("pneu") || op.includes("montage") || op.includes("remplacement") || op.includes("pose"));
+    if (isRearTires && !rearAssigned) {
       rearTireState = {
         date: inv.date,
         mileage: inv.mileage,
-        brand: 'Michelin Primacy / Continental',
-        dimension: '225/55 R18',
-        sourceType: 'WORKSHOP_INSPECTION',
-        wearPercentReported: wearVal,
-        eventLabel: `Contrôle d'usure en révision (${wearVal}% mesuré)`,
+        brand: detectedBrand,
+        dimension: detectedDim,
+        sourceType: "NEW_TIRES_INSTALLED",
+        wearPercentReported: 0,
+        eventLabel: "Montage de 2 pneus neufs arrière",
       };
+      rearAssigned = true;
+      if (frontAssigned && rearAssigned) break;
+      continue;
     }
 
-    // 2 pneus avant (ex: Speedy)
-    if (op.includes('turanza') || (op.includes('2 pneu') && frontTireState.sourceType === 'ESTIMATED')) {
-      const brand = op.includes('turanza') ? 'Bridgestone Turanza T001' : 'Bridgestone';
-      const dim = op.includes('215/55') ? '215/55 R17 94V' : '215/55 R17';
-      frontTireState = {
-        date: inv.date,
-        mileage: inv.mileage,
-        brand,
-        dimension: dim,
-        sourceType: 'NEW_TIRES_INSTALLED',
-        wearPercentReported: undefined,
-        eventLabel: 'Montage de 2 pneus neufs',
-      };
+    // Cas E : 2 pneus neufs génériques ou marque de pneus sans précision d'essieu
+    const isGenericTireInstall = (op.includes("pneu") && (op.includes("montage") || op.includes("remplacement") || op.includes("pose") || op.includes("neuf") || op.includes("2")))
+      || detectedBrand !== "Pneumatiques Neufs";
+
+    if (isGenericTireInstall) {
+      if (!frontAssigned) {
+        frontTireState = {
+          date: inv.date,
+          mileage: inv.mileage,
+          brand: detectedBrand,
+          dimension: detectedDim,
+          sourceType: "NEW_TIRES_INSTALLED",
+          wearPercentReported: 0,
+          eventLabel: "Montage de 2 pneus neufs",
+        };
+        frontAssigned = true;
+      } else if (!rearAssigned) {
+        rearTireState = {
+          date: inv.date,
+          mileage: inv.mileage,
+          brand: detectedBrand,
+          dimension: detectedDim,
+          sourceType: "NEW_TIRES_INSTALLED",
+          wearPercentReported: 0,
+          eventLabel: "Montage de 2 pneus neufs",
+        };
+        rearAssigned = true;
+      }
+      if (frontAssigned && rearAssigned) break;
     }
   }
 

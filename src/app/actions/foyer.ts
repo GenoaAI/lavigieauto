@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { Foyer, FoyerMember, Garage } from "@/lib/types/database.types";
+import { Foyer, FoyerMember, Garage, matchesVehicleId } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "./vehicles";
 import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED, DEFAULT_GARAGES_SEED } from "@/config/foyer.seed";
 import { cookies } from "next/headers";
@@ -190,11 +190,11 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       const fetchedVehicles: EnrichedVehicle[] = rawVehicles.length > 0
         ? rawVehicles.map((v) => ({
             ...v,
-            documents_sources: allDocs.filter((d) => d.vehicule_id === v.id),
-            lignes_interventions: allLines.filter((l) => l.vehicule_id === v.id),
-            defaillances_ct: allDefs.filter((d) => d.vehicule_id === v.id),
-            echeances_previsionnelles: allEchs.filter((e) => e.vehicule_id === v.id),
-            audits_conformite: allAudits.filter((a) => a.vehicule_id === v.id),
+            documents_sources: allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+            lignes_interventions: allLines.filter((l) => matchesVehicleId(l.vehicule_id, v)),
+            defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+            echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
+            audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
           }))
         : (DEFAULT_VEHICLES_SEED as EnrichedVehicle[]);
 
@@ -309,11 +309,11 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
       const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => ({
         ...v,
-        documents_sources: allDocs.filter((d) => d.vehicule_id === v.id),
-        lignes_interventions: allLines.filter((l) => l.vehicule_id === v.id),
-        defaillances_ct: allDefs.filter((d) => d.vehicule_id === v.id),
-        echeances_previsionnelles: allEchs.filter((e) => e.vehicule_id === v.id),
-        audits_conformite: allAudits.filter((a) => a.vehicule_id === v.id),
+        documents_sources: allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+        lignes_interventions: allLines.filter((l) => matchesVehicleId(l.vehicule_id, v)),
+        defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+        echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
+        audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
       }));
 
       const customResult: FoyerOverviewResult = {
