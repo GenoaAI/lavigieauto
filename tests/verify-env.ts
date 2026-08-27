@@ -42,33 +42,21 @@ async function verifyEnvironment() {
     allGood = false;
   } else {
     try {
-      const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`;
-      const listRes = await fetch(listUrl);
-      if (listRes.ok) {
-        const listJson = await listRes.json();
-        const models = (listJson.models || []).map((m: any) => m.name.replace("models/", ""));
-        console.log("   📋 Modèles autorisés sur votre clé Google API :", models.slice(0, 10).join(", "));
-        
-        // Tester le 1er modèle supportant generateContent
-        const supported = (listJson.models || []).find((m: any) => m.supportedGenerationMethods?.includes("generateContent"));
-        if (supported) {
-          const modName = supported.name.replace("models/", "");
-          const testRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modName}:generateContent?key=${geminiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: "Ping test. Reponds uniquement PONG" }] }] }),
-          });
-          if (testRes.ok) {
-            console.log(`   ✔ Test de génération réussi avec '${modName}' !`);
-          } else {
-            console.log(`   ⚠️ Test de génération échoué sur '${modName}' (HTTP ${testRes.status})`);
-          }
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const testModels = ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-pro-latest", "gemini-2.5-pro", "gemini-flash-latest"];
+      for (const m of testModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: m });
+          const res = await model.generateContent("Ping test. Réponds: PONG");
+          console.log(`   ✔ Succès avec '${m}' ->`, res.response.text().trim());
+        } catch (err: any) {
+          console.log(`   ⚠️ '${m}' en erreur:`, err.message);
         }
-      } else {
-        console.log(`   ❌ Impossible de lister les modèles (HTTP ${listRes.status})`);
       }
     } catch (e: any) {
-      console.log("   ❌ Erreur listage modèles :", e.message);
+      console.log("   ❌ Erreur globale SDK Gemini :", e.message);
+      allGood = false;
     }
   }
 
