@@ -3,18 +3,18 @@ import { LLMProviderConfig, ImageAttachment, ExtractionUsage } from '../types';
 
 export class GeminiLLMProvider extends BaseLLMProvider {
   public readonly name = 'gemini';
-  public readonly defaultModel = 'gemini-3.5-flash';
+  public readonly defaultModel = 'gemini-2.5-flash';
 
   private apiKey: string;
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
-  // Pool de modèles réactifs et disponibles
+  // Pool de modèles officiels Google Generative Language API
   private availableModels = [
-    'gemini-3.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.5-flash-lite',
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.5-pro',
   ];
 
   constructor(config: Partial<LLMProviderConfig> = {}) {

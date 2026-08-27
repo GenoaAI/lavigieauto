@@ -130,7 +130,9 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     if (!extractionResult.success || !extractionResult.data) {
       return {
         success: false,
-        error: "Impossible d'extraire les informations du document. Veuillez réessayer avec un document plus net.",
+        error:
+          extractionResult.errors?.[0] ||
+          "Impossible d'extraire les informations du document. Veuillez vérifier vos clés API IA ou réessayer avec un document plus net.",
       };
     }
 

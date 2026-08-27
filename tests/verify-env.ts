@@ -42,7 +42,7 @@ async function verifyEnvironment() {
     allGood = false;
   } else {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +52,7 @@ async function verifyEnvironment() {
       });
 
       if (res.ok) {
-        console.log("   ✔ Clé Gemini valide et modèle 'gemini-3.6-flash' connecté avec succès !");
+        console.log("   ✔ Clé Gemini valide et modèle 'gemini-2.5-flash' connecté avec succès !");
       } else {
         const err = await res.text();
         console.log("   ❌ Erreur Gemini API :", err);

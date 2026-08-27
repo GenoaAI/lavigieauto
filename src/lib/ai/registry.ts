@@ -23,19 +23,22 @@ export class AIProviderRegistry {
    * Automatically inspect environment to set default provider
    */
   private detectDefaultProvider(): void {
-    const envProvider = typeof process !== 'undefined' ? (process.env.AI_PROVIDER as ProviderType) : undefined;
-    const hasGemini = typeof process !== 'undefined' && Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
-    const hasOpenAI = typeof process !== 'undefined' && Boolean(process.env.OPENAI_API_KEY);
+    const envProvider = typeof process !== 'undefined' ? ((process.env.DEFAULT_AI_PROVIDER || process.env.AI_PROVIDER) as ProviderType) : undefined;
+    const geminiKey = typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '') : '';
+    const openAIKey = typeof process !== 'undefined' ? (process.env.OPENAI_API_KEY || '') : '';
+    const hasGemini = Boolean(geminiKey && geminiKey.trim() !== '');
+    const hasOpenAI = Boolean(openAIKey && openAIKey.trim() !== '');
 
-    if (envProvider && ['gemini', 'openai', 'mock'].includes(envProvider)) {
-      this.defaultProviderType = envProvider;
+    if (envProvider && ['gemini', 'openai', 'mock'].includes(envProvider.trim())) {
+      this.defaultProviderType = envProvider.trim() as ProviderType;
     } else if (hasGemini) {
       this.defaultProviderType = 'gemini';
     } else if (hasOpenAI) {
       this.defaultProviderType = 'openai';
     } else {
-      // Fallback to mock in dev/test when no API keys are provided
-      this.defaultProviderType = 'mock';
+      // En production, ne JAMAIS basculer silencieusement sur un mock avec des fausses données (Règle GEMINI.md Zéro Fake Data).
+      // On cible 'gemini' par défaut afin de lever une erreur claire indiquant la configuration de la clé API.
+      this.defaultProviderType = process.env.NODE_ENV === 'test' ? 'mock' : 'gemini';
     }
   }
 
