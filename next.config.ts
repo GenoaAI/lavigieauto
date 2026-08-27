@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb", // Autorise les uploads de factures/PV haute résolution
     },
   },
+  outputFileTracingIncludes: {
+    "/**": ["./skills/**/*"],
+  },
   images: {
     remotePatterns: [
       {

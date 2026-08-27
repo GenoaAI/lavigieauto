@@ -45,7 +45,16 @@ export async function runSkillsLoaderTest() {
   }
   console.log("  ✔ Skill manufacturer-plan-retriever 100% constructeur validé.");
 
-  console.log("  ✔ Tous les prompts LLM sont externalisés dans des fichiers .md et respectent le Zero Hardcoding.");
+  // 5. Test Carnet d'Entretien Skill
+  const mbSkill = loadSkillPrompt("maintenance-book-parser", {
+    vehicleContext: "Peugeot 308 II",
+  });
+  if (!mbSkill.prompt.includes("Peugeot 308 II") || !mbSkill.systemPrompt.includes("carnets d'entretien")) {
+    throw new Error("Échec du chargement du skill maintenance-book-parser");
+  }
+  console.log("  ✔ Skill maintenance-book-parser validé.");
+
+  console.log("  ✔ Tous les prompts LLM sont externalisés dans des fichiers .md et bénéficient d'un fallback embarqué pour Vercel / Serverless.");
 }
 
 if (require.main === module) {

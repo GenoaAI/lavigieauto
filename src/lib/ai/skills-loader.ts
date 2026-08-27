@@ -9,11 +9,200 @@ export interface LoadedSkill {
   version: string;
 }
 
+/**
+ * Registre de secours embarqué des compétences LLM (Skills Markdown).
+ * Garantit une résilience absolue en environnement Serverless (Vercel, AWS Lambda)
+ * où les fichiers Markdown racine ne sont pas copiés dans le bundle Lambda isolé.
+ */
+export const EMBEDDED_SKILLS: Record<string, string> = {
+  "invoice-parser": `---
+name: invoice-parser
+description: "Extraction exhaustive et structuration des factures d'ateliers mécaniques, concessions et garages automobiles français"
+systemPrompt: "Tu es un expert d'extraction et d'analyse de factures d'ateliers mécaniques, concessions et garages automobiles français. Ne retourne jamais de champs vides si les données sont lisibles."
+version: 1.0.0
+---
+
+# Instructions d'Extraction de Facture Atelier / Garage
+
+Analyse scrupuleusement cette facture d'atelier ou de garage automobile.
+Extrais l'ensemble des informations de facturation, de l'émetteur, du véhicule et le détail ligne par ligne des opérations réalisées :
+
+1. **Informations Facture & Émetteur** :
+   - \`invoiceNumber\` : Numéro de facture
+   - \`invoiceDate\` : Date de facture / date d'intervention au format YYYY-MM-DD
+   - \`garage.name\` : Nom de l'atelier, concession ou garage émetteur (ex: SARL GARAGE HELIERE C. & S., SPEEDY, BAZOCHE AUTOMOBILE)
+   - \`garage.siret\` : Numéro SIRET (14 chiffres si visible)
+   - \`garage.address\` : Adresse complète du garage
+
+2. **Identification & Kilométrage Véhicule** :
+   - \`vehicle.licensePlate\` : Immatriculation (ex: FX-563-KZ, EC-301-JX)
+   - \`vehicle.currentMileage\` : Kilométrage relevé au compteur lors du passage atelier (ex: 272448, 125789)
+   - \`vehicle.make\` : Marque (ex: RENAULT, SUZUKI)
+   - \`vehicle.model\` : Modèle (ex: ESPACE V, VITARA)
+   - \`vehicle.vin\` : Numéro de série VIN (17 caractères)
+
+3. **Lignes d'Interventions et Pièces** :
+   - Extrais chaque ligne avec sa désignation exacte (\`label\`), sa catégorie normalisée (\`category\`: DRAIN_OIL, OIL_FILTER, AIR_FILTER, CABIN_FILTER, FUEL_FILTER, SPARK_PLUGS, BRAKE_FLUID, COOLANT, BRAKE_PADS_FRONT, BRAKE_PADS_REAR, ACCESSORY_BELT, TIMING_BELT, GEARBOX_OIL, TIRES, CLIMATISATION, BATTERY, WIPERS, TECHNICAL_INSPECTION, OTHER), sa quantité (\`quantity\`), son prix unitaire HT (\`unitPriceHT\`), son montant total TTC (\`totalPriceTTC\`), et si c'est de la pièce ou de la main d'œuvre (\`isLabor\`).
+
+4. **Totaux Financiers** :
+   - \`totalHT\` : Montant total net Hors Taxes
+   - \`totalTVA\` : Montant de la TVA
+   - \`totalTTC\` : Montant total TTC net à payer
+
+{{vehicleContext}}
+{{rawTextContext}}
+{{customPromptContext}}
+
+Réponds STRICTEMENT au format JSON valide selon le schéma requis.
+`,
+
+  "technical-inspection-parser": `---
+name: technical-inspection-parser
+description: "Extraction et analyse réglementaire des procès-verbaux de contrôle technique automobile français (Norme UTAC / OTC)"
+systemPrompt: "Tu es un expert en réglementation automobile française et analyse de procès-verbaux de contrôle technique (norme UTAC / OTC)."
+version: 1.0.0
+---
+
+# Instructions d'Extraction de Procès-Verbal de Contrôle Technique
+
+Analyse scrupuleusement ce Procès-Verbal de Contrôle Technique périodique (norme UTAC / OTC France).
+Extrais toutes les données réglementaires du centre, du véhicule, du bilan global et la liste exhaustive des défaillances constatées :
+
+1. **Identification du Centre & Visite** :
+   - \`center.name\` : Nom ou raison sociale du centre agréé (ex: DEKRA, AUTOSUR, SECURITEST, SAS LE ROUX)
+   - \`center.approvalNumber\` : Numéro d'agrément du centre
+   - \`center.inspectionDate\` : Date du contrôle technique au format YYYY-MM-DD
+   - \`center.nextInspectionDeadline\` : Date limite de validité ou du prochain contrôle
+
+2. **Véhicule & Kilométrage Certifié** :
+   - \`vehicle.licensePlate\` : Immatriculation relevée
+   - \`vehicle.currentMileage\` : Kilométrage officiel certifié relevé au compteur
+   - \`vehicle.vin\` : Numéro de série VIN
+   - \`vehicle.make\` / \`vehicle.model\`
+
+3. **Résultat Global & Bilan Réglementaire** :
+   - \`inspectionResult.status\` : Résultat global (FAVORABLE si résultat A, DEFAVORABLE_POUR_DEFAILLANCES_MAJEURES si résultat S avec contre-visite sous 2 mois, DEFAVORABLE_POUR_DEFAILLANCES_CRITIQUES si résultat R avec interdiction de circuler dès minuit)
+   - \`inspectionResult.isFavorable\` : true si résultat A favorable, false sinon
+
+4. **Défaillances Relevées (Ligne par ligne)** :
+   - Pour chaque défaillance constatée :
+     * \`code\` : Code officiel UTAC (ex: 5.2.3.d.1, 1.1.13.a.2, 4.1.2.a.1)
+     * \`label\` : Libellé textuel exact du défaut constaté
+     * \`severity\` : Gravité réglementaire (\`MINOR\` pour défaillance mineure sans contre-visite, \`MAJOR\` pour défaillance majeure avec contre-visite sous 2 mois, \`CRITICAL\` pour défaillance critique)
+     * \`location\` : Localisation (ex: AVG pour Avant Gauche, ARD pour Arrière Droit, etc.)
+     * \`category\` : Sous-système mécanique impacté (BRAKES, STEERING, VISIBILITY, LIGHTING, SUSPENSION_TIRES, CHASSIS, OTHER)
+
+{{vehicleContext}}
+{{rawTextContext}}
+{{customPromptContext}}
+
+Réponds STRICTEMENT au format JSON valide selon le schéma requis.
+`,
+
+  "registration-card-parser": `---
+name: registration-card-parser
+description: "Extraction certifiée et normalisée des Certificats d'Immatriculation français (Cartes Grises SIV et FNI)"
+systemPrompt: "Tu es un expert d'extraction de Certificats d'Immatriculation (Cartes Grises françaises SIV/FNI). Ne retourne jamais de champs vides si les valeurs sont visibles sur le document."
+version: 1.0.0
+---
+
+# Instructions d'Extraction de Carte Grise
+
+Analyse scrupuleusement ce Certificat d'Immatriculation (Carte Grise française).
+Lis attentivement l'image ou le document fourni et extrais scrupuleusement chaque champ visible selon la nomenclature officielle :
+
+- **licensePlate** : Numéro d'immatriculation officiel (Ligne A, ex: EC-301-JX, FX-563-KZ, GP-902-NY)
+- **firstRegistrationDate** : Date de 1ère mise en circulation au format ISO 8601 YYYY-MM-DD (Ligne B, ex: 2016-05-24)
+- **make** : Marque officielle du constructeur (Ligne D.1, ex: SUZUKI, RENAULT, PEUGEOT)
+- **model** : Dénomination commerciale / Modèle (Ligne D.3, ex: VITARA, ESPACE, CLIO)
+- **typeVariantVersion** : Type Variante Version TVV (Ligne D.2)
+- **vin** : Numéro d'identification du véhicule à 17 caractères (Ligne E)
+- **fuelType** : Type de carburant / Énergie (Ligne P.3, ex: ES pour Essence, GO pour Diesel, EH pour Hybride, EL pour Électrique)
+- **fiscalPower** : Puissance administrative nationale en CV fiscaux (Ligne P.6, nombre entier)
+- **powerKw** : Puissance nette maximale en kW (Ligne P.2)
+- **cnit** : Numéro de réception type / CNIT (Ligne K)
+- **co2Emissions** : Taux d'émission de CO2 en g/km (Ligne V.7)
+- **ownerName** : Nom et prénom ou raison sociale du titulaire (Ligne C.1)
+
+{{rawTextContext}}
+{{customPromptContext}}
+
+Réponds STRICTEMENT sous la forme d'un objet JSON valide respectant le schéma attendu.
+`,
+
+  "maintenance-book-parser": `---
+name: maintenance-book-parser
+description: "Extraction et numérisation des carnets d'entretien et tampons d'ateliers constructeur"
+systemPrompt: "Tu es un ingénieur de maintenance automobile expert dans l'analyse des carnets d'entretien officiels et des grilles de révision d'usine."
+version: 1.0.0
+---
+
+# Instructions d'Extraction de Carnet d'Entretien
+
+Analyse ce carnet d'entretien ou cette grille périodique constructeur.
+Extrais chaque tampon d'atelier certifié et chaque opération enregistrée :
+
+1. **Identification du Véhicule** :
+   - \`vehicle.make\` / \`vehicle.model\`
+   - \`vehicle.licensePlate\`
+   - \`vehicle.vin\`
+
+2. **Tampons d'Atelier & Révisions Enregistrées** :
+   - \`performedServices\` : Liste des interventions tamponnées avec \`date\`, \`mileage\`, \`garageName\`, \`operationsChecked\` et \`stampPresent\`.
+
+3. **Plan Constructeur Prescrit** :
+   - \`recommendedPlan\` : Périodicités d'usine relevées pour chaque organe (moteur, boîte, filtres, courroies, fluides).
+
+{{vehicleContext}}
+{{rawTextContext}}
+{{customPromptContext}}
+
+Réponds STRICTEMENT sous forme d'un objet JSON valide.
+`,
+
+  "manufacturer-plan-retriever": `---
+name: manufacturer-plan-retriever
+description: "Récupération du plan d'entretien officiel 100% complet et exhaustif pour tout véhicule selon les bases de données constructeurs après-vente"
+systemPrompt: "Tu es un système expert en bases de données après-vente et documentation technique constructeur automobile officielle (équivalent Autodata, HaynesPro, carnets officiels d'usine). Réponds uniquement en JSON valide."
+version: 1.0.0
+---
+
+# Cahier des Charges & Plan d'Entretien Officiel Constructeur (100% Exhaustif)
+
+Tu es un ingénieur expert en documentation technique après-vente automobile constructeur.
+
+Fournis 100% DES PRÉCONISATIONS OFFICIELLES DU CONSTRUCTEUR pour ce véhicule :
+- **Marque** : {{make}}
+- **Modèle** : {{model}}
+- **Version / Finition** : {{version}}
+- **Énergie / Motorisation** : {{fuelType}}
+- **Année de mise en circulation** : {{year}}
+- **VIN** : {{vin}}
+
+Tu DOIS inclure 100% des postes d'entretien officiels applicables au modèle selon le cahier des charges d'usine :
+1. **Vidange huile moteur & filtre** (avec la norme d'huile officielle exacte : ex. Suzuki Genuine 0W-20 ECSTAR, Renault RN17 5W-30, PSA B71 2290/2297, VW 504.00/507.00, etc.)
+2. **Filtre d'habitacle / filtre à pollen / anti-allergène** (tous les 12 mois)
+3. **Filtre à air moteur** (tous les 24 mois ou 40 000 km)
+4. **Filtre à carburant** (Gazole avec purge d'eau décanteur / Essence)
+5. **Purge complète du circuit de freinage** (DOT 4 / DOT 5.1 ESP - tous les 24 mois / 2 ans)
+6. **Liquide de refroidissement** (LdR longue durée - 5 ans ou 100 000 km puis tous les 3 ans / 60 000 km)
+7. **Bougies d'allumage Iridium / Platine** (Essence - 48 mois / 60 000 km) ou **Bougies de préchauffage** (Diesel)
+8. **Courroie d'accessoires & galets tendeurs** (6 ans / 90 000 à 120 000 km)
+9. **Courroie de distribution & pompe à eau** (si moteur à courroie) OU **Contrôle chaîne de distribution** (si chaîne métallique sans remplacement périodique)
+10. **Vidange boîte de vitesses** (Manuelle ou Automatique EDC / DSG / EAT / CVT avec filtre/crépine de boîte)
+11. **Vidange pont arrière & boîte de transfert** (si transmission intégrale 4x4 / AllGrip / AWD)
+12. **Contrôle et entretien circuit de climatisation** (contrôle compresseur, traitement antibactérien, recharge fluide R134a/R1234yf)
+13. **Contrôle Technique réglementaire périodique** (UTAC / OTC à 4 ans puis tous les 2 ans)
+
+Réponds STRICTEMENT au format JSON respectant le schéma demandé.
+`,
+};
+
 const SKILL_CACHE = new Map<string, { rawContent: string; frontmatter: Record<string, string>; body: string }>();
 
 /**
- * Charge un prompt LLM externalisé au format Markdown depuis le dossier `skills/<skillName>/SKILL.md`.
- * Respecte rigoureusement la règle Zero Hardcoding.
+ * Charge un prompt LLM externalisé au format Markdown depuis le dossier `skills/<skillName>/SKILL.md`
+ * avec repli automatique vers le registre embarqué en environnement Serverless (Vercel).
  */
 export function loadSkillPrompt(
   skillName: string,
@@ -22,16 +211,32 @@ export function loadSkillPrompt(
   let cached = SKILL_CACHE.get(skillName);
 
   if (!cached) {
-    const filePath = path.join(process.cwd(), "skills", skillName, "SKILL.md");
     let fileContent = "";
 
-    if (fs.existsSync(filePath)) {
-      fileContent = fs.readFileSync(filePath, "utf-8");
-    } else {
-      const fallbackPath = path.resolve(process.cwd(), "src", "skills", skillName, "SKILL.md");
-      if (fs.existsSync(fallbackPath)) {
-        fileContent = fs.readFileSync(fallbackPath, "utf-8");
+    // Chemins potentiels selon l'environnement d'exécution
+    const candidatePaths = [
+      path.join(process.cwd(), "skills", skillName, "SKILL.md"),
+      path.resolve(process.cwd(), "src", "skills", skillName, "SKILL.md"),
+      path.resolve(__dirname, "../../skills", skillName, "SKILL.md"),
+      path.resolve(__dirname, "../../../skills", skillName, "SKILL.md"),
+      path.resolve(__dirname, "../../../../skills", skillName, "SKILL.md"),
+      path.join(process.cwd(), "..", "skills", skillName, "SKILL.md"),
+    ];
+
+    for (const p of candidatePaths) {
+      try {
+        if (fs.existsSync(p)) {
+          fileContent = fs.readFileSync(p, "utf-8");
+          if (fileContent) break;
+        }
+      } catch {
+        // Ignorer et essayer le suivant
       }
+    }
+
+    // Repli immédiat sur le registre embarqué si introuvable sur le disque physique
+    if (!fileContent && EMBEDDED_SKILLS[skillName]) {
+      fileContent = EMBEDDED_SKILLS[skillName];
     }
 
     if (!fileContent) {
