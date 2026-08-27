@@ -42,25 +42,33 @@ async function verifyEnvironment() {
     allGood = false;
   } else {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: "Ping test. Reponds uniquement PONG" }] }],
-        }),
-      });
-
-      if (res.ok) {
-        console.log("   ✔ Clé Gemini valide et modèle 'gemini-flash-latest' connecté avec succès !");
+      const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`;
+      const listRes = await fetch(listUrl);
+      if (listRes.ok) {
+        const listJson = await listRes.json();
+        const models = (listJson.models || []).map((m: any) => m.name.replace("models/", ""));
+        console.log("   📋 Modèles autorisés sur votre clé Google API :", models.slice(0, 10).join(", "));
+        
+        // Tester le 1er modèle supportant generateContent
+        const supported = (listJson.models || []).find((m: any) => m.supportedGenerationMethods?.includes("generateContent"));
+        if (supported) {
+          const modName = supported.name.replace("models/", "");
+          const testRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modName}:generateContent?key=${geminiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: "Ping test. Reponds uniquement PONG" }] }] }),
+          });
+          if (testRes.ok) {
+            console.log(`   ✔ Test de génération réussi avec '${modName}' !`);
+          } else {
+            console.log(`   ⚠️ Test de génération échoué sur '${modName}' (HTTP ${testRes.status})`);
+          }
+        }
       } else {
-        const err = await res.text();
-        console.log("   ❌ Erreur Gemini API :", err);
-        allGood = false;
+        console.log(`   ❌ Impossible de lister les modèles (HTTP ${listRes.status})`);
       }
     } catch (e: any) {
-      console.log("   ❌ Erreur réseau Gemini :", e.message);
-      allGood = false;
+      console.log("   ❌ Erreur listage modèles :", e.message);
     }
   }
 

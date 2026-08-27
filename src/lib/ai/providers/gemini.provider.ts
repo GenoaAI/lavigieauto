@@ -11,12 +11,11 @@ export class GeminiLLMProvider extends BaseLLMProvider {
   // Pool de modèles officiels Google Generative Language API
   private availableModels = [
     'gemini-flash-latest',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
+    'gemini-flash-lite-latest',
+    'gemini-2.5-flash-lite',
     'gemini-2.5-flash',
-    'gemini-1.5-pro-latest',
-    'gemini-1.5-pro',
+    'gemini-pro-latest',
+    'gemini-2.5-pro',
   ];
 
   constructor(config: Partial<LLMProviderConfig> = {}) {
