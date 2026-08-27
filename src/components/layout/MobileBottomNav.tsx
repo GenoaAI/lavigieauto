@@ -85,6 +85,7 @@ export function MobileBottomNav() {
               <Link
                 key={idx}
                 href={item.href || "#"}
+                prefetch={true}
                 className={`flex flex-col items-center justify-center p-2 rounded-xl transition min-w-[48px] min-h-[48px] touch-manipulation active:scale-95 ${
                   isActive
                     ? "text-blue-600 font-bold bg-blue-50/60"

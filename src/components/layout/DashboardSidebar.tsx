@@ -95,6 +95,7 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
           {/* Vue d'ensemble */}
           <Link
             href="/dashboard"
+            prefetch={true}
             title="Vue d'ensemble Foyer"
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
               pathname === "/dashboard"
@@ -124,6 +125,7 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
               <Link
                 key={v.id}
                 href={`/dashboard/vehicles/${slug}`}
+                prefetch={true}
                 title={`${v.marque} ${v.modele} (${v.immatriculation})`}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
                   isCurrent
@@ -154,6 +156,7 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
 
           <Link
             href="/#scan-first"
+            prefetch={true}
             title="Scanner une facture (Geste 2)"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 hover:text-slate-900 transition"
           >
@@ -164,6 +167,7 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
           {vehicles.length > 0 && (
             <Link
               href={`/v/${vehicles[0]?.id}`}
+              prefetch={true}
               target="_blank"
               title="Certificat Revente Public"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 hover:text-slate-900 transition"

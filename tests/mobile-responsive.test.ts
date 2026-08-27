@@ -32,7 +32,10 @@ export async function testMobileResponsiveArchitecture() {
   console.log("  ✔ MobileBottomNav validé avec intégration safe-area et cibles tactiles >= 48px.");
 
   // 5. Validation de la mise en page responsive des fiches d'intervention
-  const vehiclePageSource = fs.readFileSync("src/app/dashboard/vehicles/[id]/page.tsx", "utf-8");
+  const vehicleFile = fs.existsSync("src/components/vehicles/VehicleDetailClientView.tsx")
+    ? "src/components/vehicles/VehicleDetailClientView.tsx"
+    : "src/app/dashboard/vehicles/[id]/page.tsx";
+  const vehiclePageSource = fs.readFileSync(vehicleFile, "utf-8");
   if (!vehiclePageSource.includes("flex-wrap items-start justify-between") || !vehiclePageSource.includes("flex-wrap sm:flex-nowrap items-center justify-between")) {
     throw new Error("Les fiches d'action d'intervention ne comportent pas le wrapping responsive attendu.");
   }

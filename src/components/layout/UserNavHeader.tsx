@@ -41,12 +41,14 @@ export function UserNavHeader() {
         />
         <Link
           href="/login"
+          prefetch={true}
           className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-slate-700 hover:text-blue-600 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition"
         >
           Se connecter
         </Link>
         <Link
           href="/#scan-first"
+          prefetch={true}
           className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition active:scale-95"
         >
           <Sparkles className="w-3.5 h-3.5" />
@@ -101,6 +103,7 @@ export function UserNavHeader() {
 
           <Link
             href="/dashboard"
+            prefetch={true}
             onClick={() => setIsOpen(false)}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition"
           >
