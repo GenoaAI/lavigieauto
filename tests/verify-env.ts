@@ -79,12 +79,22 @@ async function verifyEnvironment() {
       }
 
       // Check Vehicules
-      const { data: vehicules, error: vehiculeErr } = await supabase.from("vehicules").select("*").limit(5);
+      const { data: vehicules, error: vehiculeErr } = await supabase.from("vehicules").select("*").order("created_at", { ascending: false });
       if (vehiculeErr) {
         console.log("   ❌ Erreur lecture table vehicules :", vehiculeErr.message);
         allGood = false;
       } else {
-        console.log(`   ✔ Table vehicules OK : ${vehicules.map((v) => `${v.marque} ${v.modele} (${v.immatriculation})`).join(", ")}`);
+        console.log(`   ✔ Table vehicules OK : ${vehicules.map((v) => `${v.marque} ${v.modele} (${v.immatriculation} / ${v.kilometrage_actuel}km)`).join(", ")}`);
+        
+        const vitara = vehicules.find((v) => v.modele?.toLowerCase().includes("vitara") || v.immatriculation?.toUpperCase().includes("EC301JX"));
+        if (vitara) {
+          console.log(`\n   🔍 DÉTAIL SUZUKI VITARA (ID: ${vitara.id}) :`);
+          const { data: docs } = await supabase.from("documents_sources").select("*").eq("vehicule_id", vitara.id).order("created_at", { ascending: false });
+          console.log(`      Documents (${docs?.length || 0}) :`, docs?.map(d => `${d.nom_fichier} | ${d.date_document} | ${d.kilometrage_document}km | ${d.montant_ttc}€ | ${d.emetteur}`));
+
+          const { data: lines } = await supabase.from("lignes_interventions").select("*").eq("vehicule_id", vitara.id).order("created_at", { ascending: false });
+          console.log(`      Lignes interventions (${lines?.length || 0}) :`, lines?.map(l => `${l.date_intervention} | ${l.operation} | ${l.prix_total_ttc}€ | ${l.emetteur}`));
+        }
       }
 
       // Check Storage Bucket

@@ -6,6 +6,7 @@ import { syncVehicleManufacturerScheduleAction } from "@/app/actions/vehicles";
 import { vaultStorageService } from "@/lib/storage/vault-service";
 import { checkDocumentQuota } from "@/lib/integrations/stripe/quota";
 import { Vehicule, DocumentType } from "@/lib/types/database.types";
+import { invalidateFoyerCache } from "@/app/actions/foyer";
 import { revalidatePath } from "next/cache";
 
 export interface NormalizedDocumentExtraction {
@@ -472,14 +473,21 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         .eq("file_type", documentType);
 
       const matchingDoc = (existingDocs || []).find((existing: any) => {
-        // 1. Même date exacte
-        if (existing.date_document && existing.date_document === docDate) return true;
-        // 2. Même kilométrage document non nul
-        if (extractedMileage && existing.kilometrage_document && Number(existing.kilometrage_document) === Number(extractedMileage)) return true;
-        // 3. Même émetteur / garage reconnu
-        if (docEmitter && existing.emetteur && existing.emetteur.toLowerCase().trim() === docEmitter.toLowerCase().trim()) return true;
-        // 4. Même nom de fichier
+        // 1. Même nom de fichier exact sur le même véhicule
         if (existing.nom_fichier && (existing.nom_fichier === file.name || existing.nom_fichier === finalFileName)) return true;
+        // 2. Même date ET même montant non nul ET même émetteur
+        if (
+          existing.date_document &&
+          existing.date_document === docDate &&
+          totalTTC &&
+          existing.montant_ttc &&
+          Math.abs(Number(existing.montant_ttc) - Number(totalTTC)) < 0.01 &&
+          docEmitter &&
+          existing.emetteur &&
+          existing.emetteur.toLowerCase().trim() === docEmitter.toLowerCase().trim()
+        ) {
+          return true;
+        }
         return false;
       });
 
@@ -687,6 +695,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     }
 
     try {
+      await invalidateFoyerCache();
       revalidatePath("/dashboard");
       if (vehicleId) revalidatePath(`/dashboard/vehicles/${vehicleId}`);
     } catch {
