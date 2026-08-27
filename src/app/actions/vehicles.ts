@@ -148,17 +148,17 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     const op = (l.operation || l.description || "").toLowerCase();
     let mappedCat: MaintenanceCategory | null = null;
 
-    if (cat.includes("moteur") || op.includes("vidange") || op.includes("huile")) mappedCat = "DRAIN_OIL";
+    if (cat.includes("moteur") || op.includes("vidange") || op.includes("huile") || op.includes("revision") || op.includes("forfait entretien")) mappedCat = "DRAIN_OIL";
     else if (cat.includes("climatisation") || op.includes("habitacle") || op.includes("pollen")) mappedCat = "CABIN_FILTER";
-    else if (op.includes("filtre a air") || op.includes("filtre à air") || op.includes("filtrante")) mappedCat = "AIR_FILTER";
-    else if (op.includes("carburant") || op.includes("gazole") || op.includes("essence")) mappedCat = "FUEL_FILTER";
-    else if (cat.includes("freinage") || op.includes("plaquette")) mappedCat = "BRAKE_PADS_FRONT";
+    else if (op.includes("filtre a air") || op.includes("filtre à air") || op.includes("filtrante") || op.includes("filtre air")) mappedCat = "AIR_FILTER";
+    else if (op.includes("carburant") || op.includes("gazole") || op.includes("essence") || op.includes("filtre gasoil")) mappedCat = "FUEL_FILTER";
+    else if (cat.includes("freinage") || op.includes("plaquette") || op.includes("disque") || op.includes("frein")) mappedCat = "BRAKE_PADS_FRONT";
     else if (op.includes("liquide de frein") || op.includes("purge")) mappedCat = "BRAKE_FLUID";
-    else if (op.includes("bougie")) mappedCat = "SPARK_PLUGS";
-    else if (cat.includes("distribution") || op.includes("courroie")) mappedCat = "ACCESSORY_BELT";
-    else if (cat.includes("pneumatiques") || op.includes("pneu")) mappedCat = "TIRES_FRONT";
+    else if (op.includes("bougie") || op.includes("allumage")) mappedCat = "SPARK_PLUGS";
+    else if (cat.includes("distribution") || op.includes("courroie") || op.includes("galet")) mappedCat = "ACCESSORY_BELT";
+    else if (cat.includes("pneumatiques") || op.includes("pneu") || op.includes("turanza") || op.includes("bridgestone") || op.includes("michelin") || op.includes("roue") || op.includes("valve") || op.includes("equilibrage")) mappedCat = "TIRES_FRONT";
     else if (cat.includes("electricite") || op.includes("batterie")) mappedCat = "BATTERY";
-    else if (cat.includes("transmission") || op.includes("boite")) mappedCat = "GEARBOX_OIL";
+    else if (cat.includes("transmission") || op.includes("boite") || op.includes("pont")) mappedCat = "GEARBOX_OIL";
 
     if (mappedCat) {
       const existing = lastServicesMap.get(mappedCat);
