@@ -224,6 +224,15 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       data.totalVAT ||
       null;
 
+    const extractedInvoiceNumber =
+      data.invoice?.invoiceNumber ||
+      data.invoice?.numero ||
+      data.facture?.numero_facture ||
+      data.facture?.numero ||
+      data.invoiceNumber ||
+      data.numero_facture ||
+      null;
+
     // 1. Rapprochement Intelligent & Isolation stricte des Véhicules dans Supabase
     const { data: allFoyerVehicles } = await (adminSupabase as any)
       .from("vehicules")
@@ -468,15 +477,36 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     if (vehicleId) {
       const { data: existingDocs } = await (adminSupabase as any)
         .from("documents_sources")
-        .select("id, date_document, kilometrage_document, emetteur, nom_fichier, file_type")
+        .select("id, date_document, kilometrage_document, emetteur, nom_fichier, file_type, ocr_structured_data")
         .eq("vehicule_id", vehicleId)
         .eq("file_type", documentType);
 
       const matchingDoc = (existingDocs || []).find((existing: any) => {
-        // 1. Même nom de fichier exact sur le même véhicule
-        if (existing.nom_fichier && (existing.nom_fichier === file.name || existing.nom_fichier === finalFileName)) return true;
-        // 2. Même date ET même montant non nul ET même émetteur
+        // 1. Même numéro de facture officiel sur le même véhicule
+        const existingInvNum =
+          existing.ocr_structured_data?.invoice?.invoiceNumber ||
+          existing.ocr_structured_data?.invoice?.numero ||
+          existing.ocr_structured_data?.invoiceNumber ||
+          existing.ocr_structured_data?.numero_facture ||
+          existing.ocr_structured_data?.facture?.numero ||
+          existing.ocr_structured_data?.facture?.numero_facture;
+
         if (
+          extractedInvoiceNumber &&
+          existingInvNum &&
+          extractedInvoiceNumber.toString().trim().toUpperCase() === existingInvNum.toString().trim().toUpperCase()
+        ) {
+          return true;
+        }
+
+        // 2. Même nom de fichier exact sur le même véhicule
+        if (existing.nom_fichier && (existing.nom_fichier === file.name || existing.nom_fichier === finalFileName)) {
+          return true;
+        }
+
+        // 3. Même date ET même montant non nul ET même émetteur (si pas de numéro de facture disponible)
+        if (
+          !extractedInvoiceNumber &&
           existing.date_document &&
           existing.date_document === docDate &&
           totalTTC &&
@@ -488,6 +518,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         ) {
           return true;
         }
+
         return false;
       });
 
