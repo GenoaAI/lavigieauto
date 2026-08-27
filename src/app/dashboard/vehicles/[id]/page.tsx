@@ -5,11 +5,10 @@ import { VehicleDetailClientView } from "@/components/vehicles/VehicleDetailClie
 export default async function VehicleDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const resolvedParams = await params;
-  const rawId = resolvedParams?.id;
-  const vehicleId = Array.isArray(rawId) ? rawId[0] : (rawId || "22222222-2222-2222-2222-222222222222");
+  const { id } = await params;
+  const vehicleId = id || "22222222-2222-2222-2222-222222222222";
 
   const vehicleData = await getVehicleDetailsAction(vehicleId);
 
