@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { MessageSquare, X, UploadCloud, Image as ImageIcon, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { sendFeedbackAction } from "@/app/actions/feedback";
 
@@ -11,6 +11,7 @@ export function FeedbackDrawer() {
   const [fileName, setFileName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [createdTickets, setCreatedTickets] = useState<Array<{ id: string; title: string; type: string }>>([]);
@@ -116,45 +117,50 @@ export function FeedbackDrawer() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!text.trim()) return;
+  const isBusy = isSubmitting || isPending;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || isBusy) return;
+
+    // Feedback visuel immédiat (0ms)
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
     setCreatedTickets([]);
 
-    try {
-      const res = await sendFeedbackAction(
-        text.trim(),
-        attachedImage ? { base64Data: attachedImage, fileName } : undefined
-      );
+    startTransition(async () => {
+      try {
+        const res = await sendFeedbackAction(
+          text.trim(),
+          attachedImage ? { base64Data: attachedImage, fileName } : undefined
+        );
 
-      if (res.success) {
-        setSuccess(res.message || "Votre feedback a bien été envoyé à MicroKanban !");
-        if (res.ticketsCreated && res.ticketsCreated.length > 0) {
-          setCreatedTickets(res.ticketsCreated);
+        if (res.success) {
+          setSuccess(res.message || "Votre feedback a bien été envoyé et transmis à MicroKanban !");
+          if (res.ticketsCreated && res.ticketsCreated.length > 0) {
+            setCreatedTickets(res.ticketsCreated);
+          }
+          setText("");
+          handleRemoveImage();
+          setTimeout(() => {
+            setIsOpen(false);
+            setSuccess(null);
+            setCreatedTickets([]);
+          }, 3500);
+        } else {
+          setError(res.error || "Une erreur est survenue lors de l'envoi.");
         }
-        setText("");
-        handleRemoveImage();
-        setTimeout(() => {
-          setIsOpen(false);
-          setSuccess(null);
-          setCreatedTickets([]);
-        }, 3500);
-      } else {
-        setError(res.error || "Une erreur est survenue lors de l'envoi.");
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Une erreur inattendue est survenue."
+        );
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Une erreur inattendue est survenue."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   return (
@@ -247,10 +253,11 @@ export function FeedbackDrawer() {
               </label>
               <textarea
                 required
+                disabled={isBusy}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Expliquez ce qui s'est passé, l'anomalie constatée ou l'amélioration souhaitée..."
-                className="h-32 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                className="h-32 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition disabled:bg-slate-50 disabled:text-slate-400"
               />
             </div>
 
@@ -331,10 +338,10 @@ export function FeedbackDrawer() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !text.trim()}
+              disabled={isBusy || !text.trim()}
               className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white py-2.5 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? (
+              {isBusy ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Envoi en cours...</span>

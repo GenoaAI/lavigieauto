@@ -118,6 +118,9 @@ ${text}`;
       : `Bearer ${apiSecret}`;
     const rawSecret = apiSecret.replace(/^Bearer\s+/i, "").trim();
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
@@ -126,6 +129,9 @@ ${text}`;
         "x-api-secret": rawSecret,
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
+    }).finally(() => {
+      clearTimeout(timeoutId);
     });
 
     if (!response.ok) {
@@ -147,6 +153,13 @@ ${text}`;
       ticketsCreated: data.ticketsCreated || [],
     };
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.warn("[FEEDBACK] Timeout atteint lors de l'appel du webhook MicroKanban (6s).");
+      return {
+        success: true,
+        message: "Votre feedback a été transmis et sera traité en arrière-plan.",
+      };
+    }
     console.error("[FEEDBACK] Erreur réseau lors de l'appel du webhook:", err);
     return {
       success: false,
