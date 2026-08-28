@@ -301,7 +301,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           const kw = extractedPowerKw || 0;
           const cv = extractedFiscalPower || 0;
           if (kw >= 80 || cv >= 7 || (extractedVersion && extractedVersion.includes("BR1B0H"))) {
-            enhancedVersion = "1.6 16V 112 ch Proactive (BR1B0H)";
+            enhancedVersion = "1.6 16V 112 ch (BR1B0H)";
             dinPower = 112;
           } else {
             enhancedVersion = "1.2 16V 75 ch Authentique";

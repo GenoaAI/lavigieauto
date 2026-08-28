@@ -121,8 +121,9 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
   }
   if ((vehicle.modele || "").toUpperCase().includes("CLIO")) {
     if (vehicle.puissance_fiscale === 7 || vehicle.version?.includes("BR1B0H") || vehicle.puissance_din === 112) {
-      vehicle.version = "1.6 16V 112 ch Proactive (BR1B0H)";
+      vehicle.version = "1.6 16V 112 ch (BR1B0H)";
       vehicle.puissance_din = 112;
+      vehicle.boite_vitesse = "manuelle";
     }
   }
 
