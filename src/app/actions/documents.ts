@@ -164,6 +164,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     const extractedFirstReg = data.firstRegistrationDate || data.vehicle?.firstRegistrationDate || data.vehicule?.date_premiere_immatriculation || data.B || data["B"] || null;
     const extractedFuel = data.fuelType || data.vehicle?.fuelType || data.vehicule?.energie || data["P.3"] || data.P3 || null;
     const extractedFiscalPower = data.fiscalPower || (data["P.6"] ? parseInt(data["P.6"]) : (data.P6 ? parseInt(data.P6) : null));
+    const extractedPowerKw = data.powerKw || data.puissance_kw || (data["P.2"] ? parseInt(data["P.2"]) : (data.P2 ? parseInt(data.P2) : null));
     const extractedMileage = data.vehicle?.currentMileage || data.vehicle?.mileage || data.vehicule?.kilometrage || data.kilometrage || data.mileage || null;
     const docDate =
       data.invoice?.invoiceDate ||
@@ -297,8 +298,15 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           dinPower = 200;
         } else if (modelStr.includes("CLIO")) {
           defaultImg = "/images/vehicles/renault-clio-2007.jpg";
-          enhancedVersion = "1.2 16V 75 ch Authentique";
-          dinPower = 75;
+          const kw = extractedPowerKw || 0;
+          const cv = extractedFiscalPower || 0;
+          if (kw >= 80 || cv >= 7 || (extractedVersion && extractedVersion.includes("BR1B0H"))) {
+            enhancedVersion = "1.6 16V 112 ch Proactive (BR1B0H)";
+            dinPower = 112;
+          } else {
+            enhancedVersion = "1.2 16V 75 ch Authentique";
+            dinPower = 75;
+          }
         } else if (modelStr.includes("CHEROKEE")) {
           defaultImg = "/images/vehicles/jeep-cherokee-1981.jpg";
           enhancedVersion = "5.9 V8 360ci Chief (SJ)";

@@ -119,6 +119,12 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     vehicle.version = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
     vehicle.puissance_din = 120;
   }
+  if ((vehicle.modele || "").toUpperCase().includes("CLIO")) {
+    if (vehicle.puissance_fiscale === 7 || vehicle.version?.includes("BR1B0H") || vehicle.puissance_din === 112) {
+      vehicle.version = "1.6 16V 112 ch Proactive (BR1B0H)";
+      vehicle.puissance_din = 112;
+    }
+  }
 
   if (vehicle.lignes_interventions) {
     vehicle.lignes_interventions.sort(

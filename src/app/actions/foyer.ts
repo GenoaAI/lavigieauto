@@ -105,6 +105,9 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       if (resolvedVersion === "LYD21SAT2" || (!resolvedVersion && modelStr.includes("VITARA"))) {
         resolvedVersion = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
       }
+      if (modelStr.includes("CLIO") && (v.puissance_fiscale === 7 || (resolvedVersion && resolvedVersion.includes("BR1B0H")) || v.puissance_din === 112)) {
+        resolvedVersion = "1.6 16V 112 ch Proactive (BR1B0H)";
+      }
 
       // Si enregistré en base de données comme archivé/suspendu
       if (
