@@ -526,7 +526,6 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           .update({
             nom_fichier: finalFileName,
             storage_path: finalStoragePath,
-            garage_id: resolvedGarageId,
             mime_type: file.type || "application/pdf",
             taille_octets: buffer.byteLength,
             statut_ocr: "traite",
@@ -553,7 +552,6 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         .insert({
           vehicule_id: vehicleId || null,
           foyer_id: foyerId,
-          garage_id: resolvedGarageId,
           nom_fichier: finalFileName,
           storage_path: finalStoragePath,
           file_type: documentType,
@@ -705,7 +703,6 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           foyer_id: foyerId,
           vehicule_id: vehicleId,
           document_source_id: documentId,
-          garage_id: resolvedGarageId,
           categorie: normalizedCat,
           operation: desc,
           description: desc,

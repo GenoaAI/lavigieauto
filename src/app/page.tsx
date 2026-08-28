@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   Sparkles,
@@ -29,6 +30,7 @@ import { FoyerNameEditor } from "@/components/foyer/FoyerNameEditor";
 import { DEFAULT_FOYER_ID } from "@/config/foyer.seed";
 
 export default function LandingPage() {
+  const router = useRouter();
   const [demoResult, setDemoResult] = useState<any | null>(null);
   const [simulatorKm, setSimulatorKm] = useState<number>(85000);
   const [simulatorAgeYears, setSimulatorAgeYears] = useState<number>(5);
@@ -353,13 +355,17 @@ export default function LandingPage() {
 
                 {/* Action to create account / view dashboard */}
                 <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/dashboard"
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-xs transition shadow-lg shadow-blue-600/30"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push("/dashboard");
+                      router.refresh();
+                    }}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-xs transition shadow-lg shadow-blue-600/30 cursor-pointer"
                   >
                     Sauvegarder dans mon espace Foyer
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setDemoResult(null)}

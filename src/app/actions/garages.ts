@@ -92,11 +92,6 @@ export async function backfillGaragesFromExistingDocumentsAction(): Promise<{ su
           await (adminSupabase as any).from("garages").update(updatePayload).eq("id", targetGarage.id);
         }
       }
-
-      if (garageId && doc.garage_id !== garageId) {
-        await (adminSupabase as any).from("documents_sources").update({ garage_id: garageId }).eq("id", doc.id);
-        await (adminSupabase as any).from("lignes_interventions").update({ garage_id: garageId }).eq("document_source_id", doc.id);
-      }
     }
 
     return { success: true, count: createdOrLinkedCount };
