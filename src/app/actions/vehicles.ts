@@ -235,6 +235,50 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     upcomingMilestones: milestonesForKit,
   });
 
+  const allTireOperations: Array<{
+    date: string;
+    mileage: number;
+    operation: string;
+    emitter?: string;
+  }> = [];
+
+  (vehicle.lignes_interventions || []).forEach((l) => {
+    allTireOperations.push({
+      date: l.date_intervention || "2026-08-21",
+      mileage: l.kilometrage_intervention || vehicle.kilometrage_actuel || 0,
+      operation: l.operation || l.description || "",
+      emitter: l.emetteur || "Garage",
+    });
+  });
+
+  (vehicle.documents_sources || []).forEach((d) => {
+    const ocr = (d.ocr_structured_data || {}) as any;
+    const docDate = d.date_document || "2026-08-21";
+    const docKm = d.kilometrage_document || vehicle.kilometrage_actuel || 0;
+    const emitter = d.emetteur || "Garage";
+
+    const items = [
+      ...(Array.isArray(ocr.prestations) ? ocr.prestations : []),
+      ...(Array.isArray(ocr.lineItems) ? ocr.lineItems : []),
+      ...(Array.isArray(ocr.lignes_prestations) ? ocr.lignes_prestations : []),
+      ...(Array.isArray(ocr.recapitulatif_maintenance?.operations_realisees)
+        ? ocr.recapitulatif_maintenance.operations_realisees.map((op: string) => ({ description: op }))
+        : []),
+    ];
+
+    items.forEach((it: any) => {
+      const desc = it.description || it.designation || it.operation || it.label || (typeof it === "string" ? it : "");
+      if (desc) {
+        allTireOperations.push({
+          date: docDate,
+          mileage: docKm,
+          operation: desc,
+          emitter,
+        });
+      }
+    });
+  });
+
   const tires = calculateVehicleTireAssessment({
     vehicleId: vehicle.id,
     currentMileage: vehicle.kilometrage_actuel || 0,
@@ -242,12 +286,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     make: vehicle.marque,
     model: vehicle.modele,
     version: vehicle.version || undefined,
-    invoices: (vehicle.lignes_interventions || []).map((l) => ({
-      date: l.date_intervention || "2026-08-21",
-      mileage: l.kilometrage_intervention || vehicle.kilometrage_actuel || 0,
-      operation: l.operation || l.description || "",
-      emitter: l.emetteur || "Garage",
-    })),
+    invoices: allTireOperations,
   });
 
   const garageRecommendation = resolveRecommendedGarage({

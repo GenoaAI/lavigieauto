@@ -151,10 +151,15 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
   const defaultDimension = getStandardHomologatedTireSize(make, model, version);
 
   // 1. Tri systématique des factures par date descendante (plus récentes en premier)
+  // À date égale, privilégier les lignes mentionnant la marque/modèle du pneumatique
   const sortedInvoices = [...(invoices || [])].sort((a, b) => {
     const timeA = new Date(a.date || 0).getTime();
     const timeB = new Date(b.date || 0).getTime();
     if (timeB !== timeA) return timeB - timeA;
+    const brandA = extractTireBrandAndModel(a.operation);
+    const brandB = extractTireBrandAndModel(b.operation);
+    if (brandA !== "Pneumatiques Neufs" && brandB === "Pneumatiques Neufs") return -1;
+    if (brandB !== "Pneumatiques Neufs" && brandA === "Pneumatiques Neufs") return 1;
     return (b.mileage || 0) - (a.mileage || 0);
   });
 
@@ -194,11 +199,19 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
       continue;
     }
 
+    // Ignorer les simples remarques / devis / préconisations futures
+    const isAdvisoryOnly = (op.includes("prevoir") || op.includes("prévoir") || op.includes("a prevoir") || op.includes("à prévoir") || op.includes("devis"))
+      && !op.includes("forfait") && !op.includes("kleber") && !op.includes("michelin") && !op.includes("bridgestone") && !op.includes("continental") && !op.includes("turanza") && !op.includes("dynaxer") && !op.includes("4 pneus neufs");
+
+    if (isAdvisoryOnly) {
+      continue;
+    }
+
     const detectedDim = extractTireDimension(inv.operation, defaultDimension);
     const detectedBrand = extractTireBrandAndModel(inv.operation);
 
-    // Cas A : Relevé d'usure en atelier (ex: CTRL PNEUS AV 30% D'USURE, CTRL PNEUS AR 20% D'USURE)
-    const hasWearInspection = op.includes("%") || op.includes("usure") || op.includes("ctrl");
+    // Cas A : Relevé d'usure chiffré en atelier (ex: CTRL PNEUS AV 30% D'USURE, CTRL PNEUS AR 20% D'USURE)
+    const hasWearInspection = op.includes("%") || (op.includes("usure") && !op.includes("neuf") && !op.includes("remplacement"));
     const frontWearMatch = op.match(/pneus?\s*(?:av|avant)\s*(\d+)\s*%/i) || op.match(/(?:usure|ctrl)\s*pneus?\s*(?:av|avant)\s*(\d+)\s*%/i);
     const rearWearMatch = op.match(/pneus?\s*(?:ar|arrière|arriere)\s*(\d+)\s*%/i) || op.match(/(?:usure|ctrl)\s*pneus?\s*(?:ar|arrière|arriere)\s*(\d+)\s*%/i);
     const genericWearMatch = op.match(/pneus?\s*(\d+)\s*%/i);
@@ -263,7 +276,8 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
 
     // Cas B : Montage de 4 pneus neufs
     const is4Tires = (op.includes("4") && (op.includes("pneu") || op.includes("pneumatique") || op.includes("roue") || op.includes("montage") || op.includes("remplacement")))
-      || (op.includes("4 pneus") || op.includes("4 pneumatiques") || op.includes("train complet"));
+      || (op.includes("4 pneus") || op.includes("4 pneumatiques") || op.includes("train complet"))
+      || (detectedBrand !== "Pneumatiques Neufs" && (op.includes("4") || op.includes("complet")));
 
     if (is4Tires) {
       if (!frontAssigned) {
@@ -295,7 +309,9 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     }
 
     // Cas C : 2 pneus avant spécifiques
-    const isFrontTires = (op.includes("av") || op.includes("avant")) && (op.includes("pneu") || op.includes("montage") || op.includes("remplacement") || op.includes("pose"));
+    const isFrontTires = ((op.includes("av") || op.includes("avant")) && op.includes("pneu") && (op.includes("montage") || op.includes("remplacement") || op.includes("pose") || op.includes("neuf") || op.includes("forfait")))
+      || (detectedBrand !== "Pneumatiques Neufs" && (op.includes("av") || op.includes("avant")));
+
     if (isFrontTires && !frontAssigned) {
       frontTireState = {
         date: inv.date,
@@ -312,7 +328,9 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     }
 
     // Cas D : 2 pneus arrière spécifiques
-    const isRearTires = (op.includes("ar") || op.includes("arrière") || op.includes("arriere")) && (op.includes("pneu") || op.includes("montage") || op.includes("remplacement") || op.includes("pose"));
+    const isRearTires = ((op.includes("ar") || op.includes("arrière") || op.includes("arriere")) && op.includes("pneu") && (op.includes("montage") || op.includes("remplacement") || op.includes("pose") || op.includes("neuf") || op.includes("forfait")))
+      || (detectedBrand !== "Pneumatiques Neufs" && (op.includes("ar") || op.includes("arrière") || op.includes("arriere")));
+
     if (isRearTires && !rearAssigned) {
       rearTireState = {
         date: inv.date,
@@ -330,7 +348,7 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
 
     // Cas E : 2 pneus neufs génériques ou marque de pneus sans précision d'essieu
     const isGenericTireInstall = (op.includes("pneu") && (op.includes("montage") || op.includes("remplacement") || op.includes("pose") || op.includes("neuf") || op.includes("2")))
-      || detectedBrand !== "Pneumatiques Neufs";
+      || (detectedBrand !== "Pneumatiques Neufs" && (op.includes("pneu") || op.includes("forfait") || op.includes("roue")));
 
     if (isGenericTireInstall) {
       if (!frontAssigned) {

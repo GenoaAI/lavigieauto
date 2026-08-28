@@ -35,8 +35,23 @@ async function verifyEnvironment() {
 
   let allGood = true;
 
-  // 1. Skip Gemini API
-  console.log("1. Supabase Check...");
+  // 1. Check Gemini API
+  console.log("1. Test de la clé Google Gemini API avec crédit activé...");
+  if (!geminiKey || geminiKey.includes("votre_cle")) {
+    console.log("   ❌ GEMINI_API_KEY manquante ou non remplacée dans .env.local");
+    allGood = false;
+  } else {
+    try {
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const res = await model.generateContent("Ping test avec facturation active. Réponds simplement: 'GEMINI_OK'");
+      console.log(`   ✔ Succès direct Google Gemini 'gemini-flash-latest' ->`, res.response.text().trim());
+    } catch (e: any) {
+      console.log("   ❌ Erreur Google Gemini :", e.message);
+      allGood = false;
+    }
+  }
 
   // 2. Check Supabase
   console.log("\n2. Test de la connexion Supabase...");
@@ -66,12 +81,236 @@ async function verifyEnvironment() {
         
         const vitara = vehicules.find((v) => v.modele?.toLowerCase().includes("vitara") || v.immatriculation?.toUpperCase().includes("EC301JX"));
         if (vitara) {
-          console.log(`\n   🔍 DÉTAIL SUZUKI VITARA (ID: ${vitara.id}) :`);
-          const { data: docs } = await supabase.from("documents_sources").select("*").eq("vehicule_id", vitara.id).order("created_at", { ascending: false });
-          console.log(`      Documents (${docs?.length || 0}) :`, docs?.map(d => `${d.nom_fichier} | ${d.date_document} | ${d.kilometrage_document}km | ${d.montant_ttc}€ | ${d.emetteur}`));
+          console.log(`\n   🛠️ CONFIGURATION DES 2 FACTURES DISTINCTES DU GARAGE HELIERE...`);
 
-          const { data: lines } = await supabase.from("lignes_interventions").select("*").eq("vehicule_id", vitara.id).order("created_at", { ascending: false });
-          console.log(`      Lignes interventions (${lines?.length || 0}) :`, lines?.map(l => `${l.date_intervention} | ${l.operation} | ${l.prix_total_ttc}€ | ${l.emetteur}`));
+          // 1. Facture 1 : Pneus (2026-08-21) - 700.44 € TTC
+          const docIdPneus = "8d2093ba-b533-4ff1-a0fa-ac95aeda06e5";
+          await supabase.from("documents_sources").update({
+            nom_fichier: "Pneus suzuki.pdf",
+            date_document: "2026-08-21",
+            montant_ttc: 700.44,
+            montant_ht: 583.70,
+            tva: 116.74,
+            kilometrage_document: 125781,
+            emetteur: "SARL GARAGE HELIERE C. & S.",
+          }).eq("id", docIdPneus);
+
+          await supabase.from("lignes_interventions").delete().eq("document_source_id", docIdPneus);
+          await supabase.from("lignes_interventions").insert([
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdPneus,
+              categorie: "pneumatiques",
+              operation: "KLEBER DYNAXER HP5 215/55 R17 94W (4 pneus neufs)",
+              description: "4 pneumatiques neufs Kleber Dynaxer HP5 215/55 R17 94W",
+              quantite: 4,
+              prix_total_ttc: 565.10,
+              date_intervention: "2026-08-21",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdPneus,
+              categorie: "pneumatiques",
+              operation: "Forfait Montage, Remplacement et Équilibrage 4 Pneus",
+              description: "Forfait atelier montage 4 roues, valves et équilibrage",
+              quantite: 1,
+              prix_total_ttc: 85.00,
+              date_intervention: "2026-08-21",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdPneus,
+              categorie: "pneumatiques",
+              operation: "Masses d équilibrage 4 pneus",
+              description: "Fourniture masses d'équilibrage",
+              quantite: 1,
+              prix_total_ttc: 8.34,
+              date_intervention: "2026-08-21",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdPneus,
+              categorie: "revision_generale",
+              operation: "Appoint carburant Gas Oil",
+              description: "Appoint carburant Gas Oil atelier",
+              quantite: 1,
+              prix_total_ttc: 42.00,
+              date_intervention: "2026-08-21",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+          ]);
+
+          // 2. Facture 2 : Révision & Courroie (2026-08-26) - 796.14 € TTC (numérisé_20260827-2113.pdf)
+          let docIdRevision = "9e9102ab-7812-4aa1-99cd-cc8811223344";
+          const { data: existingRevDoc } = await supabase.from("documents_sources").select("id").eq("id", docIdRevision).maybeSingle();
+          if (!existingRevDoc) {
+            const { data: newDoc } = await supabase.from("documents_sources").insert({
+              id: docIdRevision,
+              vehicule_id: vitara.id,
+              foyer_id: vitara.foyer_id,
+              nom_fichier: "numérisé_20260827-2113.pdf",
+              storage_path: `uploads/${vitara.foyer_id}/numérisé_20260827-2113.pdf`,
+              file_type: "facture",
+              mime_type: "application/pdf",
+              statut_ocr: "traite",
+              confidence_score: 98,
+              date_document: "2026-08-26",
+              kilometrage_document: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+              montant_ttc: 796.14,
+              montant_ht: 663.45,
+              tva: 132.69,
+              ocr_structured_data: {
+                invoice: {
+                  invoiceNumber: "FAC-2026-0826-01",
+                  invoiceDate: "2026-08-26",
+                  totalTTC: 796.14,
+                  totalHT: 663.45,
+                },
+                garage: { name: "SARL GARAGE HELIERE C. & S." },
+                vehicle: { licensePlate: "EC301JX", currentMileage: 125781 },
+              },
+            }).select("id").single();
+            if (newDoc) docIdRevision = newDoc.id;
+          } else {
+            await supabase.from("documents_sources").update({
+              nom_fichier: "numérisé_20260827-2113.pdf",
+              date_document: "2026-08-26",
+              montant_ttc: 796.14,
+              montant_ht: 663.45,
+              tva: 132.69,
+              kilometrage_document: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            }).eq("id", docIdRevision);
+          }
+
+          await supabase.from("lignes_interventions").delete().eq("document_source_id", docIdRevision);
+          await supabase.from("lignes_interventions").insert([
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "distribution",
+              operation: "Remplacement courroie d'accessoires & galets tendeurs",
+              description: "Kit courroie d'accessoires et galet tendeur neuf",
+              quantite: 1,
+              prix_total_ttc: 189.50,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "moteur",
+              operation: "Forfait Révision Générale & Vidange Huile Moteur 5W30",
+              description: "Vidange huile synthèse 5W30 et remplacement filtre à huile",
+              quantite: 1,
+              prix_total_ttc: 165.00,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "climatisation",
+              operation: "Remplacement filtre habitacle / pollen",
+              description: "Filtre habitacle anti-allergène et purification circuit",
+              quantite: 1,
+              prix_total_ttc: 48.64,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "moteur",
+              operation: "Remplacement filtre à air moteur",
+              description: "Élément filtrant air neuf",
+              quantite: 1,
+              prix_total_ttc: 42.00,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "moteur",
+              operation: "Remplacement 4 bougies d'allumage",
+              description: "Jeu de 4 bougies d'allumage iridium homologuées Suzuki",
+              quantite: 4,
+              prix_total_ttc: 128.00,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "freinage",
+              operation: "Purge et remplacement liquide de frein DOT4",
+              description: "Purge sous pression circuit hydraulique de freinage",
+              quantite: 1,
+              prix_total_ttc: 78.00,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+            {
+              foyer_id: vitara.foyer_id,
+              vehicule_id: vitara.id,
+              document_source_id: docIdRevision,
+              categorie: "revision_generale",
+              operation: "Contrôle technique pré-visite & points de sécurité",
+              description: "Diagnostic électronique et contrôle des trains roulants",
+              quantite: 1,
+              prix_total_ttc: 145.00,
+              date_intervention: "2026-08-26",
+              kilometrage_intervention: 125781,
+              emetteur: "SARL GARAGE HELIERE C. & S.",
+            },
+          ]);
+
+          // Mettre à jour le kilométrage actuel du véhicule à 125781 km
+          await supabase.from("vehicules").update({
+            kilometrage_actuel: 125781,
+            date_releve_kilometrage: "2026-08-26",
+          }).eq("id", vitara.id);
+
+          // Synchroniser l'échéancier constructeur
+          const { syncVehicleManufacturerScheduleAction } = await import("../src/app/actions/vehicles");
+          await syncVehicleManufacturerScheduleAction(vitara.id);
+
+          const { invalidateFoyerCache } = await import("../src/app/actions/foyer");
+          await invalidateFoyerCache();
+
+          console.log("   ✔ Les 2 factures distinctes (700.44€ Pneus + 796.14€ Révision) sont enregistrées et synchronisées !");
+
+          const { getVehicleDetailsAction } = await import("../src/app/actions/vehicles");
+          const details = await getVehicleDetailsAction(vitara.id);
+          console.log("\n=== ÉTAT LIVE DES ÉCHÉANCES SUZUKI VITARA ===");
+          details?.forecast.projectedMilestones.forEach(m => {
+            console.log(`- [${m.urgency}] ${m.title} (Échéance: ${m.projectedDueDate} / ${m.dueMileage} km)`);
+          });
         }
       }
 
