@@ -26,6 +26,7 @@ interface VehicleVaultListProps {
   licensePlate: string;
   documents: VaultDocumentItem[];
   totalExpensesEur: number;
+  onDocumentDeleted?: () => void;
 }
 
 export function VehicleVaultList({
@@ -34,6 +35,7 @@ export function VehicleVaultList({
   licensePlate,
   documents: initialDocs,
   totalExpensesEur,
+  onDocumentDeleted,
 }: VehicleVaultListProps) {
   const [documents, setDocuments] = useState<VaultDocumentItem[]>(initialDocs);
   const [activeFilter, setActiveFilter] = useState<"ALL" | "INVOICE" | "INSPECTION" | "REGISTRATION">("ALL");
@@ -42,6 +44,10 @@ export function VehicleVaultList({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setDocuments(initialDocs);
+  }, [initialDocs]);
 
   const filteredDocs = documents.filter((doc) => {
     // Type Filter
@@ -74,7 +80,7 @@ export function VehicleVaultList({
   };
 
   const handleDelete = async (doc: VaultDocumentItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement ce document (${doc.fileName}) du coffre-fort ?`)) {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement ce document (${doc.fileName}) ?\n\nLe carnet d'entretien, le kilométrage certifié et les échéances prédictives seront automatiquement nettoyés et recalculés.`)) {
       return;
     }
 
@@ -84,6 +90,9 @@ export function VehicleVaultList({
 
     if (res.success) {
       setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+      if (onDocumentDeleted) {
+        onDocumentDeleted();
+      }
     } else {
       alert(`Erreur : ${res.error || "Impossible de supprimer le document."}`);
     }

@@ -13,6 +13,7 @@ import {
   syncVehicleManufacturerScheduleAction,
   toggleVehicleTrackingStatusAction,
 } from "@/app/actions/vehicles";
+import { deleteDocumentAndRecalculateAction } from "@/app/actions/documents";
 import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
 import { UiModeSwitch, useUiViewMode } from "@/components/ui/UiModeSwitch";
 import { UniversalCalendarDropdown } from "@/components/calendar/UniversalCalendarDropdown";
@@ -160,6 +161,41 @@ export function VehicleDetailClientView({
     }
   };
 
+  const [deletingInterventionKey, setDeletingInterventionKey] = useState<string | null>(null);
+
+  const handleDeleteIntervention = async (item: any) => {
+    const desc = item.garage ? `${item.garage} (${item.date || "Date inconnue"})` : (item.date || "cette intervention");
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir supprimer définitivement cette facture / intervention (${desc}) du carnet ?\n\nLe relevé kilométrique certifié, les prévisions d'entretien et le coffre-fort seront immédiatement nettoyés et recalculés.`
+      )
+    ) {
+      return;
+    }
+
+    const key = `${item.date}_${item.garage}`;
+    setDeletingInterventionKey(key);
+
+    try {
+      const res = await deleteDocumentAndRecalculateAction({
+        documentId: item.documentSourceId || undefined,
+        storagePath: item.storagePath || undefined,
+        vehicleId: v.id,
+        interventionIds: item.interventionIds && item.interventionIds.length > 0 ? item.interventionIds : undefined,
+      });
+
+      if (res.success) {
+        await loadVehicle();
+      } else {
+        alert(res.error || "Impossible de supprimer l'intervention.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de la suppression.");
+    } finally {
+      setDeletingInterventionKey(null);
+    }
+  };
+
   if (loading && !vehicleData) {
     return (
       <div className="py-20 flex flex-col items-center justify-center space-y-3">
@@ -199,11 +235,18 @@ export function VehicleDetailClientView({
         garage: l.emetteur || "Atelier",
         montantTTC: 0,
         items: [],
+        documentSourceId: l.document_source_id || null,
+        storagePath: null,
+        interventionIds: [],
       });
     }
     const group = groupedInterventionsMap.get(key);
     group.montantTTC += Number(l.prix_total_ttc) || 0;
     group.items.push(l.operation || l.description || "Prestation");
+    if (l.id && !group.interventionIds.includes(l.id)) group.interventionIds.push(l.id);
+    if (l.document_source_id && !group.documentSourceId) {
+      group.documentSourceId = l.document_source_id;
+    }
   });
 
   // Fusionner les factures et CT scannés des documents sources
@@ -213,6 +256,8 @@ export function VehicleDetailClientView({
     
     if (groupedInterventionsMap.has(dateKey)) {
       const group = groupedInterventionsMap.get(dateKey);
+      if (!group.documentSourceId) group.documentSourceId = d.id;
+      if (!group.storagePath) group.storagePath = d.storage_path;
       if (d.montant_ttc && Number(d.montant_ttc) > 0) {
         group.montantTTC = Number(d.montant_ttc);
       }
@@ -225,6 +270,11 @@ export function VehicleDetailClientView({
         kilometrage: d.kilometrage_document || v.kilometrage_actuel,
         garage: d.emetteur || (d.file_type === "controle_technique" ? "Centre de Contrôle Technique" : "Atelier"),
         montantTTC: Number(d.montant_ttc) || 0,
+        documentSourceId: d.id,
+        storagePath: d.storage_path,
+        fileType: d.file_type,
+        fileName: d.nom_fichier,
+        interventionIds: [],
         items: [
           d.file_type === "controle_technique"
             ? "Contrôle Technique Périodique (Favorable)"
@@ -833,25 +883,45 @@ export function VehicleDetailClientView({
                   <p className="text-xs text-slate-400 py-4 italic">Aucune facture enregistrée pour le moment.</p>
                 ) : (
                   <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                    {interventions.map((item: any, idx: number) => (
-                      <div key={idx} className="relative space-y-1.5 text-xs">
-                        <div className="absolute -left-[29px] top-1.5 w-4 h-4 rounded-full bg-blue-600 border-4 border-white shadow" />
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <span className="font-bold text-slate-900">
-                            {item.date} • {(item.kilometrage || 0).toLocaleString("fr-FR")} km
-                          </span>
-                          <span className="font-bold text-slate-700">{item.montantTTC.toFixed(2)} € TTC</span>
-                        </div>
-                        <p className="text-slate-500 font-medium">{item.garage}</p>
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {item.items.map((op: string, i: number) => (
-                            <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                              {op}
+                    {interventions.map((item: any, idx: number) => {
+                      const itemKey = `${item.date}_${item.garage}`;
+                      const isDeleting = deletingInterventionKey === itemKey;
+
+                      return (
+                        <div key={idx} className="relative space-y-1.5 text-xs group">
+                          <div className="absolute -left-[29px] top-1.5 w-4 h-4 rounded-full bg-blue-600 border-4 border-white shadow" />
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <span className="font-bold text-slate-900">
+                              {item.date} • {(item.kilometrage || 0).toLocaleString("fr-FR")} km
                             </span>
-                          ))}
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-700">{item.montantTTC.toFixed(2)} € TTC</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteIntervention(item)}
+                                disabled={isDeleting}
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200 hover:border-rose-200 disabled:opacity-50 inline-flex items-center gap-1"
+                                title="Supprimer cette facture / intervention et recalculer le carnet"
+                              >
+                                {isDeleting ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-slate-500 font-medium">{item.garage}</p>
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {item.items.map((op: string, i: number) => (
+                              <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                                {op}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -861,6 +931,7 @@ export function VehicleDetailClientView({
                 vehicleId={v.id}
                 vehicleName={`${v.marque} ${v.modele}`}
                 licensePlate={v.immatriculation}
+                onDocumentDeleted={loadVehicle}
                 documents={(v.documents_sources || []).map((d: any) => ({
                   id: d.id,
                   vehicleId: d.vehicule_id,
@@ -1327,25 +1398,45 @@ export function VehicleDetailClientView({
               <p className="text-xs text-slate-400 py-4 italic">Aucune facture ou intervention enregistrée pour le moment.</p>
             ) : (
               <div className="relative pl-6 space-y-8 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                {interventions.map((item: any, idx: number) => (
-                  <div key={idx} className="relative space-y-2">
-                    <div className="absolute -left-[29px] top-1.5 w-4 h-4 rounded-full bg-blue-600 border-4 border-white shadow" />
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-slate-900">
-                        {item.date} • {(item.kilometrage || 0).toLocaleString()} km
-                      </span>
-                      <span className="text-xs font-bold text-slate-700">{item.montantTTC.toFixed(2)} € TTC</span>
-                    </div>
-                    <p className="text-xs text-slate-500 font-medium">{item.garage}</p>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {item.items.map((op: string, i: number) => (
-                        <span key={i} className="text-[11px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
-                          {op}
+                {interventions.map((item: any, idx: number) => {
+                  const itemKey = `${item.date}_${item.garage}`;
+                  const isDeleting = deletingInterventionKey === itemKey;
+
+                  return (
+                    <div key={idx} className="relative space-y-2 group">
+                      <div className="absolute -left-[29px] top-1.5 w-4 h-4 rounded-full bg-blue-600 border-4 border-white shadow" />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <span className="text-xs font-bold text-slate-900">
+                          {item.date} • {(item.kilometrage || 0).toLocaleString()} km
                         </span>
-                      ))}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-700">{item.montantTTC.toFixed(2)} € TTC</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteIntervention(item)}
+                            disabled={isDeleting}
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200 hover:border-rose-200 disabled:opacity-50 inline-flex items-center gap-1"
+                            title="Supprimer cette facture / intervention et recalculer le carnet"
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium">{item.garage}</p>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {item.items.map((op: string, i: number) => (
+                          <span key={i} className="text-[11px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                            {op}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1355,6 +1446,7 @@ export function VehicleDetailClientView({
             vehicleId={v.id}
             vehicleName={`${v.marque} ${v.modele}`}
             licensePlate={v.immatriculation}
+            onDocumentDeleted={loadVehicle}
             documents={(v.documents_sources || []).map((d: any) => ({
               id: d.id,
               vehicleId: d.vehicule_id,

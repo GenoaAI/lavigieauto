@@ -17,32 +17,16 @@ export async function getDocumentSignedUrlAction(storagePath: string): Promise<{
   }
 }
 
+import { deleteDocumentAndRecalculateAction } from "@/app/actions/documents";
+
 export async function deleteVaultDocumentAction(documentId: string, storagePath: string, vehicleId?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createAdminClient();
-
-    // 1. Supprimer le fichier physique dans le bucket Storage
-    if (storagePath) {
-      await vaultStorageService.deleteFromVault(storagePath);
-    }
-
-    // 2. Supprimer les lignes d'interventions et défaillances associées
-    await (supabase as any).from("lignes_interventions").delete().eq("document_source_id", documentId);
-    await (supabase as any).from("defaillances_ct").delete().eq("document_source_id", documentId);
-
-    // 3. Supprimer le document source
-    const { error } = await (supabase as any).from("documents_sources").delete().eq("id", documentId);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    if (vehicleId) {
-      revalidatePath(`/dashboard/vehicles/${vehicleId}`);
-      revalidatePath("/dashboard");
-    }
-
-    return { success: true };
+    const res = await deleteDocumentAndRecalculateAction({
+      documentId,
+      storagePath,
+      vehicleId,
+    });
+    return { success: res.success, error: res.error };
   } catch (err: any) {
     return { success: false, error: err.message || "Erreur lors de la suppression." };
   }

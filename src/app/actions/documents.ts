@@ -810,3 +810,213 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     };
   }
 }
+
+export interface DeleteDocumentParams {
+  documentId?: string;
+  storagePath?: string;
+  vehicleId?: string;
+  interventionIds?: string[];
+}
+
+export interface DeleteDocumentResult {
+  success: boolean;
+  vehicleId?: string;
+  deletedDocumentId?: string;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * Suppression totale d'une facture / document source d'intervention :
+ * - Suppression physique du fichier dans Supabase Storage Vault
+ * - Suppression en cascade dans lignes_interventions, defaillances_ct, echeances_previsionnelles
+ * - Suppression du document source dans documents_sources
+ * - Recalcul et ré-ancrage du kilométrage certifié du véhicule
+ * - Recalcul automatique de l'échéancier constructeur et du carnet
+ * - Invalidation des caches foyer et revalidation Next.js
+ */
+export async function deleteDocumentAndRecalculateAction(
+  params: DeleteDocumentParams
+): Promise<DeleteDocumentResult> {
+  const { documentId, storagePath: initialStoragePath, vehicleId: initialVehicleId, interventionIds } = params;
+  const supabase = createAdminClient();
+
+  try {
+    let resolvedVehicleId: string | null = initialVehicleId || null;
+    let resolvedStoragePath: string | null = initialStoragePath || null;
+    let resolvedFoyerId: string | null = null;
+
+    // 1. Récupérer les informations du document source s'il existe
+    if (documentId) {
+      const { data: docRecord } = await (supabase as any)
+        .from("documents_sources")
+        .select("id, vehicule_id, foyer_id, storage_path, file_type, nom_fichier")
+        .eq("id", documentId)
+        .maybeSingle();
+
+      if (docRecord) {
+        if (!resolvedVehicleId && docRecord.vehicule_id) resolvedVehicleId = docRecord.vehicule_id;
+        if (!resolvedStoragePath && docRecord.storage_path) resolvedStoragePath = docRecord.storage_path;
+        if (!resolvedFoyerId && docRecord.foyer_id) resolvedFoyerId = docRecord.foyer_id;
+      }
+    }
+
+    // 2. Si non trouvé via documentId mais des interventionIds sont fournis
+    if (!resolvedVehicleId && interventionIds && interventionIds.length > 0) {
+      const { data: intRecords } = await (supabase as any)
+        .from("lignes_interventions")
+        .select("vehicule_id, document_source_id")
+        .in("id", interventionIds)
+        .limit(1);
+
+      if (intRecords && intRecords[0]) {
+        resolvedVehicleId = intRecords[0].vehicule_id;
+        if (!documentId && intRecords[0].document_source_id) {
+          const { data: linkedDoc } = await (supabase as any)
+            .from("documents_sources")
+            .select("id, storage_path")
+            .eq("id", intRecords[0].document_source_id)
+            .maybeSingle();
+          if (linkedDoc) {
+            if (!resolvedStoragePath && linkedDoc.storage_path) resolvedStoragePath = linkedDoc.storage_path;
+          }
+        }
+      }
+    }
+
+    // 3. Suppression physique du fichier dans le coffre-fort Supabase Storage
+    if (resolvedStoragePath) {
+      try {
+        await vaultStorageService.deleteFromVault(resolvedStoragePath);
+      } catch (storageErr) {
+        console.warn("[Delete Document] Avertissement suppression Storage:", storageErr);
+      }
+    }
+
+    // 4. Nettoyage en cascade des données associées en base
+    if (documentId) {
+      // A. Lignes d'intervention liées à ce document
+      await (supabase as any).from("lignes_interventions").delete().eq("document_source_id", documentId);
+
+      // B. Défaillances de contrôle technique liées à ce document
+      await (supabase as any).from("defaillances_ct").delete().eq("document_source_id", documentId);
+
+      // C. Échéances prévisionnelles directement liées à ce document
+      await (supabase as any).from("echeances_previsionnelles").delete().eq("document_source_id", documentId);
+
+      // D. Suppression du document source lui-même
+      const { error: docDeleteError } = await (supabase as any)
+        .from("documents_sources")
+        .delete()
+        .eq("id", documentId);
+
+      if (docDeleteError) {
+        console.error("[Delete Document] Erreur suppression document source:", docDeleteError);
+        return { success: false, error: docDeleteError.message };
+      }
+    }
+
+    // 5. Suppression des lignes d'intervention spécifiques si demandées (ex: interventions orphelines ou ciblées)
+    if (interventionIds && interventionIds.length > 0) {
+      await (supabase as any).from("lignes_interventions").delete().in("id", interventionIds);
+    }
+
+    // 6. RÉTROGRADATION ET RECALCUL DU KILOMÉTRAGE CERTIFIÉ DU VÉHICULE
+    if (resolvedVehicleId) {
+      // Récupérer toutes les factures et CT restants du véhicule
+      const { data: remainingDocs } = await (supabase as any)
+        .from("documents_sources")
+        .select("date_document, kilometrage_document")
+        .eq("vehicule_id", resolvedVehicleId)
+        .not("kilometrage_document", "is", null)
+        .gt("kilometrage_document", 0)
+        .order("date_document", { ascending: false });
+
+      // Récupérer toutes les interventions restantes du véhicule
+      const { data: remainingInterventions } = await (supabase as any)
+        .from("lignes_interventions")
+        .select("date_intervention, kilometrage_intervention")
+        .eq("vehicule_id", resolvedVehicleId)
+        .not("kilometrage_intervention", "is", null)
+        .gt("kilometrage_intervention", 0)
+        .order("date_intervention", { ascending: false });
+
+      // Compiler tous les relevés odométriques certifiés restants
+      const validReadings: Array<{ km: number; date: string }> = [];
+
+      (remainingDocs || []).forEach((d: any) => {
+        if (d.kilometrage_document && d.date_document) {
+          validReadings.push({ km: Number(d.kilometrage_document), date: d.date_document });
+        }
+      });
+
+      (remainingInterventions || []).forEach((l: any) => {
+        if (l.kilometrage_intervention && l.date_intervention) {
+          validReadings.push({ km: Number(l.kilometrage_intervention), date: l.date_intervention });
+        }
+      });
+
+      // Tri chronologique décroissant
+      validReadings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.km - a.km);
+
+      let newKm = 0;
+      let newDate = new Date().toISOString().split("T")[0];
+
+      if (validReadings.length > 0) {
+        // Le kilométrage actuel certifié correspond au plus grand relevé valide parmi les plus récents
+        const maxKmReading = [...validReadings].sort((a, b) => b.km - a.km)[0];
+        newKm = maxKmReading.km;
+        newDate = validReadings[0].date;
+      } else {
+        // Si aucune facture restante : réinitialiser au kilométrage de base (0 km) et date 1ère immat
+        const { data: vehRecord } = await (supabase as any)
+          .from("vehicules")
+          .select("date_premiere_immatriculation")
+          .eq("id", resolvedVehicleId)
+          .maybeSingle();
+
+        newKm = 0;
+        newDate = vehRecord?.date_premiere_immatriculation || new Date().toISOString().split("T")[0];
+      }
+
+      // Mise à jour de la table vehicules
+      await (supabase as any)
+        .from("vehicules")
+        .update({
+          kilometrage_actuel: newKm,
+          date_releve_kilometrage: newDate,
+        })
+        .eq("id", resolvedVehicleId);
+
+      // 7. RECALCUL AUTOMATIQUE DU CARNET ET DE L'ÉCHÉANCIER CONSTRUCTEUR
+      try {
+        await syncVehicleManufacturerScheduleAction(resolvedVehicleId);
+      } catch (syncErr) {
+        console.warn("[Delete Document] Avertissement resynchronisation plan constructeur:", syncErr);
+      }
+
+      // 8. Invalidation du cache et des routes
+      try {
+        await invalidateFoyerCache();
+        revalidatePath("/dashboard");
+        revalidatePath(`/dashboard/vehicles/${resolvedVehicleId}`);
+        revalidatePath(`/v/${resolvedVehicleId}`);
+      } catch {
+        // Ignore cache error in non-request context
+      }
+    }
+
+    return {
+      success: true,
+      vehicleId: resolvedVehicleId || undefined,
+      deletedDocumentId: documentId || undefined,
+      message: "Facture supprimée et carnet d'entretien recalculé avec succès.",
+    };
+  } catch (err: any) {
+    console.error("[Delete Document] Erreur globale lors de la suppression:", err);
+    return {
+      success: false,
+      error: err.message || "Une erreur est survenue lors de la suppression de la facture.",
+    };
+  }
+}

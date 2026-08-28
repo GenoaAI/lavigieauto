@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Loader2, Camera, FolderOpen } from "lucide-react";
-import { processDocumentAction, ProcessDocumentResult } from "@/app/actions/documents";
+import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Loader2, Camera, FolderOpen, Trash2 } from "lucide-react";
+import { processDocumentAction, ProcessDocumentResult, deleteDocumentAndRecalculateAction } from "@/app/actions/documents";
 
 interface DocumentDropzoneProps {
   onExtractionSuccess?: (result: ProcessDocumentResult) => void;
@@ -14,8 +14,12 @@ interface DocumentDropzoneProps {
 export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicleId, className = "" }: DocumentDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRollingBack, setIsRollingBack] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<any | null>(null);
+  const [lastProcessedDocId, setLastProcessedDocId] = useState<string | null>(null);
+  const [lastProcessedVehicleId, setLastProcessedVehicleId] = useState<string | null>(null);
   const [progressStep, setProgressStep] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +35,7 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
     }
 
     setError(null);
+    setFeedbackMessage(null);
     setIsProcessing(true);
     setProgressStep("Lecture et détection du document...");
 
@@ -55,6 +60,8 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
       if (result.success && result.extraction) {
         setProgressStep("Analyse terminée !");
         setExtractedData(result.extraction);
+        setLastProcessedDocId(result.documentId || null);
+        setLastProcessedVehicleId(result.vehicleId || vehicleId || null);
         if (onExtractionSuccess) {
           onExtractionSuccess(result);
         }
@@ -68,6 +75,40 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
       setError(err.message || "Une erreur est survenue lors de l'envoi.");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleRollback = async () => {
+    if (!lastProcessedDocId && !lastProcessedVehicleId) {
+      setExtractedData(null);
+      return;
+    }
+
+    if (!confirm("Voulez-vous annuler cet import et supprimer définitivement ce document ? Le carnet d'entretien et le kilométrage seront immédiatement restaurés.")) {
+      return;
+    }
+
+    setIsRollingBack(true);
+    try {
+      const res = await deleteDocumentAndRecalculateAction({
+        documentId: lastProcessedDocId || undefined,
+        vehicleId: lastProcessedVehicleId || undefined,
+      });
+
+      if (res.success) {
+        setExtractedData(null);
+        setLastProcessedDocId(null);
+        setFeedbackMessage("Import annulé et document supprimé. Le carnet et le kilométrage ont été restaurés.");
+        if (onUploadComplete) {
+          onUploadComplete();
+        }
+      } else {
+        setError(res.error || "Erreur lors de l'annulation de l'import.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue lors de l'annulation.");
+    } finally {
+      setIsRollingBack(false);
     }
   };
 
@@ -177,6 +218,14 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
         </div>
       </div>
 
+      {/* Message de succès ou d'annulation */}
+      {feedbackMessage && (
+        <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 flex items-center gap-3 text-xs font-medium">
+          <CheckCircle className="w-5 h-5 text-blue-600 shrink-0" />
+          <span>{feedbackMessage}</span>
+        </div>
+      )}
+
       {/* Erreur éventuelle */}
       {error && (
         <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 flex items-center gap-3 text-xs font-medium">
@@ -185,13 +234,30 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
         </div>
       )}
 
-      {/* Résumé après extraction réussie */}
+      {/* Résumé après extraction réussie avec bouton de suppression en cas de mauvais import */}
       {extractedData && (
-        <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-3">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <CheckCircle className="w-5 h-5 text-emerald-600" />
-            <span>Document analysé avec succès par l'assistant</span>
+        <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/60 pb-3">
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>Document analysé et synchronisé avec succès</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRollback}
+              disabled={isRollingBack}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold shadow-sm transition disabled:opacity-60 self-start sm:self-auto"
+            >
+              {isRollingBack ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              )}
+              <span>Mauvais import ? Annuler et supprimer</span>
+            </button>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="bg-white/80 p-3 rounded-xl space-y-0.5">
               <span className="text-slate-500 font-semibold">Type de document :</span>

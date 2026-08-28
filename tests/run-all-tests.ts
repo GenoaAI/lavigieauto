@@ -17,6 +17,7 @@ import { testGarageResolver } from "./garage-resolver.test";
 import { testHouseholdNameManagement } from "./household-name.test";
 import { testHouseholdInvitationAndUniversalCalendar } from "./household-invitation-calendar.test";
 import { testTireSearchService } from "./tire-search.test";
+import { testInvoiceDeletionAndRecalculation } from "./invoice-deletion-recalculation.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -28,6 +29,7 @@ async function runAllTests() {
   let failed = 0;
 
   const testSuites = [
+    { name: "Suppression Totale de Facture, Nettoyage Base & Recalcul Carnet/Odomètre", fn: testInvoiceDeletionAndRecalculation },
     { name: "Invitation Foyer Universelle (Multi-Webmails) & Export Calendrier (ICS/URLs)", fn: testHouseholdInvitationAndUniversalCalendar },
     { name: "Édition Sécurisée du Nom de Foyer (Zod, Sanitizer & Server Action)", fn: testHouseholdNameManagement },
     { name: "Gestion du Cycle de Vie Véhicule (Suspension & Suppression)", fn: testVehicleLifecycleManagement },
