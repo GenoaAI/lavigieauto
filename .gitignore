@@ -39,3 +39,6 @@ next-env.d.ts
 
 .vercel
 .env*
+.agents/
+PROJECT.md
+TEST_INFRA.md

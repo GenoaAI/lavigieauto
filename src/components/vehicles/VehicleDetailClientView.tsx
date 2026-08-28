@@ -16,12 +16,15 @@ import {
 import { deleteDocumentAndRecalculateAction } from "@/app/actions/documents";
 import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
 import { UiModeSwitch, useUiViewMode } from "@/components/ui/UiModeSwitch";
+import { CollapsibleModuleCard } from "@/components/ui/CollapsibleModuleCard";
+import { CollapsibleAllToggle } from "@/components/ui/CollapsibleAllToggle";
 import { UniversalCalendarDropdown } from "@/components/calendar/UniversalCalendarDropdown";
 import type { UniversalCalendarEvent } from "@/lib/calendar/universal-calendar";
 import {
   Car,
   Calendar,
   Wrench,
+  Upload,
   CheckCircle,
   AlertCircle,
   FileText,
@@ -351,6 +354,18 @@ export function VehicleDetailClientView({
         },
       ];
 
+  const overdueCount = echeances.filter(
+    (ech: any) =>
+      ech.statut === "en_retard" ||
+      (ech.date_preconisee && new Date(ech.date_preconisee).getTime() < Date.now()) ||
+      (ech.km_preconise && (v.kilometrage_actuel || 0) >= ech.km_preconise)
+  ).length;
+
+  const totalInterventionsCost = interventions.reduce(
+    (sum: number, item: any) => sum + (Number(item.montantTTC) || 0),
+    0
+  );
+
   return (
     <div className="space-y-8">
       {/* Top Breadcrumb & Mode Switch */}
@@ -363,7 +378,10 @@ export function VehicleDetailClientView({
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             <span>Retour au tableau de bord foyer</span>
           </Link>
-          <UiModeSwitch currentMode={uiMode} onModeChange={setUiMode} />
+          <div className="flex items-center gap-2">
+            <CollapsibleAllToggle vehicleId={v.id} />
+            <UiModeSwitch currentMode={uiMode} onModeChange={setUiMode} />
+          </div>
         </div>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center gap-4 sm:gap-5">
@@ -689,23 +707,46 @@ export function VehicleDetailClientView({
                 </div>
               </div>
 
-              {/* LISTE DES ÉCHÉANCES ÉPURÉE */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 space-y-5 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900">Échéances Constructeur Prédictives</h2>
-                    <p className="text-xs text-slate-500">Calculées au 1er terme échu (temps vs km réels)</p>
+              <CollapsibleModuleCard
+                id="schedule_forecast"
+                vehicleId={v.id}
+                defaultOpen={true}
+                icon={<Calendar className="w-5 h-5" />}
+                iconBgColor="bg-indigo-50 text-indigo-600"
+                title="Échéancier Constructeur Prédictif"
+                subtitle="Calculé au 1er terme échu (temps vs kilomètres réels)"
+                badge={
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                      {echeances.length} échéance{echeances.length > 1 ? "s" : ""}
+                    </span>
+                    {echeances.filter((e: any) => e.statut === "en_retard").length > 0 ? (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold">
+                        🚨 {echeances.filter((e: any) => e.statut === "en_retard").length} en retard
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
+                        ✅ À jour
+                      </span>
+                    )}
                   </div>
+                }
+                actions={
                   <button
-                    onClick={handleSyncOfficialPlan}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSyncOfficialPlan();
+                    }}
                     disabled={syncingPlan}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 self-start sm:self-auto"
+                    className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-indigo-100"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${syncingPlan ? "animate-spin" : ""}`} />
-                    Actualiser via IA
+                    <span>Actualiser IA</span>
                   </button>
-                </div>
-
+                }
+                bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-5"
+              >
                 {echeances.length === 0 ? (
                   <div className="py-8 text-center space-y-3">
                     <p className="text-xs text-slate-500">Aucune échéance personnalisée chargée pour ce véhicule.</p>
@@ -742,20 +783,18 @@ export function VehicleDetailClientView({
                       if (isOverdue) {
                         if (targetKm > 0 && currentKm >= targetKm) {
                           triggerFactor = "OVERDUE_KM";
-                          triggerExplanation = `Dépassé au compteur (-${Math.abs(currentKm - targetKm).toLocaleString("fr-FR")} km)`;
+                          triggerExplanation = `Dépassé de ${(currentKm - targetKm).toLocaleString("fr-FR")} km`;
                         } else {
                           triggerFactor = "OVERDUE_TIME";
-                          triggerExplanation = `Dépassé dans le temps (-${Math.abs(daysToTargetDate)} jours)`;
+                          triggerExplanation = `Dépassé depuis ${Math.abs(daysToTargetDate)} jours`;
                         }
+                      } else if (daysToTargetKm <= daysToTargetDate) {
+                        triggerFactor = "KM_FIRST";
+                        triggerExplanation = `Cap des ${targetKm.toLocaleString("fr-FR")} km atteint en 1er`;
                       } else {
-                        if (daysToTargetKm <= daysToTargetDate) {
-                          triggerFactor = "KM_FIRST";
-                          triggerExplanation = `Cap des ${targetKm.toLocaleString("fr-FR")} km atteint en 1er`;
-                        } else {
-                          const safeAnnualPace = Math.abs(Math.round(pace.annualMileageKm || 12000)).toLocaleString("fr-FR");
-                          triggerFactor = "TIME_FIRST";
-                          triggerExplanation = `Échéance temps en 1er (~ ${safeAnnualPace} km/an)`;
-                        }
+                        const safeAnnualPace = Math.abs(Math.round(pace.annualMileageKm || 12000)).toLocaleString("fr-FR");
+                        triggerFactor = "TIME_FIRST";
+                        triggerExplanation = `Échéance temps en 1er (~ ${safeAnnualPace} km/an)`;
                       }
 
                       const isExpanded = expandedCardIndex === idx;
@@ -792,84 +831,74 @@ export function VehicleDetailClientView({
                             </div>
                           </div>
 
-                          {/* DÉCLENCHEUR 1ER TERME CONDENSÉ */}
-                          <div className="flex flex-wrap items-center justify-between text-[10.5px] gap-1.5">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold max-w-full break-words ${
-                              isOverdue
-                                ? "bg-rose-100 text-rose-900"
-                                : triggerFactor === "KM_FIRST"
-                                ? "bg-blue-50 text-blue-800"
-                                : "bg-emerald-50 text-emerald-800"
-                            }`}>
-                              {isOverdue ? <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" /> : <TrendingUp className="w-3 h-3 text-blue-600 shrink-0" />}
-                              <span>{triggerExplanation}</span>
-                            </span>
+                          <p className="text-slate-500 line-clamp-2">
+                            {ech.description || "Opération d'entretien constructeur recommandée."}
+                          </p>
 
+                          <div className="flex items-center justify-between gap-2 text-[11px] font-medium bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                            <div className="flex items-center gap-1 text-slate-700 min-w-0">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span className="truncate">{triggerExplanation}</span>
+                            </div>
                             <button
                               type="button"
                               onClick={() => setExpandedCardIndex(isExpanded ? null : idx)}
-                              className="text-slate-400 hover:text-slate-700 flex items-center gap-0.5 text-[10px] font-semibold transition"
+                              className="text-blue-600 hover:text-blue-800 font-bold shrink-0 inline-flex items-center gap-0.5"
                             >
                               <span>{isExpanded ? "Moins" : "Détails"}</span>
                               {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                             </button>
                           </div>
 
-                          {/* DÉTAIL DÉPLIABLE AU CLIC */}
                           {isExpanded && (
-                            <div className="p-2.5 bg-slate-50/90 rounded-xl border border-slate-100 text-[11px] leading-relaxed text-slate-600 break-words space-y-2">
-                              <p>{ech.description}</p>
-                              {ech.metadata?.justification && (
-                                <div className="mt-1.5 p-2 bg-emerald-50/90 border border-emerald-200/80 rounded-lg text-emerald-950 text-[10.5px]">
-                                  <div className="font-bold flex items-center gap-1 text-emerald-900 mb-0.5">
-                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                    <span>Preuve documentaire certifiée :</span>
-                                  </div>
-                                  <p className="font-medium text-emerald-800">
-                                    « {ech.metadata.justification.libelleFacture} »
-                                  </p>
-                                  <p className="text-[10px] text-emerald-700/90 mt-0.5">
-                                    {ech.metadata.justification.emetteur} — {ech.metadata.justification.dateIntervention} ({Number(ech.metadata.justification.kilometrageIntervention).toLocaleString("fr-FR")} km)
+                            <div className="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
+                              <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-1">
+                                <p className="font-bold text-blue-950">Pourquoi ce calcul ?</p>
+                                <p className="text-slate-600 leading-relaxed text-[11px]">
+                                  {triggerFactor === "KM_FIRST" || triggerFactor === "OVERDUE_KM" ? (
+                                    <>
+                                      Au rythme de <strong>{Math.round(pace.dailyKmRate || 35)} km/jour</strong> ({Math.round(pace.annualMileageKm || 12000).toLocaleString("fr-FR")} km/an), vous atteindrez la limite de <strong>{(ech.km_preconise || 0).toLocaleString("fr-FR")} km</strong> avant la date butoir.
+                                    </>
+                                  ) : (
+                                    <>
+                                      La date butoir du <strong>{ech.date_preconisee || "terme échu"}</strong> arrivera avant que vous n'ayez parcouru les <strong>{(ech.km_preconise || 0).toLocaleString("fr-FR")} km</strong>.
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+
+                              {ech.pieces_recommandees && (
+                                <div className="text-[11px] text-slate-500">
+                                  <span className="font-semibold text-slate-700">Fournitures : </span>
+                                  {Array.isArray(ech.pieces_recommandees)
+                                    ? ech.pieces_recommandees.join(", ")
+                                    : ech.pieces_recommandees}
+                                </div>
+                              )}
+
+                              {ech.garage_habituel && (
+                                <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                                  <Wrench className="w-3 h-3 text-slate-400" />
+                                  <span>Dernière réalisation : {ech.garage_habituel}</span>
+                                </div>
+                              )}
+
+                              {ech.explication_reconciliation && (
+                                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600">
+                                  <p className="font-semibold text-slate-700">Analyse de cohérence :</p>
+                                  <p className="italic text-slate-500">
+                                    {ech.explication_reconciliation}
                                   </p>
                                 </div>
                               )}
                             </div>
                           )}
-
-                          <div className={`pt-2 flex flex-wrap sm:flex-nowrap items-center justify-between text-xs font-semibold border-t gap-y-1 gap-x-2 w-full ${
-                            isOverdue ? "border-rose-200 text-rose-900" : "border-slate-100 text-slate-600"
-                          }`}>
-                            <span className="min-w-0">
-                              {isOverdue ? "Échu le :" : "À planifier le :"} {" "}
-                              <strong className={
-                                isOverdue
-                                  ? "text-rose-800 font-extrabold"
-                                  : triggerFactor === "TIME_FIRST"
-                                  ? "text-emerald-700 font-black"
-                                  : "text-slate-800"
-                              }>
-                                {ech.date_preconisee || "À calculer"} {isOverdue && "(Dépassé)"}
-                              </strong>
-                            </span>
-                            <span className="min-w-0">
-                              Butoir :{" "}
-                              <strong className={
-                                isOverdue && currentKm >= targetKm
-                                  ? "text-rose-800 font-extrabold"
-                                  : triggerFactor === "KM_FIRST"
-                                  ? "text-blue-700 font-black"
-                                  : "text-slate-800"
-                              }>
-                                {(ech.km_preconise || 0).toLocaleString("fr-FR")} km
-                              </strong>
-                            </span>
-                          </div>
                         </div>
                       );
                     })}
                   </div>
                 )}
-              </div>
+              </CollapsibleModuleCard>
             </div>
           )}
 
@@ -877,22 +906,26 @@ export function VehicleDetailClientView({
           {compactTab === "historique" && (
             <div className="space-y-6">
               {/* CARNET D'ENTRETIEN NUMÉRIQUE */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 space-y-5 shadow-sm">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                      <Wrench className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-bold text-slate-900">Carnet d'Entretien Certifié</h2>
-                      <p className="text-xs text-slate-500">Historique reconstitué depuis vos factures numérisées</p>
-                    </div>
+              <CollapsibleModuleCard
+                id="service_logbook"
+                vehicleId={v.id}
+                defaultOpen={true}
+                icon={<Wrench className="w-5 h-5" />}
+                iconBgColor="bg-blue-50 text-blue-600"
+                title="Carnet d'Entretien Certifié"
+                subtitle="Historique reconstitué depuis vos factures numérisées"
+                badge={
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-700 px-2.5 py-0.5 bg-slate-100 rounded-full border border-slate-200">
+                      {interventions.length} intervention{interventions.length > 1 ? "s" : ""}
+                    </span>
+                    <span className="text-xs font-black text-blue-700 px-2.5 py-0.5 bg-blue-50 rounded-full border border-blue-100">
+                      {totalInterventionsCost.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € TTC
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-600 px-3 py-1 bg-slate-100 rounded-full">
-                    {interventions.length} intervention(s)
-                  </span>
-                </div>
-
+                }
+                bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-5"
+              >
                 {interventions.length === 0 ? (
                   <p className="text-xs text-slate-400 py-4 italic">Aucune facture enregistrée pour le moment.</p>
                 ) : (
@@ -938,7 +971,7 @@ export function VehicleDetailClientView({
                     })}
                   </div>
                 )}
-              </div>
+              </CollapsibleModuleCard>
 
               {/* COFFRE-FORT NUMÉRIQUE */}
               <VehicleVaultList
@@ -969,8 +1002,21 @@ export function VehicleDetailClientView({
               />
 
               {/* DROPZONE INTÉGRÉE */}
-              <div className="space-y-3">
-                <h2 className="text-base font-bold text-slate-900">Ajouter un nouveau justificatif (Facture / CT)</h2>
+              <CollapsibleModuleCard
+                id="document_dropzone"
+                vehicleId={v.id}
+                defaultOpen={false}
+                icon={<Upload className="w-5 h-5" />}
+                iconBgColor="bg-slate-100 text-slate-700"
+                title="Ajouter un nouveau justificatif (Facture / CT)"
+                subtitle="Glisser-déposer ou sélectionner un fichier PDF ou photo"
+                badge={
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                    IA Multi-Formats
+                  </span>
+                }
+                bodyClassName="pt-5 border-t border-slate-100 mt-2"
+              >
                 <DocumentDropzone
                   vehicleId={v.id}
                   onUploadComplete={() => {
@@ -978,7 +1024,7 @@ export function VehicleDetailClientView({
                     router.refresh();
                   }}
                 />
-              </div>
+              </CollapsibleModuleCard>
             </div>
           )}
 
@@ -991,6 +1037,7 @@ export function VehicleDetailClientView({
                   assessment={vehicleData.tires}
                   vehicleName={`${v.marque} ${v.modele}`}
                   licensePlate={v.immatriculation}
+                  vehicleId={v.id}
                 />
               )}
 
@@ -1001,78 +1048,81 @@ export function VehicleDetailClientView({
                 const hasCt = !!ctDoc;
                 const defects = v.defaillances_ct || [];
 
-                if (!hasCt) {
-                  return (
-                    <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 space-y-4 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
-                          <ShieldCheck className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h2 className="text-base font-bold text-slate-900">Contrôle Technique Périodique</h2>
-                          <p className="text-xs text-slate-500">Aucun procès-verbal enregistré pour ce véhicule</p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        Déposez le scan de votre PV de contrôle technique dans l'onglet Historique pour analyser vos défaillances.
-                      </p>
-                    </div>
-                  );
-                }
-
                 const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
-                const centerName = ctDoc.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
+                const centerName = ctDoc?.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
                 const resultStatus = ctData.resultat_global ? `FAVORABLE (${ctData.resultat_global})` : "FAVORABLE (A)";
 
                 return (
-                  <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 space-y-5 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                          <ShieldCheck className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-base font-bold text-slate-900">Contrôle Technique Officiel</h2>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
-                              {resultStatus}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500">{centerName} • Validité jusqu'au : <strong>{expiry}</strong></p>
-                        </div>
+                  <CollapsibleModuleCard
+                    id="inspection_ct"
+                    vehicleId={v.id}
+                    defaultOpen={true}
+                    icon={<ShieldCheck className="w-5 h-5" />}
+                    iconBgColor={hasCt ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}
+                    title="Dernier Contrôle Technique Officiel"
+                    subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}` : "Aucun procès-verbal enregistré pour ce véhicule"}
+                    badge={
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          hasCt ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"
+                        }`}>
+                          {hasCt ? resultStatus : "En attente de scan"}
+                        </span>
+                        {hasCt && (
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 hidden sm:inline-block">
+                            Jusqu'au {expiry}
+                          </span>
+                        )}
                       </div>
-                    </div>
+                    }
+                    bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-5"
+                  >
+                    {!hasCt ? (
+                      <p className="text-xs text-slate-500 py-2">
+                        Déposez le scan de votre PV de contrôle technique dans l&apos;onglet Historique pour analyser vos défaillances.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between gap-3 text-xs text-slate-600">
+                          <p>{centerName} • Validité jusqu&apos;au : <strong>{expiry}</strong></p>
+                        </div>
 
-                    {/* Observations vulgarisées */}
-                    {defects.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                          Observations relevées sans contre-visite ({defects.length}) :
-                        </p>
-                        {defects.map((def: any, i: number) => {
-                          const rawExpl = def.vulgarisation_grand_public || def.metadata?.vulgarisation || "";
-                          return (
-                            <div key={i} className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-1 text-xs">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                  <span>{def.libelle_officiel || def.libelle}</span>
+                        {/* Observations vulgarisées */}
+                        {defects.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                              Observations relevées sans contre-visite ({defects.length}) :
+                            </p>
+                            {defects.map((def: any, i: number) => {
+                              const rawExpl = def.vulgarisation_grand_public || def.metadata?.vulgarisation || "";
+                              return (
+                                <div key={i} className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-1 text-xs">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                      <span>{def.libelle_officiel || def.libelle}</span>
+                                    </div>
+                                    <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
+                                      {def.niveau_gravite || "Mineure"}
+                                    </span>
+                                  </div>
+                                  {rawExpl && (
+                                    <p className="text-slate-600 text-[11px] pl-5">
+                                      💡 <strong>Explication IA :</strong> {rawExpl}
+                                    </p>
+                                  )}
                                 </div>
-                                <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
-                                  {def.niveau_gravite || "Mineure"}
-                                </span>
-                              </div>
-                              {rawExpl && (
-                                <p className="text-slate-600 text-[11px] pl-5">
-                                  💡 <strong>Explication IA :</strong> {rawExpl}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-emerald-700 font-semibold">
+                            ✅ Aucune défaillance ni observation relevée lors du contrôle.
+                          </p>
+                        )}
+                      </>
                     )}
-                  </div>
+                  </CollapsibleModuleCard>
                 );
               })()}
             </div>
@@ -1105,26 +1155,46 @@ export function VehicleDetailClientView({
           </div>
 
           {/* CALENDRIER DES ÉCHÉANCES PRÉVISIONNELLES OFFICIELLES */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Échéancier Constructeur Prédictif</h2>
-                  <p className="text-xs text-slate-500">Calculé au 1er terme échu (temps vs kilomètres réels)</p>
-                </div>
+          <CollapsibleModuleCard
+            id="schedule_forecast"
+            vehicleId={v.id}
+            defaultOpen={true}
+            icon={<Calendar className="w-5 h-5" />}
+            iconBgColor="bg-indigo-50 text-indigo-600"
+            title="Échéancier Constructeur Prédictif"
+            subtitle="Calculé au 1er terme échu (temps vs kilomètres réels)"
+            badge={
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                  {echeances.length} échéance{echeances.length > 1 ? "s" : ""}
+                </span>
+                {overdueCount > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold">
+                    🚨 {overdueCount} en retard
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
+                    ✅ À jour
+                  </span>
+                )}
               </div>
+            }
+            actions={
               <button
-                onClick={handleSyncOfficialPlan}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSyncOfficialPlan();
+                }}
                 disabled={syncingPlan}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 self-start sm:self-auto"
+                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-indigo-100"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${syncingPlan ? "animate-spin" : ""}`} />
-                Actualiser via IA en ligne
+                <span>Actualiser via IA en ligne</span>
               </button>
-            </div>
+            }
+            bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
+          >
 
             {echeances.length === 0 ? (
               <div className="py-8 text-center space-y-3">
@@ -1283,7 +1353,7 @@ export function VehicleDetailClientView({
                 })}
               </div>
             )}
-          </div>
+          </CollapsibleModuleCard>
 
           {/* BILAN CONTRÔLE TECHNIQUE & SÉCURITÉ */}
           {(() => {
@@ -1292,18 +1362,37 @@ export function VehicleDetailClientView({
             const hasCt = !!ctDoc;
             const defects = v.defaillances_ct || [];
 
-            if (!hasCt) {
-              return (
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-bold text-slate-900">Contrôle Technique Périodique</h2>
-                      <p className="text-xs text-slate-500">Aucun procès-verbal réglementaire enregistré pour ce véhicule</p>
-                    </div>
+            const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
+            const centerName = ctDoc?.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
+            const centerDetail = ctData.centre_controle?.agrement ? `Agrément ${ctData.centre_controle.agrement}` : "Centre agréé UTAC / OTC";
+            const resultStatus = ctData.resultat_global ? `FAVORABLE (${ctData.resultat_global})` : "FAVORABLE (A)";
+
+            return (
+              <CollapsibleModuleCard
+                id="inspection_ct"
+                vehicleId={v.id}
+                defaultOpen={true}
+                icon={<ShieldCheck className="w-5 h-5" />}
+                iconBgColor={hasCt ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}
+                title="Dernier Contrôle Technique Officiel"
+                subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}` : "Aucun procès-verbal réglementaire enregistré pour ce véhicule"}
+                badge={
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      hasCt ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"
+                    }`}>
+                      {hasCt ? resultStatus : "En attente de scan"}
+                    </span>
+                    {hasCt && (
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 hidden sm:inline-block">
+                        Jusqu'au {expiry}
+                      </span>
+                    )}
                   </div>
+                }
+                bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
+              >
+                {!hasCt ? (
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <p>
                       Déposez le scan ou la photo de votre dernier PV de contrôle technique dans la zone ci-dessous pour enregistrer vos défaillances et calculer votre date limite de validité.
@@ -1312,94 +1401,66 @@ export function VehicleDetailClientView({
                       En attente de scan
                     </span>
                   </div>
-                </div>
-              );
-            }
-
-            const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
-            const centerName = ctDoc.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
-            const centerDetail = ctData.centre_controle?.agrement ? `Agrément ${ctData.centre_controle.agrement}` : "Centre agréé UTAC / OTC";
-            const resultStatus = ctData.resultat_global ? `FAVORABLE (${ctData.resultat_global})` : "FAVORABLE (A)";
-
-            return (
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-slate-900">Dernier Contrôle Technique Officiel</h2>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
-                          {resultStatus}
-                        </span>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
+                        <p className="text-slate-400 text-[10px] font-semibold uppercase">Centre Agréé</p>
+                        <p className="font-bold text-slate-800 line-clamp-1">{centerName}</p>
+                        <p className="text-slate-500 text-[11px]">{centerDetail}</p>
                       </div>
-                      <p className="text-xs text-slate-500">Procès-verbal réglementaire UTAC / OTC numérisé</p>
+                      <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
+                        <p className="text-slate-400 text-[10px] font-semibold uppercase">Date & Kilométrage</p>
+                        <p className="font-bold text-slate-800">{ctDoc.date_document || "Date certifiée"}</p>
+                        <p className="text-emerald-700 font-semibold text-[11px]">
+                          {ctDoc.kilometrage_document ? `${(ctDoc.kilometrage_document).toLocaleString("fr-FR")} km certifiés` : "Odomètre relevé"}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
+                        <p className="text-slate-400 text-[10px] font-semibold uppercase">Résultat & Bilan</p>
+                        <p className="font-bold text-emerald-700">Aucune contre-visite</p>
+                        <p className="text-slate-500 text-[11px]">{defects.length} observation(s) relevée(s)</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-xs font-bold text-slate-900">Validité jusqu'au : {expiry}</p>
-                    <p className="text-[11px] text-slate-500">Prochain CT obligatoire dans 2 ans</p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
-                    <p className="text-slate-400 text-[10px] font-semibold uppercase">Centre Agréé</p>
-                    <p className="font-bold text-slate-800 line-clamp-1">{centerName}</p>
-                    <p className="text-slate-500 text-[11px]">{centerDetail}</p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
-                    <p className="text-slate-400 text-[10px] font-semibold uppercase">Date & Kilométrage</p>
-                    <p className="font-bold text-slate-800">{ctDoc.date_document || "Date certifiée"}</p>
-                    <p className="text-emerald-700 font-semibold text-[11px]">
-                      {ctDoc.kilometrage_document ? `${(ctDoc.kilometrage_document).toLocaleString("fr-FR")} km certifiés` : "Odomètre relevé"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
-                    <p className="text-slate-400 text-[10px] font-semibold uppercase">Résultat & Bilan</p>
-                    <p className="font-bold text-emerald-700">Aucune contre-visite</p>
-                    <p className="text-slate-500 text-[11px]">{defects.length} observation(s) relevée(s)</p>
-                  </div>
-                </div>
-
-                {defects.length > 0 && (
-                  <div className="space-y-2.5">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      Observations relevées par le contrôleur (sans obligation de contre-visite) :
-                    </p>
-                    <div className="space-y-2">
-                      {defects.map((def: any, i: number) => {
-                        const rawExpl = def.vulgarisation_grand_public || def.metadata?.vulgarisation || "";
-                        return (
-                          <div key={i} className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-1 text-xs">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                {def.code_defaillance && (
-                                  <span className="font-mono text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded">
-                                    {def.code_defaillance}
+                    {defects.length > 0 && (
+                      <div className="space-y-2.5">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          Observations relevées par le contrôleur (sans obligation de contre-visite) :
+                        </p>
+                        <div className="space-y-2">
+                          {defects.map((def: any, i: number) => {
+                            const rawExpl = def.vulgarisation_grand_public || def.metadata?.vulgarisation || "";
+                            return (
+                              <div key={i} className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-1 text-xs">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    {def.code_defaillance && (
+                                      <span className="font-mono text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded">
+                                        {def.code_defaillance}
+                                      </span>
+                                    )}
+                                    <span>{def.libelle_officiel || def.libelle}</span>
+                                  </div>
+                                  <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
+                                    {def.niveau_gravite || "Mineure"}
                                   </span>
+                                </div>
+                                {rawExpl && (
+                                  <p className="text-slate-600 text-[11px] pl-5">
+                                    💡 <strong>Explication IA :</strong> {rawExpl}
+                                  </p>
                                 )}
-                                <span>{def.libelle_officiel || def.libelle}</span>
                               </div>
-                              <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
-                                {def.niveau_gravite || "Mineure"}
-                              </span>
-                            </div>
-                            {rawExpl && (
-                              <p className="text-slate-600 text-[11px] pl-5">
-                                💡 <strong>Explication IA :</strong> {rawExpl}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
-              </div>
+              </CollapsibleModuleCard>
             );
           })()}
 
@@ -1409,26 +1470,31 @@ export function VehicleDetailClientView({
               assessment={vehicleData.tires}
               vehicleName={`${v.marque} ${v.modele}`}
               licensePlate={v.immatriculation}
+              vehicleId={v.id}
             />
           )}
 
           {/* CARNET D'ENTRETIEN NUMÉRIQUE */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm">
-            <div className="flex items-center justify-between border-b pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Wrench className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Carnet d'Entretien Numérique Certifié</h2>
-                  <p className="text-xs text-slate-500">Historique reconstitué automatiquement à partir de vos scans de factures</p>
-                </div>
+          <CollapsibleModuleCard
+            id="service_logbook"
+            vehicleId={v.id}
+            defaultOpen={true}
+            icon={<Wrench className="w-5 h-5" />}
+            iconBgColor="bg-blue-50 text-blue-600"
+            title="Carnet d'Entretien Numérique Certifié"
+            subtitle="Historique reconstitué automatiquement à partir de vos scans de factures"
+            badge={
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700 px-2.5 py-0.5 bg-slate-100 rounded-full border border-slate-200">
+                  {interventions.length} intervention{interventions.length > 1 ? "s" : ""}
+                </span>
+                <span className="text-xs font-black text-blue-700 px-2.5 py-0.5 bg-blue-50 rounded-full border border-blue-100">
+                  {totalInterventionsCost.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € TTC
+                </span>
               </div>
-              <span className="text-xs font-bold text-slate-600 px-3 py-1 bg-slate-100 rounded-full">
-                {interventions.length} intervention(s)
-              </span>
-            </div>
-
+            }
+            bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
+          >
             {interventions.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 italic">Aucune facture ou intervention enregistrée pour le moment.</p>
             ) : (
@@ -1474,7 +1540,7 @@ export function VehicleDetailClientView({
                 })}
               </div>
             )}
-          </div>
+          </CollapsibleModuleCard>
 
           {/* COFFRE-FORT NUMÉRIQUE (SCANS & JUSTIFICATIFS ORIGINAUX) */}
           <VehicleVaultList
@@ -1505,8 +1571,21 @@ export function VehicleDetailClientView({
           />
 
           {/* ZONE D'AJOUT NOUVELLE FACTURE */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-900">Ajouter un nouveau justificatif (Facture / CT)</h2>
+          <CollapsibleModuleCard
+            id="document_dropzone"
+            vehicleId={v.id}
+            defaultOpen={false}
+            icon={<Upload className="w-5 h-5" />}
+            iconBgColor="bg-slate-100 text-slate-700"
+            title="Ajouter un nouveau justificatif (Facture / CT)"
+            subtitle="Glisser-déposer ou sélectionner un fichier PDF ou photo"
+            badge={
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                IA Multi-Formats (PDF / Photo)
+              </span>
+            }
+            bodyClassName="pt-5 border-t border-slate-100 mt-2"
+          >
             <DocumentDropzone
               vehicleId={v.id}
               onUploadComplete={() => {
@@ -1514,7 +1593,7 @@ export function VehicleDetailClientView({
                 router.refresh();
               }}
             />
-          </div>
+          </CollapsibleModuleCard>
         </div>
       )}
 

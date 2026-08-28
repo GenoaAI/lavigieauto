@@ -9,16 +9,15 @@ import {
   Trash2,
   Calendar,
   Gauge,
-  Building2,
   ExternalLink,
   X,
   FileCheck,
   FolderLock,
   Search,
-  Filter,
 } from "lucide-react";
 import { VaultDocumentItem } from "@/lib/storage/vault-service";
 import { deleteVaultDocumentAction, getDocumentSignedUrlAction } from "@/app/actions/vault";
+import { CollapsibleModuleCard } from "@/components/ui/CollapsibleModuleCard";
 
 interface VehicleVaultListProps {
   vehicleId: string;
@@ -27,6 +26,7 @@ interface VehicleVaultListProps {
   documents: VaultDocumentItem[];
   totalExpensesEur: number;
   onDocumentDeleted?: () => void;
+  className?: string;
 }
 
 export function VehicleVaultList({
@@ -36,6 +36,7 @@ export function VehicleVaultList({
   documents: initialDocs,
   totalExpensesEur,
   onDocumentDeleted,
+  className = "",
 }: VehicleVaultListProps) {
   const [documents, setDocuments] = useState<VaultDocumentItem[]>(initialDocs);
   const [activeFilter, setActiveFilter] = useState<"ALL" | "INVOICE" | "INSPECTION" | "REGISTRATION">("ALL");
@@ -112,43 +113,67 @@ export function VehicleVaultList({
   };
 
   return (
-    <div className="space-y-6">
-      {/* HEADER COFFRE-FORT */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-indigo-200 text-xs font-bold border border-white/10">
+    <CollapsibleModuleCard
+      id="digital_vault"
+      vehicleId={vehicleId}
+      defaultOpen={false}
+      icon={<FolderLock className="w-5 h-5" />}
+      iconBgColor="bg-purple-50 text-purple-600"
+      title="Coffre-fort Numérique (Scans & Justificatifs)"
+      subtitle="Documents chiffrés, sauvegardés de manière pérenne et horodatés"
+      badge={
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-700 px-2.5 py-0.5 bg-slate-100 rounded-full border border-slate-200">
+            {documents.length} document{documents.length > 1 ? "s" : ""}
+          </span>
+          <span className="text-xs font-black text-emerald-700 px-2.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">
+            {totalExpensesEur.toLocaleString("fr-FR")} € TTC
+          </span>
+        </div>
+      }
+      className={className}
+      bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
+    >
+      {/* HEADER BANNER COFFRE-FORT */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/10 text-indigo-200 text-xs font-bold border border-white/10">
               <FolderLock className="w-3.5 h-3.5 text-emerald-400" />
               Coffre-fort Numérique Décentralisé
             </div>
-            <h2 className="text-2xl font-black tracking-tight">
+            <h3 className="text-lg font-black tracking-tight">
               Scans & Pièces Justificatives Originales
-            </h2>
+            </h3>
             <p className="text-xs text-indigo-200/80 max-w-xl">
-              Tous vos documents scannés sont chiffrés, sauvegardés de manière pérenne et horodatés pour garantir la transparence totale lors de la revente de votre {vehicleName}.
+              Tous vos documents scannés sont chiffrés, sauvegardés et horodatés pour garantir la transparence totale lors de la revente de votre {vehicleName}.
             </p>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 shrink-0">
+          <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 shrink-0">
             <div>
-              <p className="text-[10px] uppercase font-bold text-indigo-300">Justificatifs classés</p>
-              <p className="text-2xl font-black text-white">{documents.length}</p>
+              <p className="text-[10px] uppercase font-bold text-indigo-300">Justificatifs</p>
+              <p className="text-xl font-black text-white">{documents.length}</p>
             </div>
-            <div className="h-8 w-px bg-white/20" />
+            <div className="h-7 w-px bg-white/20" />
             <div>
-              <p className="text-[10px] uppercase font-bold text-indigo-300">Dépenses tracées</p>
-              <p className="text-2xl font-black text-emerald-400">{totalExpensesEur.toLocaleString("fr-FR")} €</p>
+              <p className="text-[10px] uppercase font-bold text-indigo-300">Dépenses</p>
+              <p className="text-xl font-black text-emerald-400">{totalExpensesEur.toLocaleString("fr-FR")} €</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* FILTRES & RECHERCHE */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+      <div
+        className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-2xs"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
           <button
+            type="button"
             onClick={() => setActiveFilter("ALL")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
               activeFilter === "ALL"
                 ? "bg-slate-900 text-white"
                 : "text-slate-600 hover:bg-slate-100"
@@ -157,8 +182,9 @@ export function VehicleVaultList({
             Tous ({documents.length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveFilter("INVOICE")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
               activeFilter === "INVOICE"
                 ? "bg-blue-600 text-white"
                 : "text-slate-600 hover:bg-slate-100"
@@ -167,8 +193,9 @@ export function VehicleVaultList({
             Factures ({documents.filter((d) => d.fileType === "facture").length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveFilter("INSPECTION")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
               activeFilter === "INSPECTION"
                 ? "bg-emerald-600 text-white"
                 : "text-slate-600 hover:bg-slate-100"
@@ -177,8 +204,9 @@ export function VehicleVaultList({
             Contrôles Techniques ({documents.filter((d) => d.fileType === "controle_technique").length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveFilter("REGISTRATION")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
               activeFilter === "REGISTRATION"
                 ? "bg-purple-600 text-white"
                 : "text-slate-600 hover:bg-slate-100"
@@ -202,30 +230,30 @@ export function VehicleVaultList({
 
       {/* LISTE DES DOCUMENTS DU COFFRE-FORT */}
       {filteredDocs.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
-          <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="text-base font-bold text-slate-900">Aucun document dans cette catégorie</h3>
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-2xs">
+          <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+          <h4 className="text-sm font-bold text-slate-900">Aucun document dans cette catégorie</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             Déposez vos nouvelles factures ou procès-verbaux de contrôle technique pour les archiver automatiquement dans le coffre-fort.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3.5">
           {filteredDocs.map((doc) => {
             const badge = getDocTypeBadge(doc.fileType);
 
             return (
               <div
                 key={doc.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs hover:shadow-xs transition flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 {/* INFO DOCUMENT */}
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl shrink-0">
-                    <FileText className="w-6 h-6 text-slate-700" />
+                <div className="flex items-start gap-3.5">
+                  <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl shrink-0">
+                    <FileText className="w-5 h-5 text-slate-700" />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badge.bg}`}>
                         <ShieldCheck className="w-3 h-3" />
@@ -268,8 +296,9 @@ export function VehicleVaultList({
                 {/* ACTIONS */}
                 <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0">
                   <button
+                    type="button"
                     onClick={() => handleOpenPreview(doc)}
-                    className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm"
+                    className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-2xs"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     Voir le Scan
@@ -281,7 +310,7 @@ export function VehicleVaultList({
                       download={doc.fileName}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition border border-slate-200"
+                      className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition border border-slate-200"
                       title="Télécharger le fichier original"
                     >
                       <Download className="w-4 h-4" />
@@ -289,9 +318,10 @@ export function VehicleVaultList({
                   )}
 
                   <button
+                    type="button"
                     onClick={() => handleDelete(doc)}
                     disabled={deletingId === doc.id}
-                    className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200 disabled:opacity-50"
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200 disabled:opacity-50"
                     title="Supprimer du coffre-fort"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -337,6 +367,7 @@ export function VehicleVaultList({
                   </a>
                 )}
                 <button
+                  type="button"
                   onClick={() => {
                     setPreviewDoc(null);
                     setPreviewUrl(null);
@@ -351,7 +382,7 @@ export function VehicleVaultList({
             {/* Modal Content */}
             <div className="flex-1 overflow-auto p-4 bg-slate-900/5 flex items-center justify-center min-h-[500px]">
               {loadingPreview ? (
-                <p className="text-xs text-slate-500">Génération de l'accès sécurisé...</p>
+                <p className="text-xs text-slate-500">Génération de l&apos;accès sécurisé...</p>
               ) : previewUrl ? (
                 previewDoc.mimeType?.includes("image") || previewDoc.fileName.endsWith(".jpg") || previewDoc.fileName.endsWith(".png") ? (
                   <img
@@ -376,6 +407,6 @@ export function VehicleVaultList({
           </div>
         </div>
       )}
-    </div>
+    </CollapsibleModuleCard>
   );
 }

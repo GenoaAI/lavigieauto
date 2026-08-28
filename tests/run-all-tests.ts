@@ -18,6 +18,9 @@ import { testHouseholdNameManagement } from "./household-name.test";
 import { testHouseholdInvitationAndUniversalCalendar } from "./household-invitation-calendar.test";
 import { testTireSearchService } from "./tire-search.test";
 import { testInvoiceDeletionAndRecalculation } from "./invoice-deletion-recalculation.test";
+import { testCollapsibleModules } from "./collapsible-modules.test";
+import { runAdversarialCollapsibleTests } from "./adversarial-collapsible-challenger.test";
+import { runCollapsibleStressTests } from "./collapsible-stress.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -29,6 +32,9 @@ async function runAllTests() {
   let failed = 0;
 
   const testSuites = [
+    { name: "Tests de Robustesse & Layout Stability (Challenger 2 - CSS Grid, CLS & Leak Free)", fn: runAdversarialCollapsibleTests },
+    { name: "Tests de Stress & Robustesse Adversariale (Collapsible Cards)", fn: runCollapsibleStressTests },
+    { name: "Système de Cartes Pliables / Dépliables (Collapsible Cards, Hook & Toggle)", fn: testCollapsibleModules },
     { name: "Suppression Totale de Facture, Nettoyage Base & Recalcul Carnet/Odomètre", fn: testInvoiceDeletionAndRecalculation },
     { name: "Invitation Foyer Universelle (Multi-Webmails) & Export Calendrier (ICS/URLs)", fn: testHouseholdInvitationAndUniversalCalendar },
     { name: "Édition Sécurisée du Nom de Foyer (Zod, Sanitizer & Server Action)", fn: testHouseholdNameManagement },
