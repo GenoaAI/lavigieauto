@@ -289,7 +289,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
 
         if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
           defaultImg = "/images/vehicles/suzuki-vitara-2016.jpg";
-          enhancedVersion = "1.6 VVT 120 ch AllGrip Pack (LYD21SAT2)";
+          enhancedVersion = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
           dinPower = 120;
         } else if (modelStr.includes("ESPACE")) {
           defaultImg = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";

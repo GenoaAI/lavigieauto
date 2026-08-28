@@ -103,7 +103,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       }
 
       if (resolvedVersion === "LYD21SAT2" || (!resolvedVersion && modelStr.includes("VITARA"))) {
-        resolvedVersion = "1.6 VVT 120 ch AllGrip Pack (LYD21SAT2)";
+        resolvedVersion = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
       }
 
       // Si enregistré en base de données comme archivé/suspendu

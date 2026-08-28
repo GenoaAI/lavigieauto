@@ -116,7 +116,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
   }
 
   if (vehicle.version === "LYD21SAT2" || (!vehicle.version && (vehicle.modele || "").toUpperCase().includes("VITARA"))) {
-    vehicle.version = "1.6 VVT 120 ch AllGrip Pack (LYD21SAT2)";
+    vehicle.version = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
     vehicle.puissance_din = 120;
   }
 
@@ -803,6 +803,59 @@ export async function deleteVehicleAction(
 
     try {
       revalidatePath("/dashboard");
+    } catch {
+      // Ignore
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Mettre à jour les informations du véhicule (version, modèle, finition, usage, etc.)
+ */
+export async function updateVehicleDetailsAction(
+  vehicleId: string,
+  payload: {
+    marque?: string;
+    modele?: string;
+    version?: string;
+    puissance_din?: number;
+    puissance_fiscale?: number;
+    energie?: string;
+    boite_vitesse?: string;
+    usage_type?: string;
+    km_annuel_moyen?: number;
+    image_url?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createAdminClient();
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
+    const cleanId = (vehicleId || "").replace(/[^a-zA-Z0-9-]/g, "");
+    const { data: targetVeh } = isUuid
+      ? await (supabase as any).from("vehicules").select("id").eq("id", vehicleId).maybeSingle()
+      : await (supabase as any).from("vehicules").select("id").or(`immatriculation.ilike.%${cleanId}%,vin.ilike.%${cleanId}%`).maybeSingle();
+
+    const realVehicleId = targetVeh?.id || vehicleId;
+
+    const { error } = await (supabase as any)
+      .from("vehicules")
+      .update({
+        ...payload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", realVehicleId);
+
+    if (error) throw new Error(error.message);
+
+    try {
+      revalidatePath("/dashboard");
+      revalidatePath(`/dashboard/vehicles/${vehicleId}`);
+      revalidatePath(`/dashboard/vehicles/${realVehicleId}`);
     } catch {
       // Ignore
     }
