@@ -211,7 +211,15 @@ export function VehicleDetailClientView({
     if (d.file_type === "carte_grise") return;
     const dateKey = `${d.date_document || "sans-date"}_${d.emetteur || "Garage"}`;
     
-    if (!groupedInterventionsMap.has(dateKey)) {
+    if (groupedInterventionsMap.has(dateKey)) {
+      const group = groupedInterventionsMap.get(dateKey);
+      if (d.montant_ttc && Number(d.montant_ttc) > 0) {
+        group.montantTTC = Number(d.montant_ttc);
+      }
+      if (d.kilometrage_document && Number(d.kilometrage_document) > 0) {
+        group.kilometrage = Number(d.kilometrage_document);
+      }
+    } else {
       groupedInterventionsMap.set(dateKey, {
         date: d.date_document,
         kilometrage: d.kilometrage_document || v.kilometrage_actuel,
