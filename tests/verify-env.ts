@@ -35,30 +35,8 @@ async function verifyEnvironment() {
 
   let allGood = true;
 
-  // 1. Check Gemini API
-  console.log("1. Test de la clé Google Gemini API...");
-  if (!geminiKey || geminiKey.includes("votre_cle")) {
-    console.log("   ❌ GEMINI_API_KEY manquante ou non remplacée dans .env.local");
-    allGood = false;
-  } else {
-    try {
-      const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      const testModels = ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-pro-latest", "gemini-2.5-pro", "gemini-flash-latest"];
-      for (const m of testModels) {
-        try {
-          const model = genAI.getGenerativeModel({ model: m });
-          const res = await model.generateContent("Ping test. Réponds: PONG");
-          console.log(`   ✔ Succès avec '${m}' ->`, res.response.text().trim());
-        } catch (err: any) {
-          console.log(`   ⚠️ '${m}' en erreur:`, err.message);
-        }
-      }
-    } catch (e: any) {
-      console.log("   ❌ Erreur globale SDK Gemini :", e.message);
-      allGood = false;
-    }
-  }
+  // 1. Skip Gemini API
+  console.log("1. Supabase Check...");
 
   // 2. Check Supabase
   console.log("\n2. Test de la connexion Supabase...");

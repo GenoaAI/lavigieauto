@@ -333,10 +333,20 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* CT / Warning highlight */}
+                {/* CT / Confirmation highlight */}
                 {demoResult.conformityImpact?.nextAlert && (
-                  <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-amber-200 text-xs flex items-center gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <div
+                    className={`p-3 rounded-xl text-xs flex items-center gap-2.5 ${
+                      demoResult.documentType === "controle_technique"
+                        ? "bg-amber-950/40 border border-amber-800/60 text-amber-200"
+                        : "bg-emerald-950/40 border border-emerald-800/60 text-emerald-200"
+                    }`}
+                  >
+                    {demoResult.documentType === "controle_technique" ? (
+                      <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    )}
                     <span>{demoResult.conformityImpact.nextAlert}</span>
                   </div>
                 )}
