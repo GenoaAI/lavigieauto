@@ -320,11 +320,11 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
   const supabase = createAdminClient();
 
   // 1. Fetch vehicle
-  const { data: rawVehicle, error } = await (supabase as any)
-    .from("vehicules")
-    .select("*")
-    .eq("id", vehicleId)
-    .single();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
+  const cleanId = (vehicleId || "").replace(/[^a-zA-Z0-9-]/g, "");
+  const { data: rawVehicle, error } = isUuid
+    ? await (supabase as any).from("vehicules").select("*").eq("id", vehicleId).maybeSingle()
+    : await (supabase as any).from("vehicules").select("*").or(`immatriculation.ilike.%${cleanId}%,vin.ilike.%${cleanId}%`).maybeSingle();
 
   if (error || !rawVehicle) {
     return { success: false, error: "Véhicule non trouvé." };
@@ -349,12 +349,21 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     const annualKm = vehicle.km_annuel_moyen || 14000;
     const dailyKm = annualKm / 365;
 
-    // 3. Récupérer l'historique des interventions réelles du véhicule pour ancrer les échéances
+    // 3. Récupérer l'historique des interventions réelles et des CT du véhicule pour ancrer les échéances
     const { data: pastInterventions } = await (supabase as any)
       .from("lignes_interventions")
       .select("operation, categorie, date_intervention, kilometrage_intervention")
-      .eq("vehicule_id", vehicleId)
+      .eq("vehicule_id", vehicle.id)
       .order("date_intervention", { ascending: false });
+
+    const { data: ctDocs } = await (supabase as any)
+      .from("documents_sources")
+      .select("date_document, kilometrage_document, file_type")
+      .eq("vehicule_id", vehicle.id)
+      .eq("file_type", "controle_technique")
+      .order("date_document", { ascending: false });
+
+    const latestCt = ctDocs?.[0];
 
     const interventions = (pastInterventions || []) as Array<{
       operation: string;
@@ -366,6 +375,18 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     function findLastService(opCategory: string, opTitle: string) {
       const normCat = (opCategory || "").toLowerCase();
       const normTitle = (opTitle || "").toLowerCase();
+
+      if (normCat.includes("controle_technique") || normCat.includes("ct") || normTitle.includes("contrôle technique") || normTitle.includes("controle technique")) {
+        if (latestCt) {
+          return {
+            operation: "Contrôle Technique Périodique (Favorable)",
+            categorie: "controle_technique",
+            date_intervention: latestCt.date_document,
+            kilometrage_intervention: latestCt.kilometrage_document || 0,
+          };
+        }
+      }
+
       return interventions.find((it) => {
         const itOp = (it.operation || "").toLowerCase();
         const itCat = (it.categorie || "").toLowerCase();
@@ -375,14 +396,17 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
         if (normCat.includes("habitacle") || normCat.includes("pollen") || normTitle.includes("habitacle") || normTitle.includes("pollen")) {
           return itCat === "climatisation" || itCat === "filtre_habitacle" || itOp.includes("habitacle") || itOp.includes("pollen");
         }
+        if (normCat.includes("clim") || normTitle.includes("clim")) {
+          return itCat === "climatisation" || itOp.includes("clim") || itOp.includes("habitacle") || itOp.includes("pollen");
+        }
         if (normCat.includes("air") || normTitle.includes("filtre a air") || normTitle.includes("filtre à air") || normTitle.includes("filtre air")) {
           return itCat === "filtre_air" || itOp.includes("filtre a air") || itOp.includes("filtre à air") || itOp.includes("filtre air") || itOp.includes("filtrante");
         }
         if (normCat.includes("bougie") || normCat.includes("allumage") || normTitle.includes("bougie") || normTitle.includes("allumage")) {
-          return itCat === "allumage" || itCat === "bougies" || itOp.includes("bougie") || itOp.includes("allumage");
+          return itCat === "allumage" || itCat === "bougies" || itCat === "moteur" || itOp.includes("bougie") || itOp.includes("allumage");
         }
         if (normCat.includes("refroidissement") || normCat.includes("coolant") || normTitle.includes("refroidissement") || normTitle.includes("liquide de refroidissement")) {
-          return itCat === "liquide_refroidissement" || itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement");
+          return itCat === "liquide_refroidissement" || itCat === "moteur" || itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement");
         }
         if (normCat.includes("boite") || normCat.includes("transmission") || normTitle.includes("boite")) {
           return itCat === "transmission" || itOp.includes("boite") || itOp.includes("dw6") || itOp.includes("pont");

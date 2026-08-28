@@ -659,7 +659,9 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     }
 
     // 4. Enregistrement des Lignes d'Intervention si facture
-    const rawLineItems = Array.isArray(data.lineItems) && data.lineItems.length > 0
+    const rawLineItems = Array.isArray(data.items) && data.items.length > 0
+      ? data.items
+      : Array.isArray(data.lineItems) && data.lineItems.length > 0
       ? data.lineItems
       : Array.isArray(data.line_items) && data.line_items.length > 0
       ? data.line_items
@@ -680,23 +682,27 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         const desc = item.description || item.designation || item.libelle || item.label || item.nom || item.name || item.article || "Prestation d'entretien";
         const cat = (item.category || item.categorie || item.type || "").toLowerCase();
         let normalizedCat = "revision_generale";
-        if (cat.includes("drain") || desc.toLowerCase().includes("vidange") || desc.toLowerCase().includes("huile") || desc.toLowerCase().includes("revision")) normalizedCat = "moteur";
+        if (cat.includes("drain") || cat.includes("oil") || desc.toLowerCase().includes("vidange") || desc.toLowerCase().includes("huile") || desc.toLowerCase().includes("revision")) normalizedCat = "moteur";
+        else if (cat.includes("spark") || cat.includes("plug") || desc.toLowerCase().includes("bougie")) normalizedCat = "moteur";
+        else if (cat.includes("coolant") || desc.toLowerCase().includes("refroidissement")) normalizedCat = "moteur";
         else if (cat.includes("brake") || desc.toLowerCase().includes("frein") || desc.toLowerCase().includes("plaquette") || desc.toLowerCase().includes("disque")) normalizedCat = "freinage";
         else if (cat.includes("tire") || desc.toLowerCase().includes("pneu") || desc.toLowerCase().includes("pneumatique") || desc.toLowerCase().includes("turanza") || desc.toLowerCase().includes("bridgestone") || desc.toLowerCase().includes("michelin") || desc.toLowerCase().includes("kleber") || desc.toLowerCase().includes("valve") || desc.toLowerCase().includes("equi")) normalizedCat = "pneumatiques";
-        else if (desc.toLowerCase().includes("clim") || desc.toLowerCase().includes("habitacle") || desc.toLowerCase().includes("pollen")) normalizedCat = "climatisation";
-        else if (desc.toLowerCase().includes("courroie") || desc.toLowerCase().includes("distribution") || desc.toLowerCase().includes("accessoire") || desc.toLowerCase().includes("alternateur")) normalizedCat = "distribution";
-        else if (desc.toLowerCase().includes("boite") || desc.toLowerCase().includes("transmission") || desc.toLowerCase().includes("vitesse")) normalizedCat = "transmission";
+        else if (cat.includes("cabin") || desc.toLowerCase().includes("clim") || desc.toLowerCase().includes("habitacle") || desc.toLowerCase().includes("pollen")) normalizedCat = "climatisation";
+        else if (cat.includes("belt") || cat.includes("accessory") || desc.toLowerCase().includes("courroie") || desc.toLowerCase().includes("distribution") || desc.toLowerCase().includes("accessoire") || desc.toLowerCase().includes("alternateur") || desc.toLowerCase().includes("galet")) normalizedCat = "distribution";
+        else if (cat.includes("gearbox") || desc.toLowerCase().includes("boite") || desc.toLowerCase().includes("transmission") || desc.toLowerCase().includes("vitesse")) normalizedCat = "transmission";
         else if (cat.includes("carrosserie") || desc.toLowerCase().includes("bouclier") || desc.toLowerCase().includes("peinture") || desc.toLowerCase().includes("tolerie")) normalizedCat = "carrosserie";
         else if (cat.includes("battery") || desc.toLowerCase().includes("batterie") || desc.toLowerCase().includes("accumulateur") || desc.toLowerCase().includes("tech9") || desc.toLowerCase().includes("varta") || desc.toLowerCase().includes("fulmen") || desc.toLowerCase().includes("alternateur") || desc.toLowerCase().includes("demarreur")) normalizedCat = "electricite";
 
         let itemTTC = 0;
-        if (typeof item.totalTTC === "number") itemTTC = item.totalTTC;
+        if (typeof item.totalPriceTTC === "number") itemTTC = item.totalPriceTTC;
+        else if (typeof item.totalTTC === "number") itemTTC = item.totalTTC;
         else if (typeof item.montant_ttc === "number") itemTTC = item.montant_ttc;
         else if (typeof item.total_ttc === "number") itemTTC = item.total_ttc;
         else if (typeof item.total_price_ttc === "number") itemTTC = item.total_price_ttc;
         else if (typeof item.total_price_ht === "number") itemTTC = Math.round(item.total_price_ht * 1.2 * 100) / 100;
         else if (typeof item.montant_ht === "number") itemTTC = Math.round(item.montant_ht * 1.2 * 100) / 100;
         else if (typeof item.unit_price_ht === "number") itemTTC = Math.round(item.unit_price_ht * (item.quantity || item.quantite || 1) * 1.2 * 100) / 100;
+        else if (typeof item.unitPriceHT === "number") itemTTC = Math.round(item.unitPriceHT * (item.quantity || item.quantite || 1) * 1.2 * 100) / 100;
         else if (typeof item.prix_tarif_ht === "number") itemTTC = Math.round(item.prix_tarif_ht * (item.quantity || item.quantite || 1) * 1.2 * 100) / 100;
 
         return {
