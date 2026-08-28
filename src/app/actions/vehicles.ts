@@ -444,6 +444,9 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
         if (normCat.includes("pneu") || normCat.includes("tire") || normTitle.includes("pneu")) {
           return itOp.includes("pneu") || itOp.includes("pneumatique") || itOp.includes("turanza") || itOp.includes("bridgestone") || itOp.includes("michelin") || itOp.includes("kleber") || itOp.includes("roue") || itOp.includes("equilibrage") || itCat === "pneumatiques";
         }
+        if (normCat.includes("courroie") || normCat.includes("accessoire") || normCat.includes("distribution") || normTitle.includes("courroie") || normTitle.includes("accessoire") || normTitle.includes("distribution") || normTitle.includes("galet")) {
+          return itOp.includes("courroie") || itOp.includes("accessoire") || itOp.includes("distribution") || itOp.includes("galet") || itCat === "distribution" || itCat === "courroie_accessoire";
+        }
         if (normCat.includes("batterie") || normCat.includes("battery") || normTitle.includes("batterie")) {
           return itOp.includes("batterie") || itOp.includes("accumulateur") || itCat === "electricite" || itCat === "batterie";
         }
@@ -531,11 +534,21 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       },
     ];
 
+    const isPetrol = (vehicle.energie || "").toLowerCase().includes("essence") || !(vehicle.energie || "").toLowerCase().includes("diesel");
+    const filteredOps = ops.filter((op: any) => {
+      const cat = (op.category || "").toLowerCase();
+      const title = (op.title || "").toLowerCase();
+      if (isPetrol && (cat.includes("carburant") || cat.includes("essence") || title.includes("filtre à carburant") || title.includes("filtre à essence") || title.includes("filtre essence"))) {
+        return false;
+      }
+      return true;
+    });
+
     // 5. Generate projected echeances from official manufacturer intervals & real history
     const regDateStr = vehicle.date_premiere_immatriculation || (vehicle.annee_mise_en_circulation ? `${vehicle.annee_mise_en_circulation}-01-01` : new Date().toISOString().split("T")[0]);
     const regDate = new Date(regDateStr);
 
-    const newEcheances = ops.map((op: any) => {
+    const newEcheances = filteredOps.map((op: any) => {
       const intervalKm = op.intervalKm || 20000;
       const intervalMonths = op.intervalMonths || 12;
       const lastService = findLastService(op.category || "", op.title || "");
