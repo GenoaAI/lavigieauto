@@ -312,6 +312,11 @@ export function projectMaintenanceSchedule(options: {
   const projectedMilestones: ProjectedMilestone[] = [];
 
   for (const rule of rules) {
+    // Les véhicules essence modernes ont un filtre immergé longue durée dans le réservoir
+    if (rule.category === 'FUEL_FILTER' && options.vehicleRegistrationDate && !rule.title.toLowerCase().includes('diesel')) {
+      continue;
+    }
+
     const lastService = lastServicesMap.get(rule.category);
 
     const baseMileage = lastService ? lastService.mileage : 0;
