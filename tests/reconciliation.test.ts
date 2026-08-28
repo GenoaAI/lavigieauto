@@ -28,6 +28,7 @@ export function testReconciliation() {
       {
         description: "Forfait vidange huile 5W30 synthèse",
         category: "DRAIN_OIL",
+        actionType: "REPLACE",
         quantity: 1,
         unitPriceHT: 95,
         vatRate: 20,
@@ -38,6 +39,7 @@ export function testReconciliation() {
       {
         description: "Remplacement filtre à huile",
         category: "DRAIN_OIL",
+        actionType: "REPLACE",
         quantity: 1,
         unitPriceHT: 22,
         vatRate: 20,
@@ -48,6 +50,7 @@ export function testReconciliation() {
       {
         description: "Purge circuit liquide de frein",
         category: "BRAKE_FLUID",
+        actionType: "REPLACE",
         quantity: 1,
         unitPriceHT: 60,
         vatRate: 20,

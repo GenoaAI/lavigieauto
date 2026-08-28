@@ -751,6 +751,13 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           date_intervention: docDate,
           kilometrage_intervention: extractedMileage || matchedVehicle?.kilometrage_actuel || 0,
           emetteur: docEmitter,
+          reference_piece: item.partNumber || item.reference || item.reference_piece || null,
+          metadata: {
+            canonical_code: item.canonicalCode || null,
+            action_type: item.actionType || null,
+            confidence: item.confidence || 0.95,
+            part_number: item.partNumber || null,
+          },
         };
       });
 

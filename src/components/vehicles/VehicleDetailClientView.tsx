@@ -817,8 +817,22 @@ export function VehicleDetailClientView({
 
                           {/* DÉTAIL DÉPLIABLE AU CLIC */}
                           {isExpanded && (
-                            <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 text-[11px] leading-relaxed text-slate-600 break-words">
+                            <div className="p-2.5 bg-slate-50/90 rounded-xl border border-slate-100 text-[11px] leading-relaxed text-slate-600 break-words space-y-2">
                               <p>{ech.description}</p>
+                              {ech.metadata?.justification && (
+                                <div className="mt-1.5 p-2 bg-emerald-50/90 border border-emerald-200/80 rounded-lg text-emerald-950 text-[10.5px]">
+                                  <div className="font-bold flex items-center gap-1 text-emerald-900 mb-0.5">
+                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>Preuve documentaire certifiée :</span>
+                                  </div>
+                                  <p className="font-medium text-emerald-800">
+                                    « {ech.metadata.justification.libelleFacture} »
+                                  </p>
+                                  <p className="text-[10px] text-emerald-700/90 mt-0.5">
+                                    {ech.metadata.justification.emetteur} — {ech.metadata.justification.dateIntervention} ({Number(ech.metadata.justification.kilometrageIntervention).toLocaleString("fr-FR")} km)
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
 
@@ -1199,6 +1213,21 @@ export function VehicleDetailClientView({
                       <p className={`text-[11px] leading-relaxed break-words ${isOverdue ? "text-rose-800/90" : "text-slate-500"}`}>
                         {ech.description}
                       </p>
+
+                      {ech.metadata?.justification && (
+                        <div className="p-2 bg-emerald-50/90 border border-emerald-200/80 rounded-lg text-emerald-950 text-[10.5px]">
+                          <div className="font-bold flex items-center gap-1 text-emerald-900 mb-0.5">
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>Preuve documentaire certifiée :</span>
+                          </div>
+                          <p className="font-medium text-emerald-800">
+                            « {ech.metadata.justification.libelleFacture} »
+                          </p>
+                          <p className="text-[10px] text-emerald-700/90 mt-0.5">
+                            {ech.metadata.justification.emetteur} — {ech.metadata.justification.dateIntervention} ({Number(ech.metadata.justification.kilometrageIntervention).toLocaleString("fr-FR")} km)
+                          </p>
+                        </div>
+                      )}
 
                       <div className="pt-1">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border max-w-full break-words ${

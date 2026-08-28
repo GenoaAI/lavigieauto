@@ -8,6 +8,7 @@ import { generateReservationKit, ReservationKit } from "@/lib/engine/reservation
 import { calculateVehicleTireAssessment, VehicleTireAssessment } from "@/lib/engine/tires";
 import { fetchOnlineManufacturerPlan, OfficialMaintenancePlan } from "@/lib/engine/manufacturer-retriever";
 import { resolveRecommendedGarage, ResolveGarageResult, EnrichedGarage } from "@/lib/engine/garage-resolver";
+import { reconcileSingleOperationWithHistory } from "@/lib/engine/reconciliation";
 import {
   Vehicule,
   VehiculeStatut,
@@ -375,21 +376,27 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     const annualKm = vehicle.km_annuel_moyen || 14000;
     const dailyKm = annualKm / 365;
 
-    // 3. Récupérer l'historique des interventions réelles et des CT du véhicule pour ancrer les échéances
+    // 3. Récupérer l'historique des interventions réelles et des documents du véhicule pour ancrer les échéances
     const { data: pastInterventions } = await (supabase as any)
       .from("lignes_interventions")
-      .select("operation, categorie, date_intervention, kilometrage_intervention, prix_total_ttc")
+      .select("id, operation, description, categorie, date_intervention, kilometrage_intervention, prix_total_ttc, emetteur, document_source_id, metadata")
       .eq("vehicule_id", vehicle.id)
       .order("date_intervention", { ascending: false });
 
-    const { data: ctDocs } = await (supabase as any)
+    const { data: allDocs } = await (supabase as any)
       .from("documents_sources")
-      .select("date_document, kilometrage_document, file_type")
+      .select("id, date_document, kilometrage_document, file_type, emetteur")
       .eq("vehicule_id", vehicle.id)
-      .eq("file_type", "controle_technique")
       .order("date_document", { ascending: false });
 
-    const latestCt = ctDocs?.[0];
+    const latestCt = (allDocs || []).find(
+      (d: any) =>
+        d.file_type === "TECHNICAL_INSPECTION" ||
+        d.file_type === "CT" ||
+        d.file_type === "controle_technique" ||
+        (d.emetteur || "").toLowerCase().includes("ct") ||
+        (d.emetteur || "").toLowerCase().includes("technique")
+    );
 
     const interventions = (pastInterventions || []) as Array<{
       operation: string;
@@ -551,15 +558,20 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     const newEcheances = filteredOps.map((op: any) => {
       const intervalKm = op.intervalKm || 20000;
       const intervalMonths = op.intervalMonths || 12;
-      const lastService = findLastService(op.category || "", op.title || "");
+      const { lastService, justification } = reconcileSingleOperationWithHistory({
+        category: op.category || "",
+        title: op.title || "",
+        interventions,
+        documents: allDocs || [],
+      });
 
       let targetKm: number;
       let dueDateStr: string;
       let isOverdue = false;
 
-      if (lastService && lastService.kilometrage_intervention > 0) {
+      if (lastService && (lastService.kilometrage_intervention > 0 || lastService.date_intervention)) {
         // 1. Si une intervention réelle a été enregistrée
-        targetKm = lastService.kilometrage_intervention + intervalKm;
+        targetKm = Number(lastService.kilometrage_intervention || km) + intervalKm;
         const timeDueDate = new Date(lastService.date_intervention || new Date());
         timeDueDate.setMonth(timeDueDate.getMonth() + intervalMonths);
 
@@ -609,7 +621,7 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
         type_echeance: normalizeTypeEcheance(op.category || op.title || ""),
         libelle: op.title,
         description: lastService
-          ? `${op.description} (Dernière réalisée le ${lastService.date_intervention} à ${lastService.kilometrage_intervention.toLocaleString("fr-FR")} km — Préconisation : +${intervalKm.toLocaleString("fr-FR")} km / ${intervalMonths} mois)`
+          ? `${op.description} (Dernière réalisée le ${lastService.date_intervention} à ${Number(lastService.kilometrage_intervention).toLocaleString("fr-FR")} km — Préconisation : +${intervalKm.toLocaleString("fr-FR")} km / ${intervalMonths} mois)`
           : `${op.description} (Préconisation constructeur ${vehicle.marque} : tous les ${intervalKm.toLocaleString("fr-FR")} km ou ${intervalMonths} mois)`,
         date_preconisee: finalDueDate,
         km_preconise: targetKm,
@@ -620,6 +632,9 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
         cout_estime_min: op.estimatedCostMinEur || 100,
         cout_estime_max: op.estimatedCostMaxEur || 180,
         source_recommandation: "constructeur",
+        metadata: {
+          justification: justification || null,
+        },
       };
     });
 

@@ -42,11 +42,12 @@ Extrais l'ensemble des informations de facturation, de l'émetteur, du véhicule
    - \`vehicle.vin\` : Numéro de série VIN (17 caractères)
 
 3. **Lignes d'Interventions et Pièces** :
-   - Extrais chaque ligne avec sa désignation exacte (\`label\`), sa catégorie normalisée (\`category\`: DRAIN_OIL, OIL_FILTER, AIR_FILTER, CABIN_FILTER, FUEL_FILTER, SPARK_PLUGS, BRAKE_FLUID, COOLANT, BRAKE_PADS_FRONT, BRAKE_PADS_REAR, ACCESSORY_BELT, TIMING_BELT, GEARBOX_OIL, TIRES, CLIMATISATION, BATTERY, WIPERS, TECHNICAL_INSPECTION, OTHER), sa quantité (\`quantity\`), son prix unitaire HT (\`unitPriceHT\`), son montant total TTC (\`totalPriceTTC\`), et si c'est de la pièce ou de la main d'œuvre (\`isLabor\`).
+   - Extrais chaque ligne avec sa désignation exacte (\`description\`), sa référence pièce (\`partNumber\`), sa catégorie normalisée (\`category\`), son code canonique d'opération (\`canonicalCode\`: DRAIN_OIL, AIR_FILTER, CABIN_FILTER, FUEL_FILTER, SPARK_PLUGS, GLOW_PLUGS, BRAKE_FLUID, COOLANT, BRAKE_PADS_FRONT, BRAKE_PADS_REAR, BRAKE_DISCS_FRONT, BRAKE_DISCS_REAR, ACCESSORY_BELT, TIMING_BELT, TIRES_FRONT, TIRES_REAR, BATTERY, CLUTCH, SUSPENSION_SHOCK, GEARBOX_OIL, AIR_CONDITIONING, WIPER_BLADES, TECHNICAL_INSPECTION_PREP, DIAGNOSTIC_ELECTRONIC, LABOR_ONLY, OTHER), son type d'action (\`actionType\`: REPLACE pour tout changement de pièce/fluide, INSPECT_ONLY pour tout contrôle/diagnostic/vérification sans changement, PACKAGE_SERVICE pour tout forfait révision globale, REPAIR, CLEAN, LABOR), sa quantité (\`quantity\`), son prix unitaire HT (\`unitPriceHT\`), son montant total TTC (\`totalTTC\`), et si c'est de la pièce ou de la main d'œuvre (\`isLabor\`, \`isPart\`).
+   - RÈGLE IMPORTANTE : Un contrôle visuel ou un diagnostic (ex: "Contrôle freins", "Vérification niveaux") doit OBLIGATOIREMENT être taggé avec actionType="INSPECT_ONLY". Un remplacement de courroie (ex: "5PK915", "Courroie accessoires", "Kit distri") doit être taggé avec canonicalCode="ACCESSORY_BELT" ou "TIMING_BELT" et actionType="REPLACE".
 
 4. **Totaux Financiers** :
    - \`totalHT\` : Montant total net Hors Taxes
-   - \`totalTVA\` : Montant de la TVA
+   - \`totalVAT\` : Montant de la TVA
    - \`totalTTC\` : Montant total TTC net à payer
 
 {{vehicleContext}}

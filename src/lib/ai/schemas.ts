@@ -34,12 +34,25 @@ export const MaintenanceCategoryEnum = z.enum([
 
 export type MaintenanceCategory = z.infer<typeof MaintenanceCategoryEnum>;
 
+export const ActionTypeEnum = z.enum([
+  'REPLACE',          // Remplacement d'une pièce ou d'un fluide
+  'INSPECT_ONLY',      // Simple contrôle / diagnostic / vérification sans remplacement
+  'REPAIR',           // Réparation / rénovation d'un composant
+  'PACKAGE_SERVICE',  // Forfait révision globale couvrant plusieurs opérations
+  'CLEAN',            // Nettoyage / dégraissage / traitement
+  'LABOR',            // Main d'oeuvre pure
+]);
+
+export type ActionType = z.infer<typeof ActionTypeEnum>;
+
 /**
  * Single invoice item / line
  */
 export const InvoiceItemSchema = z.object({
   description: z.string().describe('Intitulé de la ligne tel que libellé sur la facture'),
   category: MaintenanceCategoryEnum.default('OTHER').describe('Catégorie normalisée d\'intervention'),
+  canonicalCode: z.string().optional().describe('Code canonique d\'opération normalisée (ex: ACCESSORY_BELT_REPLACE, DRAIN_OIL, SPARK_PLUGS_REPLACE, AIR_FILTER_REPLACE, TIRES_REPLACE)'),
+  actionType: ActionTypeEnum.default('REPLACE').optional().describe('Type d\'action réalisée : REPLACE, INSPECT_ONLY, REPAIR, PACKAGE_SERVICE, CLEAN, LABOR'),
   partNumber: z.string().optional().describe('Référence de la pièce détachée constructeur ou équipementier'),
   quantity: z.number().default(1).describe('Quantité facturée'),
   unitPriceHT: z.number().optional().describe('Prix unitaire Hors Taxes en euros'),
