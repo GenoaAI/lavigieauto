@@ -957,7 +957,13 @@ export function VehicleDetailClientView({
               {/* DROPZONE INTÉGRÉE */}
               <div className="space-y-3">
                 <h2 className="text-base font-bold text-slate-900">Ajouter un nouveau justificatif (Facture / CT)</h2>
-                <DocumentDropzone vehicleId={v.id} onUploadComplete={loadVehicle} />
+                <DocumentDropzone
+                  vehicleId={v.id}
+                  onUploadComplete={() => {
+                    loadVehicle();
+                    router.refresh();
+                  }}
+                />
               </div>
             </div>
           )}
@@ -1472,7 +1478,13 @@ export function VehicleDetailClientView({
           {/* ZONE D'AJOUT NOUVELLE FACTURE */}
           <div className="space-y-3">
             <h2 className="text-base font-bold text-slate-900">Ajouter un nouveau justificatif (Facture / CT)</h2>
-            <DocumentDropzone vehicleId={v.id} onUploadComplete={loadVehicle} />
+            <DocumentDropzone
+              vehicleId={v.id}
+              onUploadComplete={() => {
+                loadVehicle();
+                router.refresh();
+              }}
+            />
           </div>
         </div>
       )}
