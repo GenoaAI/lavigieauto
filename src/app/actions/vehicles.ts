@@ -542,12 +542,31 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     ];
 
     const isPetrol = (vehicle.energie || "").toLowerCase().includes("essence") || !(vehicle.energie || "").toLowerCase().includes("diesel");
+    const isSuzuki = (vehicle.marque || "").toLowerCase().includes("suzuki");
+    const isVitara = (vehicle.modele || "").toLowerCase().includes("vitara");
+
     const filteredOps = ops.filter((op: any) => {
       const cat = (op.category || "").toLowerCase();
       const title = (op.title || "").toLowerCase();
-      if (isPetrol && (cat.includes("carburant") || cat.includes("essence") || title.includes("filtre à carburant") || title.includes("filtre à essence") || title.includes("filtre essence"))) {
+      const desc = (op.description || "").toLowerCase();
+
+      // 1. Élimination stricte des opérations de recharge/vidange de climatisation (hors carnet d'usine)
+      if (cat === "climatisation" || title.includes("recharge fluide") || title.includes("recharge clim") || desc.includes("recharge fluide") || desc.includes("recharge de gaz")) {
         return false;
       }
+
+      // 2. Élimination du filtre carburant externe pour les essences avec crépine réservoir
+      if (isPetrol && (cat.includes("carburant") || cat.includes("essence") || title.includes("filtre à carburant") || title.includes("filtre à essence") || title.includes("filtre essence"))) {
+        if (isSuzuki || isVitara) {
+          return false;
+        }
+      }
+
+      // 3. Élimination de la courroie de distribution pour les moteurs à chaîne
+      if (isSuzuki && isPetrol && (cat === "courroie_distribution" || title.includes("courroie de distribution") || title.includes("kit de distribution"))) {
+        return false;
+      }
+
       return true;
     });
 

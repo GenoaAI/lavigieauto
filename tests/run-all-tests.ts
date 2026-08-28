@@ -21,6 +21,8 @@ import { testInvoiceDeletionAndRecalculation } from "./invoice-deletion-recalcul
 import { testCollapsibleModules } from "./collapsible-modules.test";
 import { runAdversarialCollapsibleTests } from "./adversarial-collapsible-challenger.test";
 import { runCollapsibleStressTests } from "./collapsible-stress.test";
+import { testManufacturerPlanRobustness } from "./manufacturer-plan-robustness.test";
+import { runAdversarialPowertrainTests } from "./adversarial-powertrain-archetypes.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -55,6 +57,8 @@ async function runAllTests() {
     { name: "Normalisation Multi-Documents (Cartes Grises, Factures, PV CT)", fn: runDocumentExtractionTests },
     { name: "Coffre-fort Documentaire (Supabase Storage & Nomenclature)", fn: testVaultStorageConfiguration },
     { name: "Système de Feedback Intégré & Webhook MicroKanban", fn: testFeedbackIntegration },
+    { name: "Robustesse & Exactitude des Plans Constructeurs (Zéro Fausse Clim & OEM)", fn: testManufacturerPlanRobustness },
+    { name: "Matrice Multi-Archetypes & Stress Adversarial (Challenger 2)", fn: runAdversarialPowertrainTests },
   ];
 
 
