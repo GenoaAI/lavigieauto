@@ -752,15 +752,23 @@ export async function deleteVehicleAction(
   try {
     const supabase = createAdminClient();
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
+    const cleanId = (vehicleId || "").replace(/[^a-zA-Z0-9-]/g, "");
+    const { data: targetVeh } = isUuid
+      ? await (supabase as any).from("vehicules").select("id").eq("id", vehicleId).maybeSingle()
+      : await (supabase as any).from("vehicules").select("id").or(`immatriculation.ilike.%${cleanId}%,vin.ilike.%${cleanId}%`).maybeSingle();
+
+    const realVehicleId = targetVeh?.id || vehicleId;
+
     // 1. Supprimer les tables dépendantes
-    await (supabase as any).from("echeances_previsionnelles").delete().eq("vehicule_id", vehicleId);
-    await (supabase as any).from("lignes_interventions").delete().eq("vehicule_id", vehicleId);
-    await (supabase as any).from("defaillances_ct").delete().eq("vehicule_id", vehicleId);
-    await (supabase as any).from("audits_conformite").delete().eq("vehicule_id", vehicleId);
-    await (supabase as any).from("documents_sources").delete().eq("vehicule_id", vehicleId);
+    await (supabase as any).from("echeances_previsionnelles").delete().eq("vehicule_id", realVehicleId);
+    await (supabase as any).from("lignes_interventions").delete().eq("vehicule_id", realVehicleId);
+    await (supabase as any).from("defaillances_ct").delete().eq("vehicule_id", realVehicleId);
+    await (supabase as any).from("audits_conformite").delete().eq("vehicule_id", realVehicleId);
+    await (supabase as any).from("documents_sources").delete().eq("vehicule_id", realVehicleId);
 
     // 2. Supprimer la ligne du véhicule
-    const { error } = await (supabase as any).from("vehicules").delete().eq("id", vehicleId);
+    const { error } = await (supabase as any).from("vehicules").delete().eq("id", realVehicleId);
 
     if (error) {
       throw new Error(`Erreur lors de la suppression du véhicule: ${error.message}`);

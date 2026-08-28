@@ -1507,7 +1507,10 @@ export function VehicleDetailClientView({
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         vehicle={v}
-        onSuccess={() => router.push("/dashboard")}
+        onSuccess={() => {
+          router.push("/dashboard");
+          router.refresh();
+        }}
       />
     </div>
   );
