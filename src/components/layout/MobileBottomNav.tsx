@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Camera,
@@ -17,6 +17,7 @@ import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const navItems = [
@@ -134,6 +135,7 @@ export function MobileBottomNav() {
 
             <DocumentDropzone
               onUploadComplete={() => {
+                router.refresh();
                 setTimeout(() => setIsScannerOpen(false), 1200);
               }}
             />

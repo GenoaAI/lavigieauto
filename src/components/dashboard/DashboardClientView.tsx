@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
 import { DeleteVehicleModal } from "@/components/vehicles/DeleteVehicleModal";
@@ -52,6 +53,7 @@ export function DashboardClientView({
   initialVehicles,
   initialMembers,
 }: DashboardClientViewProps) {
+  const router = useRouter();
   const [uiMode, setUiMode] = useUiViewMode();
   const [loading, setLoading] = useState(false);
   const [foyerData, setFoyerData] = useState<Foyer | null>(initialFoyer);
@@ -618,7 +620,12 @@ export function DashboardClientView({
       {/* DROPZONE POUR NUMÉRISATION RAPIDE (GESTE 2) */}
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-slate-900">Numérisation Rapide de Facture ou PV de CT</h2>
-        <DocumentDropzone />
+        <DocumentDropzone
+          onUploadComplete={async () => {
+            await loadData();
+            router.refresh();
+          }}
+        />
       </div>
 
       {/* GESTIONNAIRE DES MEMBRES DU FOYER */}

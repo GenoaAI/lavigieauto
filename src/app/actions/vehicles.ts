@@ -17,6 +17,8 @@ import {
   DefaillanceCT,
   EcheancePrevisionnelle,
   AuditConformite,
+  TypeEcheance,
+  normalizeTypeEcheance,
   isVehicleTrackingSuspended,
   resolveVehicleFromList,
   snapToBusinessDay,
@@ -367,32 +369,38 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       return interventions.find((it) => {
         const itOp = (it.operation || "").toLowerCase();
         const itCat = (it.categorie || "").toLowerCase();
-        if (normCat.includes("vidange") || normCat.includes("moteur") || normTitle.includes("vidange") || normTitle.includes("huile") || normTitle.includes("revision")) {
-          return itCat === "moteur" || itOp.includes("vidange") || itOp.includes("huile") || itOp.includes("revision") || itOp.includes("forfait entretien");
+        if (normCat.includes("vidange") || normCat.includes("revision") || normCat.includes("moteur") || normTitle.includes("vidange") || normTitle.includes("huile") || normTitle.includes("revision")) {
+          return itCat === "moteur" || itCat === "revision" || itCat === "revision_generale" || itOp.includes("vidange") || itOp.includes("huile") || itOp.includes("revision") || itOp.includes("forfait entretien");
         }
         if (normCat.includes("habitacle") || normCat.includes("pollen") || normTitle.includes("habitacle") || normTitle.includes("pollen")) {
-          return itCat === "climatisation" || itOp.includes("habitacle") || itOp.includes("pollen");
+          return itCat === "climatisation" || itCat === "filtre_habitacle" || itOp.includes("habitacle") || itOp.includes("pollen");
         }
         if (normCat.includes("air") || normTitle.includes("filtre a air") || normTitle.includes("filtre à air") || normTitle.includes("filtre air")) {
-          return itOp.includes("filtre a air") || itOp.includes("filtre à air") || itOp.includes("filtre air") || itOp.includes("filtrante");
+          return itCat === "filtre_air" || itOp.includes("filtre a air") || itOp.includes("filtre à air") || itOp.includes("filtre air") || itOp.includes("filtrante");
         }
         if (normCat.includes("bougie") || normCat.includes("allumage") || normTitle.includes("bougie") || normTitle.includes("allumage")) {
-          return itOp.includes("bougie") || itOp.includes("allumage") || itCat === "allumage";
+          return itCat === "allumage" || itCat === "bougies" || itOp.includes("bougie") || itOp.includes("allumage");
         }
         if (normCat.includes("refroidissement") || normCat.includes("coolant") || normTitle.includes("refroidissement") || normTitle.includes("liquide de refroidissement")) {
-          return itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement");
+          return itCat === "liquide_refroidissement" || itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement");
         }
         if (normCat.includes("boite") || normCat.includes("transmission") || normTitle.includes("boite")) {
           return itCat === "transmission" || itOp.includes("boite") || itOp.includes("dw6") || itOp.includes("pont");
         }
         if (normCat.includes("accessoire") || normCat.includes("courroie") || normTitle.includes("accessoire") || normTitle.includes("distribution")) {
-          return itCat === "distribution" || itOp.includes("accessoire") || itOp.includes("alternateur") || itOp.includes("courroie") || itOp.includes("galet");
+          return itCat === "distribution" || itCat === "courroie_accessoire" || itOp.includes("accessoire") || itOp.includes("alternateur") || itOp.includes("courroie") || itOp.includes("galet");
         }
         if (normCat.includes("frein") || normTitle.includes("frein") || normTitle.includes("liquide de frein")) {
-          return itCat === "freinage" || itOp.includes("frein") || itOp.includes("purge") || itOp.includes("plaquette") || itOp.includes("disque");
+          return itCat === "freinage" || itCat === "liquide_frein" || itOp.includes("frein") || itOp.includes("purge") || itOp.includes("plaquette") || itOp.includes("disque");
         }
         if (normCat.includes("carburant") || normTitle.includes("carburant") || normTitle.includes("gasoil") || normTitle.includes("gazole")) {
-          return itOp.includes("carburant") || itOp.includes("filtre gasoil") || itOp.includes("filtre gazole") || itOp.includes("filtre essence");
+          return itCat === "filtre_carburant" || itOp.includes("carburant") || itOp.includes("filtre gasoil") || itOp.includes("filtre gazole") || itOp.includes("filtre essence");
+        }
+        if (normCat.includes("pneu") || normCat.includes("tire") || normTitle.includes("pneu")) {
+          return itCat === "pneumatiques" || itOp.includes("pneu") || itOp.includes("turanza") || itOp.includes("bridgestone") || itOp.includes("michelin") || itOp.includes("kleber") || itOp.includes("roue") || itOp.includes("equilibrage");
+        }
+        if (normCat.includes("batterie") || normCat.includes("battery") || normTitle.includes("batterie")) {
+          return itCat === "electricite" || itCat === "batterie" || itOp.includes("batterie") || itOp.includes("accumulateur");
         }
         return false;
       });
@@ -540,7 +548,7 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       return {
         foyer_id: vehicle.foyer_id,
         vehicule_id: vehicle.id,
-        type_echeance: op.category === "vidange" ? "revision" : op.category,
+        type_echeance: normalizeTypeEcheance(op.category || op.title || ""),
         libelle: op.title,
         description: lastService
           ? `${op.description} (Dernière réalisée le ${lastService.date_intervention} à ${lastService.kilometrage_intervention.toLocaleString("fr-FR")} km — Préconisation : +${intervalKm.toLocaleString("fr-FR")} km / ${intervalMonths} mois)`

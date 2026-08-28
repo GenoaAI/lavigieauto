@@ -366,11 +366,6 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           .update(updatePayload)
           .eq("id", vehicleId);
       }
-
-      // Si carte grise ou nouveau relevé kilométrique : synchronisation de l'échéancier constructeur
-      if ((documentType === "carte_grise" || documentType === "controle_technique" || documentType === "facture") && vehicleId) {
-        await syncVehicleManufacturerScheduleAction(vehicleId);
-      }
     }
 
     // 2. Enregistrement du Document Source dans le Coffre-fort Supabase Storage
@@ -725,10 +720,60 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       await (adminSupabase as any).from("lignes_interventions").insert(linesToInsert);
     }
 
+    // 5. Consolidation et synchronisation du kilométrage certifié et du plan constructeur
+    if (vehicleId) {
+      const { data: vehDocs } = await (adminSupabase as any)
+        .from("documents_sources")
+        .select("date_document, kilometrage_document")
+        .eq("vehicule_id", vehicleId)
+        .not("kilometrage_document", "is", null)
+        .gt("kilometrage_document", 0);
+
+      const { data: vehLines } = await (adminSupabase as any)
+        .from("lignes_interventions")
+        .select("date_intervention, kilometrage_intervention")
+        .eq("vehicule_id", vehicleId)
+        .not("kilometrage_intervention", "is", null)
+        .gt("kilometrage_intervention", 0);
+
+      const allReadings: Array<{ km: number; date: string }> = [];
+      (vehDocs || []).forEach((d: any) => {
+        if (d.kilometrage_document && d.date_document) allReadings.push({ km: Number(d.kilometrage_document), date: d.date_document });
+      });
+      (vehLines || []).forEach((l: any) => {
+        if (l.kilometrage_intervention && l.date_intervention) allReadings.push({ km: Number(l.kilometrage_intervention), date: l.date_intervention });
+      });
+      if (extractedMileage && extractedMileage > 0) {
+        allReadings.push({ km: Number(extractedMileage), date: docDate });
+      }
+
+      if (allReadings.length > 0) {
+        const maxKm = Math.max(...allReadings.map((r) => r.km));
+        const latestReadingDate = [...allReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date;
+        await (adminSupabase as any)
+          .from("vehicules")
+          .update({
+            kilometrage_actuel: maxKm,
+            date_releve_kilometrage: latestReadingDate,
+          })
+          .eq("id", vehicleId);
+      }
+
+      // Synchronisation du plan constructeur avec toutes les lignes d'intervention maintenant persistées
+      try {
+        await syncVehicleManufacturerScheduleAction(vehicleId);
+      } catch (schedErr) {
+        console.warn("[Document Action] Avertissement resynchronisation plan:", schedErr);
+      }
+    }
+
     try {
       await invalidateFoyerCache();
       revalidatePath("/dashboard");
-      if (vehicleId) revalidatePath(`/dashboard/vehicles/${vehicleId}`);
+      if (vehicleId) {
+        revalidatePath(`/dashboard/vehicles/${vehicleId}`);
+        revalidatePath(`/v/${vehicleId}`);
+      }
     } catch {
       // Ignore
     }

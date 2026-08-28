@@ -112,11 +112,36 @@ export function snapToBusinessDay(dateStr: string): string {
   if (day === 0) {
     // Dimanche -> Lundi (+1 jour)
     d.setDate(d.getDate() + 1);
-  } else if (day === 6) {
+  } else  if (day === 6) {
     // Samedi -> Lundi (+2 jours)
     d.setDate(d.getDate() + 2);
   }
   return d.toISOString().split("T")[0];
+}
+
+/**
+ * Normalise de façon résiliente toute catégorie de prestation ou préconisation
+ * vers une valeur acceptée par la contrainte PostgreSQL type_echeance.
+ */
+export function normalizeTypeEcheance(cat: string): TypeEcheance {
+  const norm = (cat || "").toLowerCase().trim();
+  if (norm === "vidange" || norm === "revision" || norm === "revision_generale" || norm === "drain_oil") return "revision";
+  if (norm === "filtre_air" || norm === "air_filter") return "filtre_air";
+  if (norm === "filtre_habitacle" || norm === "cabin_filter") return "filtre_habitacle";
+  if (norm === "filtre_carburant" || norm === "fuel_filter" || norm === "filtre_gasoil" || norm === "filtre_essence") return "filtre_carburant";
+  if (norm === "liquide_frein" || norm === "brake_fluid") return "liquide_frein";
+  if (norm === "liquide_refroidissement" || norm === "coolant") return "liquide_refroidissement";
+  if (norm === "bougies" || norm === "spark_plugs" || norm === "allumage") return "bougies";
+  if (norm === "courroie_distribution" || norm === "timing_belt" || norm === "distribution") return "courroie_distribution";
+  if (norm === "courroie_accessoire" || norm === "accessory_belt") return "courroie_accessoire";
+  if (norm === "controle_technique" || norm === "technical_inspection" || norm === "ct") return "controle_technique";
+  if (norm === "contre_visite") return "contre_visite";
+  if (norm === "pneumatiques" || norm === "tires_front" || norm === "tires_rear" || norm === "pneu") return "pneumatiques";
+  if (norm === "batterie" || norm === "battery" || norm === "electricite") return "batterie";
+  if (norm === "plaquettes_frein" || norm === "brake_pads_front" || norm === "freinage") return "plaquettes_frein";
+  if (norm === "disques_frein") return "disques_frein";
+  if (norm === "assurance") return "assurance";
+  return "autre";
 }
 
 export type DocumentType =
