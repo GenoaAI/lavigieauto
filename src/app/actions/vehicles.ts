@@ -352,7 +352,7 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     // 3. Récupérer l'historique des interventions réelles et des CT du véhicule pour ancrer les échéances
     const { data: pastInterventions } = await (supabase as any)
       .from("lignes_interventions")
-      .select("operation, categorie, date_intervention, kilometrage_intervention")
+      .select("operation, categorie, date_intervention, kilometrage_intervention, prix_total_ttc")
       .eq("vehicule_id", vehicle.id)
       .order("date_intervention", { ascending: false });
 
@@ -370,6 +370,7 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       categorie: string;
       date_intervention: string;
       kilometrage_intervention: number;
+      prix_total_ttc?: number;
     }>;
 
     function findLastService(opCategory: string, opTitle: string) {
@@ -405,17 +406,11 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
         if (normCat.includes("bougie") || normCat.includes("allumage") || normTitle.includes("bougie") || normTitle.includes("allumage")) {
           return itOp.includes("bougie") || itOp.includes("allumage") || itCat === "bougies" || itCat === "allumage";
         }
+        if (normCat.includes("frein") || normTitle.includes("liquide de frein") || normTitle.includes("liquide frein") || normCat.includes("liquide_frein")) {
+          return (itOp.includes("liquide de frein") || itOp.includes("liquide frein") || itOp.includes("purge frein") || itOp.includes("forfait liquide de frein") || itOp.includes("forfait liquide frein") || itCat === "liquide_frein") && !itOp.includes("controle frein");
+        }
         if (normCat.includes("refroidissement") || normCat.includes("coolant") || normTitle.includes("refroidissement") || normTitle.includes("liquide de refroidissement")) {
-          return itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement") || itCat === "liquide_refroidissement";
-        }
-        if (normCat.includes("boite") || normCat.includes("transmission") || normTitle.includes("boite") || normTitle.includes("pont")) {
-          return itOp.includes("boite") || itOp.includes("boîte") || itOp.includes("dw6") || itOp.includes("pont") || itOp.includes("transfert") || itCat === "transmission";
-        }
-        if (normCat.includes("accessoire") || normCat.includes("courroie") || normTitle.includes("accessoire") || normTitle.includes("distribution")) {
-          return itOp.includes("accessoire") || itOp.includes("alternateur") || itOp.includes("courroie") || itOp.includes("galet") || itCat === "courroie_accessoire";
-        }
-        if (normCat.includes("frein") || normTitle.includes("frein") || normTitle.includes("liquide de frein")) {
-          return itOp.includes("frein") || itOp.includes("purge") || itOp.includes("plaquette") || itOp.includes("disque") || itCat === "freinage" || itCat === "liquide_frein";
+          return (itOp.includes("circuit de liquide de refroidissement") || itOp.includes("purge liquide de refroidissement") || itOp.includes("vidange-rempli") || itOp.includes("vidange circuit") || itOp.includes("remplacement liquide de refroidissement") || itCat === "liquide_refroidissement" || (itOp.includes("refroidissement") && (it.prix_total_ttc || 0) > 15));
         }
         if (normCat.includes("carburant") || normTitle.includes("carburant") || normTitle.includes("gasoil") || normTitle.includes("gazole")) {
           return itOp.includes("filtre carburant") || itOp.includes("filtre gasoil") || itOp.includes("filtre gazole") || itOp.includes("filtre essence") || (itCat === "filtre_carburant" && itOp.includes("filtre"));

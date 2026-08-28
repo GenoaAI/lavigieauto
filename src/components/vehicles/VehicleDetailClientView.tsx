@@ -754,7 +754,7 @@ export function VehicleDetailClientView({
                         } else {
                           const safeAnnualPace = Math.abs(Math.round(pace.annualMileageKm || 12000)).toLocaleString("fr-FR");
                           triggerFactor = "TIME_FIRST";
-                          triggerExplanation = `Échéance temps en 1er (~${safeAnnualPace} km/an)`;
+                          triggerExplanation = `Échéance temps en 1er (~ ${safeAnnualPace} km/an)`;
                         }
                       }
 
@@ -1160,7 +1160,7 @@ export function VehicleDetailClientView({
                     } else {
                       const safeAnnualPace = Math.abs(Math.round(pace.annualMileageKm || 12000)).toLocaleString("fr-FR");
                       triggerFactor = "TIME_FIRST";
-                      triggerExplanation = `Échéance temps atteinte en 1er (au rythme actuel de ~${safeAnnualPace} km/an)`;
+                      triggerExplanation = `Échéance temps atteinte en 1er (au rythme actuel de ~ ${safeAnnualPace} km/an)`;
                     }
                   }
 
