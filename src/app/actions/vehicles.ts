@@ -390,41 +390,41 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       return interventions.find((it) => {
         const itOp = (it.operation || "").toLowerCase();
         const itCat = (it.categorie || "").toLowerCase();
-        if (normCat.includes("vidange") || normCat.includes("revision") || normCat.includes("moteur") || normTitle.includes("vidange") || normTitle.includes("huile") || normTitle.includes("revision")) {
-          return itCat === "moteur" || itCat === "revision" || itCat === "revision_generale" || itOp.includes("vidange") || itOp.includes("huile") || itOp.includes("revision") || itOp.includes("forfait entretien");
+        if (normCat.includes("vidange") || normCat.includes("revision") || normTitle.includes("vidange") || normTitle.includes("huile") || normTitle.includes("revision")) {
+          return itOp.includes("vidange") || itOp.includes("huile") || itOp.includes("revision") || itOp.includes("révision") || itOp.includes("forfait entretien") || (itCat === "moteur" && (itOp.includes("filtre a huile") || itOp.includes("filtre à huile") || itOp.includes("5w") || itOp.includes("0w")));
         }
         if (normCat.includes("habitacle") || normCat.includes("pollen") || normTitle.includes("habitacle") || normTitle.includes("pollen")) {
-          return itCat === "climatisation" || itCat === "filtre_habitacle" || itOp.includes("habitacle") || itOp.includes("pollen");
+          return itOp.includes("habitacle") || itOp.includes("pollen") || itOp.includes("anti-allergène") || itOp.includes("anti allergene");
         }
-        if (normCat.includes("clim") || normTitle.includes("clim")) {
-          return itCat === "climatisation" || itOp.includes("clim") || itOp.includes("habitacle") || itOp.includes("pollen");
+        if (normCat.includes("clim") || normTitle.includes("clim") || normTitle.includes("climatisation")) {
+          return itOp.includes("clim") || itOp.includes("climatisation") || itOp.includes("habitacle") || itOp.includes("pollen");
         }
         if (normCat.includes("air") || normTitle.includes("filtre a air") || normTitle.includes("filtre à air") || normTitle.includes("filtre air")) {
-          return itCat === "filtre_air" || itOp.includes("filtre a air") || itOp.includes("filtre à air") || itOp.includes("filtre air") || itOp.includes("filtrante");
+          return itOp.includes("filtre a air") || itOp.includes("filtre à air") || itOp.includes("filtre air") || itOp.includes("filtrante air") || (itCat === "filtre_air" && itOp.includes("air"));
         }
         if (normCat.includes("bougie") || normCat.includes("allumage") || normTitle.includes("bougie") || normTitle.includes("allumage")) {
-          return itCat === "allumage" || itCat === "bougies" || itCat === "moteur" || itOp.includes("bougie") || itOp.includes("allumage");
+          return itOp.includes("bougie") || itOp.includes("allumage") || itCat === "bougies" || itCat === "allumage";
         }
         if (normCat.includes("refroidissement") || normCat.includes("coolant") || normTitle.includes("refroidissement") || normTitle.includes("liquide de refroidissement")) {
-          return itCat === "liquide_refroidissement" || itCat === "moteur" || itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement");
+          return itOp.includes("refroidissement") || itOp.includes("antigel") || itOp.includes("liquide refroidissement") || itCat === "liquide_refroidissement";
         }
-        if (normCat.includes("boite") || normCat.includes("transmission") || normTitle.includes("boite")) {
-          return itCat === "transmission" || itOp.includes("boite") || itOp.includes("dw6") || itOp.includes("pont");
+        if (normCat.includes("boite") || normCat.includes("transmission") || normTitle.includes("boite") || normTitle.includes("pont")) {
+          return itOp.includes("boite") || itOp.includes("boîte") || itOp.includes("dw6") || itOp.includes("pont") || itOp.includes("transfert") || itCat === "transmission";
         }
         if (normCat.includes("accessoire") || normCat.includes("courroie") || normTitle.includes("accessoire") || normTitle.includes("distribution")) {
-          return itCat === "distribution" || itCat === "courroie_accessoire" || itOp.includes("accessoire") || itOp.includes("alternateur") || itOp.includes("courroie") || itOp.includes("galet");
+          return itOp.includes("accessoire") || itOp.includes("alternateur") || itOp.includes("courroie") || itOp.includes("galet") || itCat === "courroie_accessoire";
         }
         if (normCat.includes("frein") || normTitle.includes("frein") || normTitle.includes("liquide de frein")) {
-          return itCat === "freinage" || itCat === "liquide_frein" || itOp.includes("frein") || itOp.includes("purge") || itOp.includes("plaquette") || itOp.includes("disque");
+          return itOp.includes("frein") || itOp.includes("purge") || itOp.includes("plaquette") || itOp.includes("disque") || itCat === "freinage" || itCat === "liquide_frein";
         }
         if (normCat.includes("carburant") || normTitle.includes("carburant") || normTitle.includes("gasoil") || normTitle.includes("gazole")) {
-          return itCat === "filtre_carburant" || itOp.includes("carburant") || itOp.includes("filtre gasoil") || itOp.includes("filtre gazole") || itOp.includes("filtre essence");
+          return itOp.includes("filtre carburant") || itOp.includes("filtre gasoil") || itOp.includes("filtre gazole") || itOp.includes("filtre essence") || (itCat === "filtre_carburant" && itOp.includes("filtre"));
         }
         if (normCat.includes("pneu") || normCat.includes("tire") || normTitle.includes("pneu")) {
-          return itCat === "pneumatiques" || itOp.includes("pneu") || itOp.includes("turanza") || itOp.includes("bridgestone") || itOp.includes("michelin") || itOp.includes("kleber") || itOp.includes("roue") || itOp.includes("equilibrage");
+          return itOp.includes("pneu") || itOp.includes("pneumatique") || itOp.includes("turanza") || itOp.includes("bridgestone") || itOp.includes("michelin") || itOp.includes("kleber") || itOp.includes("roue") || itOp.includes("equilibrage") || itCat === "pneumatiques";
         }
         if (normCat.includes("batterie") || normCat.includes("battery") || normTitle.includes("batterie")) {
-          return itCat === "electricite" || itCat === "batterie" || itOp.includes("batterie") || itOp.includes("accumulateur");
+          return itOp.includes("batterie") || itOp.includes("accumulateur") || itCat === "electricite" || itCat === "batterie";
         }
         return false;
       });
