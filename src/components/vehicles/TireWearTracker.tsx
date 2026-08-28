@@ -47,7 +47,9 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate }: TireW
           <div className="text-right">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Indice Santé Pneus</span>
             <span className={`text-base font-black ${
-              assessment.globalHealthScore >= 80
+              assessment.frontAxle.sourceType === "ESTIMATED"
+                ? "text-amber-600"
+                : assessment.globalHealthScore >= 80
                 ? "text-emerald-600"
                 : assessment.globalHealthScore >= 50
                 ? "text-blue-600"
@@ -55,15 +57,19 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate }: TireW
                 ? "text-amber-600"
                 : "text-rose-600"
             }`}>
-              {assessment.globalHealthScore}% ({
-                assessment.globalHealthScore >= 80
-                  ? "Optimal"
-                  : assessment.globalHealthScore >= 50
-                  ? "Bon état"
-                  : assessment.globalHealthScore >= 20
-                  ? "À surveiller"
-                  : "Critique"
-              })
+              {assessment.frontAxle.sourceType === "ESTIMATED" ? (
+                "Non certifié (Vigilance)"
+              ) : (
+                `${assessment.globalHealthScore}% (${
+                  assessment.globalHealthScore >= 80
+                    ? "Optimal"
+                    : assessment.globalHealthScore >= 50
+                    ? "Bon état"
+                    : assessment.globalHealthScore >= 20
+                    ? "À surveiller"
+                    : "Critique"
+                })`
+              )}
             </span>
           </div>
           <button
@@ -75,6 +81,21 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate }: TireW
           </button>
         </div>
       </div>
+
+      {/* BANNIÈRE VIGILANCE SI DONNÉES PNEUMATIQUES NON ENREGISTRÉES */}
+      {assessment.frontAxle.sourceType === "ESTIMATED" && (
+        <div className="p-4 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-start gap-3 text-xs text-amber-950 shadow-sm animate-in fade-in">
+          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+            <AlertTriangle className="w-4 h-4" />
+          </div>
+          <div className="space-y-0.5 flex-1">
+            <p className="font-bold text-amber-950 text-sm">Zone de vigilance : Usure des pneumatiques non certifiée</p>
+            <p className="text-amber-800 leading-relaxed text-xs">
+              Aucune facture de pneumatiques ni relevé de contrôle technique n'est encore enregistré pour ce véhicule. L'état exact nécessite une vérification manuelle de vos témoins de gomme (1.6 mm) ou l'import de vos factures d'entretien.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* MODAL KIT DEVIS PNEUMATIQUES */}
       {showQuoteKit && (

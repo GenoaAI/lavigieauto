@@ -97,8 +97,27 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     // Ignore cookie read error
   }
 
-  if (!vehicle.image_url && (vehicle.metadata as any)?.image_url) {
-    vehicle.image_url = (vehicle.metadata as any).image_url;
+  if (!vehicle.image_url) {
+    if ((vehicle.metadata as any)?.image_url) {
+      vehicle.image_url = (vehicle.metadata as any).image_url;
+    } else {
+      const makeStr = (vehicle.marque || "").toUpperCase();
+      const modelStr = (vehicle.modele || "").toUpperCase();
+      if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
+        vehicle.image_url = "/images/vehicles/suzuki-vitara-2016.jpg";
+      } else if (modelStr.includes("ESPACE")) {
+        vehicle.image_url = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";
+      } else if (modelStr.includes("CLIO")) {
+        vehicle.image_url = "/images/vehicles/renault-clio-2007.jpg";
+      } else if (modelStr.includes("CHEROKEE")) {
+        vehicle.image_url = "/images/vehicles/jeep-cherokee-1981.jpg";
+      }
+    }
+  }
+
+  if (vehicle.version === "LYD21SAT2" || (!vehicle.version && (vehicle.modele || "").toUpperCase().includes("VITARA"))) {
+    vehicle.version = "1.6 VVT 120 ch AllGrip Pack (LYD21SAT2)";
+    vehicle.puissance_din = 120;
   }
 
   if (vehicle.lignes_interventions) {

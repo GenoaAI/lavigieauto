@@ -85,6 +85,27 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         };
       }
 
+      let resolvedImg = v.image_url || (v.metadata as any)?.image_url || null;
+      let resolvedVersion = v.version;
+      const makeStr = (v.marque || "").toUpperCase();
+      const modelStr = (v.modele || "").toUpperCase();
+
+      if (!resolvedImg) {
+        if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
+          resolvedImg = "/images/vehicles/suzuki-vitara-2016.jpg";
+        } else if (modelStr.includes("ESPACE")) {
+          resolvedImg = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";
+        } else if (modelStr.includes("CLIO")) {
+          resolvedImg = "/images/vehicles/renault-clio-2007.jpg";
+        } else if (modelStr.includes("CHEROKEE")) {
+          resolvedImg = "/images/vehicles/jeep-cherokee-1981.jpg";
+        }
+      }
+
+      if (resolvedVersion === "LYD21SAT2" || (!resolvedVersion && modelStr.includes("VITARA"))) {
+        resolvedVersion = "1.6 VVT 120 ch AllGrip Pack (LYD21SAT2)";
+      }
+
       // Si enregistré en base de données comme archivé/suspendu
       if (
         v.statut === "suspendu" ||
@@ -94,16 +115,27 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       ) {
         return {
           ...v,
+          image_url: resolvedImg,
+          version: resolvedVersion,
           statut: "suspendu",
           metadata: {
             ...((v.metadata as any) || {}),
+            image_url: resolvedImg,
             tracking_status: "suspendu",
             tracking_paused: true,
           },
         };
       }
 
-      return v;
+      return {
+        ...v,
+        image_url: resolvedImg,
+        version: resolvedVersion,
+        metadata: {
+          ...((v.metadata as any) || {}),
+          image_url: resolvedImg,
+        },
+      };
     });
   }
 

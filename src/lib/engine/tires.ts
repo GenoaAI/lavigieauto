@@ -463,10 +463,30 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     };
   }
 
-  const frontStatus = getTireStatus(frontWearPct);
-  const rearStatus = getTireStatus(rearWearPct);
+  const hasCertifiedTireHistory = frontAssigned || rearAssigned;
 
-  const globalHealthScore = Math.round(100 - (frontWearPct * 0.6 + rearWearPct * 0.4));
+  let frontStatus = getTireStatus(frontWearPct);
+  let rearStatus = getTireStatus(rearWearPct);
+  let globalHealthScore = Math.round(100 - (frontWearPct * 0.6 + rearWearPct * 0.4));
+  let historySummary = `Suivi certifié d'après vos factures de pneumatiques et votre rythme annuel (~ ${Math.round(safeDailyRate * 365).toLocaleString('fr-FR')} km/an).`;
+
+  if (!hasCertifiedTireHistory) {
+    frontStatus = {
+      status: 'ATTENTION',
+      label: 'Zone de vigilance (Faute d\'informations)',
+      color: 'amber',
+      rec: 'Aucune facture de pneumatiques ni relevé récent en base de données. Pensez à vérifier visuellement l\'état des témoins d\'usure (1.6 mm) ou à importer vos factures.',
+    };
+    rearStatus = {
+      status: 'ATTENTION',
+      label: 'Zone de vigilance (Faute d\'informations)',
+      color: 'amber',
+      rec: 'Aucune facture de pneumatiques ni relevé récent en base de données. Pensez à vérifier visuellement l\'état des témoins d\'usure (1.6 mm) ou à importer vos factures.',
+    };
+    globalHealthScore = 40;
+    historySummary = "Aucune facture de pneumatiques ni relevé technique enregistré. Statut préventif placé en zone de vigilance.";
+  }
+
   const urgentActionNeeded = frontStatus.status === 'CRITICAL' || rearStatus.status === 'CRITICAL';
 
   let nextAxle: 'FRONT' | 'REAR' | 'BOTH' = 'FRONT';
@@ -480,18 +500,18 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     frontAxle: {
       axle: 'FRONT',
       label: 'Train Avant (Direction / Traction)',
-      brandAndModel: frontTireState.brand,
+      brandAndModel: hasCertifiedTireHistory ? frontTireState.brand : 'Pneumatiques Homologués (Non certifiés)',
       dimension: frontTireState.dimension,
       sourceType: frontTireState.sourceType,
       lastEventDate: frontTireState.date,
       lastEventMileage: frontTireState.mileage,
-      lastEventLabel: frontTireState.eventLabel,
+      lastEventLabel: hasCertifiedTireHistory ? frontTireState.eventLabel : 'Aucune facture de pneumatiques',
       currentEstimatedMileage: currentMileage,
       kmDrivenSinceEvent: frontKmSince,
       totalExpectedLifespanKm: frontLifespan,
-      wearPercentage: frontWearPct,
-      remainingTreadDepthMm: frontTreadDepth,
-      remainingKm: frontRemainingKm,
+      wearPercentage: hasCertifiedTireHistory ? frontWearPct : 50,
+      remainingTreadDepthMm: hasCertifiedTireHistory ? frontTreadDepth : 4.5,
+      remainingKm: hasCertifiedTireHistory ? frontRemainingKm : 20000,
       projectedReplacementDate: frontProjectedDate.toISOString().split('T')[0],
       status: frontStatus.status,
       statusLabel: frontStatus.label,
@@ -501,18 +521,18 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     rearAxle: {
       axle: 'REAR',
       label: 'Train Arrière (Stabilité)',
-      brandAndModel: rearTireState.brand,
+      brandAndModel: hasCertifiedTireHistory ? rearTireState.brand : 'Pneumatiques Homologués (Non certifiés)',
       dimension: rearTireState.dimension,
       sourceType: rearTireState.sourceType,
       lastEventDate: rearTireState.date,
       lastEventMileage: rearTireState.mileage,
-      lastEventLabel: rearTireState.eventLabel,
+      lastEventLabel: hasCertifiedTireHistory ? rearTireState.eventLabel : 'Aucune facture de pneumatiques',
       currentEstimatedMileage: currentMileage,
       kmDrivenSinceEvent: rearKmSince,
       totalExpectedLifespanKm: rearLifespan,
-      wearPercentage: rearWearPct,
-      remainingTreadDepthMm: rearTreadDepth,
-      remainingKm: rearRemainingKm,
+      wearPercentage: hasCertifiedTireHistory ? rearWearPct : 50,
+      remainingTreadDepthMm: hasCertifiedTireHistory ? rearTreadDepth : 5.0,
+      remainingKm: hasCertifiedTireHistory ? rearRemainingKm : 30000,
       projectedReplacementDate: rearProjectedDate.toISOString().split('T')[0],
       status: rearStatus.status,
       statusLabel: rearStatus.label,
@@ -520,11 +540,11 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
       recommendation: rearStatus.rec,
     },
     globalHealthScore,
-    overallStatus: frontStatus.status === 'CRITICAL' || rearStatus.status === 'CRITICAL' ? 'CRITICAL' : frontStatus.status === 'DUE_SOON' || rearStatus.status === 'DUE_SOON' ? 'DUE_SOON' : 'EXCELLENT',
+    overallStatus: !hasCertifiedTireHistory ? 'ATTENTION' : frontStatus.status === 'CRITICAL' || rearStatus.status === 'CRITICAL' ? 'CRITICAL' : frontStatus.status === 'DUE_SOON' || rearStatus.status === 'DUE_SOON' ? 'DUE_SOON' : 'EXCELLENT',
     urgentActionNeeded,
     nextReplacementDate: nextDateStr,
     nextReplacementAxle: nextAxle,
     recommendedDimension: frontTireState.dimension,
-    historySummary: `Suivi calculé à partir de ${invoices.length} factures et de votre rythme de roulage (${Math.round(safeDailyRate * 365).toLocaleString('fr-FR')} km/an).`,
+    historySummary,
   };
 }
