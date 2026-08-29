@@ -633,27 +633,28 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         const currentNormNum = extractedInvoiceNumber ? extractedInvoiceNumber.toString().trim().toUpperCase() : null;
         const existNormNum = existingInvNum ? existingInvNum.toString().trim().toUpperCase() : null;
 
-        // 1. RÈGLE N°1 : Même numéro de facture officiel exact et non vide
-        if (currentNormNum && existNormNum && currentNormNum.length >= 2 && existNormNum.length >= 2) {
-          if (currentNormNum === existNormNum) {
-            return true; // Même numéro de facture exact -> VRAI doublon
-          } else {
-            return false; // Numéros de facture distincts -> INTERVENTIONS DIFFÉRENTES, JAMAIS UN DOUBLON !
-          }
-        }
+        // 1. RÈGLE N°1 : Même empreinte cryptographique de fichier (SHA-256 du contenu binaire)
+        const existingHash =
+          existing.ocr_structured_data?._metadata?.fileHash ||
+          (existing.storage_path ? existing.storage_path.split("_").pop()?.replace(/\.[^.]+$/, "") : null);
 
-        // 2. RÈGLE N°2 : Même empreinte cryptographique de fichier (SHA-256 du contenu)
-        const existingHash = existing.ocr_structured_data?._metadata?.fileHash || (existing.storage_path ? existing.storage_path.split("_").pop()?.replace(/\.[^.]+$/, "") : null);
         if (existingHash && fileHash && existingHash === fileHash) {
-          return true; // Exactement le même fichier uploadé une 2ème fois
+          return true; // Exactement le même fichier physique ré-uploadé
         }
 
-        // 3. RÈGLE N°3 : Même nom de fichier source brut ET même taille exacte en octets ET même date ET même montant
+        // 2. RÈGLE N°2 : Même nom de fichier source brut ET même taille exacte en octets
+        if (existing.nom_fichier === file.name && existing.taille_octets === buffer.byteLength) {
+          return true;
+        }
+
+        // 3. RÈGLE N°3 : Même numéro de facture officiel ET même date ET même montant exact ET même nom de fichier
         if (
-          existing.nom_fichier === file.name &&
-          existing.taille_octets === buffer.byteLength &&
+          currentNormNum &&
+          existNormNum &&
+          currentNormNum === existNormNum &&
           existing.date_document === docDate &&
-          Math.abs(Number(existing.montant_ttc || 0) - Number(totalTTC || 0)) < 0.05
+          Math.abs(Number(existing.montant_ttc || 0) - Number(totalTTC || 0)) < 0.05 &&
+          existing.nom_fichier === file.name
         ) {
           return true;
         }

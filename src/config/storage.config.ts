@@ -37,10 +37,11 @@ export const STORAGE_CONFIG = {
     const cleanExt = params.extension.replace(/^\./, '') || 'pdf';
     const cleanInvoice = params.invoiceNumber
       ? `_facture-${params.invoiceNumber.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
-      : params.uniqueHash
+      : '';
+    const cleanHash = params.uniqueHash
       ? `_${params.uniqueHash}`
       : '';
-    return `${cleanDate}_${cleanPlate}_${params.type}_${params.mileage}km_${cleanEntity}${cleanInvoice}.${cleanExt}`;
+    return `${cleanDate}_${cleanPlate}_${params.type}_${params.mileage}km_${cleanEntity}${cleanInvoice}${cleanHash}.${cleanExt}`;
   },
   buildStoragePath: (params: {
     userId: string;

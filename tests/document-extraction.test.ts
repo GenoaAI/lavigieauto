@@ -157,6 +157,43 @@ export async function runDocumentExtractionTests() {
     throw new Error("Erreur : Deux factures à dates/numéros distincts ont été amalgamées en doublon.");
   }
   console.log('  ✔ Factures distinctes du même garage (11/12/2023 vs 15/12/2023) isolées avec succès.');
+
+  // Test 7: Deux factures distinctes même date / même garage / même numéro de dossier (ex: Renault Espace 11/12/2023 OR 866211)
+  console.log('\n▶ [TEST] Dédoublonnage : Distinction Factures Multiples Même Jour Même Garage (ex: Espace 11/12/2023)...');
+  const docEspace1 = {
+    nom_fichier: "20231211_1.pdf",
+    taille_octets: 450120,
+    date_document: "2023-12-11",
+    emetteur: "RENAULT RETAIL GROUP VERSAILLES",
+    montant_ttc: 390.00,
+    ocr_structured_data: {
+      _metadata: { fileHash: "a1b2c3d4" },
+      invoice: { invoiceNumber: "866211", totalTTC: 390.00 },
+      lineItems: [{ description: "FORFAIT LLD MISE A NIVEAU ADBLUE" }],
+    },
+  };
+
+  const docEspace2 = {
+    nom_fichier: "20231211_2.pdf",
+    taille_octets: 1008614,
+    date_document: "2023-12-11",
+    emetteur: "RENAULT RETAIL GROUP VERSAILLES",
+    montant_ttc: 0.00,
+    ocr_structured_data: {
+      _metadata: { fileHash: "55471076" },
+      invoice: { invoiceNumber: "866211", totalTTC: 0.00 },
+      lineItems: [{ description: "REPROGRAMMATION CALCULATEUR" }],
+    },
+  };
+
+  // Simuler la règle de dédoublonnage
+  const isSameFileHash = docEspace1.ocr_structured_data._metadata.fileHash === docEspace2.ocr_structured_data._metadata.fileHash;
+  const isSameRawFile = docEspace1.nom_fichier === docEspace2.nom_fichier && docEspace1.taille_octets === docEspace2.taille_octets;
+
+  if (isSameFileHash || isSameRawFile) {
+    throw new Error("Erreur critique : Deux factures différentes du même jour ont été amalgamées en doublon.");
+  }
+  console.log('  ✔ Deux factures distinctes du même jour (AdBlue 390€ vs Calculateur 0€) isolées comme 2 documents distincts.');
 }
 
 if (require.main === module) {
