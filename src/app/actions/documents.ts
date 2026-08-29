@@ -262,9 +262,21 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       data.centre_controle?.nom ||
       (documentType === "carte_grise" ? "Ministère de l'Intérieur — ANTS (SIV)" : "Atelier Professionnel");
 
-    const totalTTC =
+    const parseAmount = (val: any): number | null => {
+      if (val === null || val === undefined || val === "") return null;
+      if (typeof val === "number" && !isNaN(val)) return Math.round(val * 100) / 100;
+      if (typeof val === "string") {
+        const clean = val.replace(/[^0-9.,\-]/g, "").replace(",", ".");
+        const num = parseFloat(clean);
+        if (!isNaN(num)) return Math.round(num * 100) / 100;
+      }
+      return null;
+    };
+
+    const totalTTC = parseAmount(
       data.invoice?.totalTTC ||
       data.invoice?.total_ttc ||
+      data.invoice?.totalPriceTTC ||
       data.facture?.montant_total_ttc ||
       data.facture?.total_ttc ||
       data.facture?.total_a_payer_ttc ||
@@ -273,9 +285,11 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       data.totaux?.net_a_payer ||
       data.total_ttc ||
       data.totalTTC ||
-      null;
+      data.totalPriceTTC ||
+      data.total_amount_ttc
+    );
 
-    const totalHT =
+    const totalHT = parseAmount(
       data.invoice?.totalHT ||
       data.invoice?.total_ht ||
       data.facture?.montant_total_ht ||
@@ -283,10 +297,10 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       data.facture?.montant_ht ||
       data.totaux?.montant_total_ht ||
       data.total_ht ||
-      data.totalHT ||
-      null;
+      data.totalHT
+    );
 
-    const totalVAT =
+    const totalVAT = parseAmount(
       data.invoice?.totalVAT ||
       data.invoice?.total_tva ||
       data.facture?.montant_tva ||
@@ -294,14 +308,16 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       data.facture?.tva ||
       data.totaux?.montant_tva ||
       data.total_tva ||
-      data.totalVAT ||
-      null;
+      data.totalVAT
+    );
 
     const extractedInvoiceNumber =
       data.invoice?.invoiceNumber ||
       data.invoice?.numero ||
+      data.invoice?.number ||
       data.facture?.numero_facture ||
       data.facture?.numero ||
+      data.facture?.reference ||
       data.invoiceNumber ||
       data.numero_facture ||
       null;
@@ -809,10 +825,20 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     }
 
     // 4. Enregistrement des Lignes d'Intervention si facture
-    const rawLineItems = Array.isArray(data.items) && data.items.length > 0
-      ? data.items
-      : Array.isArray(data.lineItems) && data.lineItems.length > 0
+    let rawLineItems = Array.isArray(data.lineItems) && data.lineItems.length > 0
       ? data.lineItems
+      : Array.isArray(data.items) && data.items.length > 0
+      ? data.items
+      : Array.isArray(data.invoice?.lineItems) && data.invoice.lineItems.length > 0
+      ? data.invoice.lineItems
+      : Array.isArray(data.invoice?.items) && data.invoice.items.length > 0
+      ? data.invoice.items
+      : Array.isArray(data.facture?.lineItems) && data.facture.lineItems.length > 0
+      ? data.facture.lineItems
+      : Array.isArray(data.facture?.lignes) && data.facture.lignes.length > 0
+      ? data.facture.lignes
+      : Array.isArray(data.facture?.prestations) && data.facture.prestations.length > 0
+      ? data.facture.prestations
       : Array.isArray(data.line_items) && data.line_items.length > 0
       ? data.line_items
       : Array.isArray(data.lignes_prestations) && data.lignes_prestations.length > 0
@@ -825,7 +851,24 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       ? data.prestations
       : Array.isArray(data.operations) && data.operations.length > 0
       ? data.operations
+      : Array.isArray(data.recapitulatif_maintenance?.operations_realisees) && data.recapitulatif_maintenance.operations_realisees.length > 0
+      ? data.recapitulatif_maintenance.operations_realisees.map((op: any) => typeof op === "string" ? { description: op } : op)
       : [];
+
+    if (rawLineItems.length === 0 && documentType === "facture") {
+      const defaultDesc = extractedInvoiceNumber
+        ? `Facture d'atelier N° ${extractedInvoiceNumber}`
+        : docEmitter && docEmitter !== "Atelier Professionnel"
+        ? `Intervention ${docEmitter}`
+        : "Intervention atelier d'entretien";
+      rawLineItems = [
+        {
+          description: defaultDesc,
+          totalPriceTTC: totalTTC || 0,
+          category: "OTHER",
+        },
+      ];
+    }
 
     if (rawLineItems.length > 0 && vehicleId && documentId) {
       const linesToInsert = rawLineItems.map((item: any) => {
@@ -953,13 +996,13 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       }
 
       if (allReadings.length > 0) {
-        const sortedReadings = [...allReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const latestReading = sortedReadings[0];
+        const maxKm = Math.max(...allReadings.map((r) => r.km));
+        const latestReadingDate = [...allReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date;
         await (adminSupabase as any)
           .from("vehicules")
           .update({
-            kilometrage_actuel: latestReading.km,
-            date_releve_kilometrage: latestReading.date,
+            kilometrage_actuel: maxKm,
+            date_releve_kilometrage: latestReadingDate,
           })
           .eq("id", vehicleId);
       }

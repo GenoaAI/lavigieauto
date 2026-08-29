@@ -24,13 +24,13 @@ Extrais l'ensemble des informations de facturation, de l'émetteur, du véhicule
    - `vehicle.model` : Modèle (ex: ESPACE V, VITARA)
    - `vehicle.vin` : Numéro de série VIN (17 caractères)
 
-3. **Lignes d'Interventions et Pièces** :
-   - Extrais chaque ligne avec sa désignation exacte (`label`), sa catégorie normalisée (`category`: DRAIN_OIL, OIL_FILTER, AIR_FILTER, CABIN_FILTER, FUEL_FILTER, SPARK_PLUGS, BRAKE_FLUID, COOLANT, BRAKE_PADS_FRONT, BRAKE_PADS_REAR, ACCESSORY_BELT, TIMING_BELT, GEARBOX_OIL, TIRES, CLIMATISATION, BATTERY, WIPERS, TECHNICAL_INSPECTION, OTHER), sa quantité (`quantity`), son prix unitaire HT (`unitPriceHT`), son montant total TTC (`totalPriceTTC`), et si c'est de la pièce ou de la main d'œuvre (`isLabor`).
+3. **Lignes d'Interventions et Fournitures (`lineItems`)** :
+   - Extrais chaque ligne avec sa désignation exacte (`description`), sa catégorie normalisée (`category`: DRAIN_OIL, AIR_FILTER, CABIN_FILTER, FUEL_FILTER, BRAKE_PADS_FRONT, BRAKE_PADS_REAR, BRAKE_DISCS_FRONT, BRAKE_DISCS_REAR, BRAKE_FLUID, COOLANT, SPARK_PLUGS, GLOW_PLUGS, TIMING_BELT, ACCESSORY_BELT, TIRES_FRONT, TIRES_REAR, BATTERY, CLUTCH, SUSPENSION_SHOCK, GEARBOX_OIL, AIR_CONDITIONING, WIPER_BLADES, TECHNICAL_INSPECTION_PREP, DIAGNOSTIC_ELECTRONIC, LABOR_ONLY, OTHER), sa quantité (`quantity`), son prix unitaire HT (`unitPriceHT`), son montant total TTC en euros (`totalTTC`), et booléens (`isLabor`, `isPart`).
 
-4. **Totaux Financiers** :
-   - `totalHT` : Montant total net Hors Taxes
-   - `totalTVA` : Montant de la TVA
-   - `totalTTC` : Montant total TTC net à payer
+4. **Totaux Financiers (`invoice`)** :
+   - `totalHT` : Montant total net Hors Taxes (nombre réel)
+   - `totalVAT` : Montant total de la TVA (nombre réel)
+   - `totalTTC` : Montant total TTC net à payer (nombre réel impératif, jamais 0 si un montant est affiché)
 
 {{vehicleContext}}
 {{rawTextContext}}

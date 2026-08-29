@@ -229,10 +229,29 @@ export function VehicleDetailClientView({
   // Groupement des lignes d'intervention par date et garage (facture complète)
   const groupedInterventionsMap = new Map<string, any>();
 
+  // 1. Enregistrer chaque document source (Facture / CT) comme entrée distincte
+  (v.documents_sources || []).forEach((d: any) => {
+    if (d.file_type === "carte_grise") return;
+    const key = `doc_${d.id}`;
+    groupedInterventionsMap.set(key, {
+      date: d.date_document,
+      kilometrage: d.kilometrage_document || v.kilometrage_actuel,
+      garage: d.emetteur || (d.file_type === "controle_technique" ? "Centre de Contrôle Technique" : "Atelier"),
+      montantTTC: Number(d.montant_ttc) || 0,
+      documentSourceId: d.id,
+      storagePath: d.storage_path,
+      fileType: d.file_type,
+      fileName: d.nom_fichier,
+      interventionIds: [],
+      items: [],
+    });
+  });
+
+  // 2. Rapprocher les lignes d'interventions avec leur document ou créer une entrée d'intervention manuelle
   (v.lignes_interventions || []).forEach((l: any) => {
-    const key = `${l.date_intervention || "sans-date"}_${l.emetteur || "Garage"}`;
-    if (!groupedInterventionsMap.has(key)) {
-      groupedInterventionsMap.set(key, {
+    const docKey = l.document_source_id ? `doc_${l.document_source_id}` : `int_${l.id || Math.random()}`;
+    if (!groupedInterventionsMap.has(docKey)) {
+      groupedInterventionsMap.set(docKey, {
         date: l.date_intervention,
         kilometrage: l.kilometrage_intervention || v.kilometrage_actuel,
         garage: l.emetteur || "Atelier",
@@ -243,47 +262,25 @@ export function VehicleDetailClientView({
         interventionIds: [],
       });
     }
-    const group = groupedInterventionsMap.get(key);
-    group.montantTTC += Number(l.prix_total_ttc) || 0;
-    group.items.push(l.operation || l.description || "Prestation");
-    if (l.id && !group.interventionIds.includes(l.id)) group.interventionIds.push(l.id);
-    if (l.document_source_id && !group.documentSourceId) {
-      group.documentSourceId = l.document_source_id;
+    const group = groupedInterventionsMap.get(docKey);
+    const itemDesc = l.operation || l.description || "Prestation d'entretien";
+    if (!group.items.includes(itemDesc)) {
+      group.items.push(itemDesc);
     }
+    if (group.montantTTC === 0 && Number(l.prix_total_ttc) > 0) {
+      group.montantTTC += Number(l.prix_total_ttc);
+    }
+    if (l.id && !group.interventionIds.includes(l.id)) group.interventionIds.push(l.id);
   });
 
-  // Fusionner les factures et CT scannés des documents sources
-  (v.documents_sources || []).forEach((d: any) => {
-    if (d.file_type === "carte_grise") return;
-    const dateKey = `${d.date_document || "sans-date"}_${d.emetteur || "Garage"}`;
-    
-    if (groupedInterventionsMap.has(dateKey)) {
-      const group = groupedInterventionsMap.get(dateKey);
-      if (!group.documentSourceId) group.documentSourceId = d.id;
-      if (!group.storagePath) group.storagePath = d.storage_path;
-      if (d.montant_ttc && Number(d.montant_ttc) > 0) {
-        group.montantTTC = Number(d.montant_ttc);
-      }
-      if (d.kilometrage_document && Number(d.kilometrage_document) > 0) {
-        group.kilometrage = Number(d.kilometrage_document);
-      }
-    } else {
-      groupedInterventionsMap.set(dateKey, {
-        date: d.date_document,
-        kilometrage: d.kilometrage_document || v.kilometrage_actuel,
-        garage: d.emetteur || (d.file_type === "controle_technique" ? "Centre de Contrôle Technique" : "Atelier"),
-        montantTTC: Number(d.montant_ttc) || 0,
-        documentSourceId: d.id,
-        storagePath: d.storage_path,
-        fileType: d.file_type,
-        fileName: d.nom_fichier,
-        interventionIds: [],
-        items: [
-          d.file_type === "controle_technique"
-            ? "Contrôle Technique Périodique (Favorable)"
-            : (d.nom_fichier ? `Facture : ${d.nom_fichier}` : "Facture d'intervention atelier")
-        ],
-      });
+  // 3. Fallback d'affichage pour les documents sans lignes décomposées
+  groupedInterventionsMap.forEach((group) => {
+    if (group.items.length === 0) {
+      group.items.push(
+        group.fileType === "controle_technique"
+          ? "Contrôle Technique Périodique (Favorable)"
+          : (group.fileName ? `Facture : ${group.fileName}` : "Facture d'intervention atelier")
+      );
     }
   });
 
