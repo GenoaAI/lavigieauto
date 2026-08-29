@@ -1220,15 +1220,29 @@ export function VehicleDetailClientView({
                   const targetDate = ech.date_preconisee ? new Date(ech.date_preconisee) : null;
                   const daysToTargetDate = targetDate ? Math.floor((targetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)) : 9999;
 
+                  const isTimeOnly =
+                    ech.type_echeance === "controle_technique" ||
+                    (ech.libelle || "").toLowerCase().includes("contrôle technique") ||
+                    (ech.libelle || "").toLowerCase().includes("controle technique") ||
+                    targetKm === 0;
+
                   const isOverdue =
                     ech.statut === "en_retard" ||
                     (targetDate && daysToTargetDate < 0) ||
-                    (targetKm > 0 && currentKm >= targetKm);
+                    (!isTimeOnly && targetKm > 0 && currentKm >= targetKm);
 
                   let triggerFactor: "KM_FIRST" | "TIME_FIRST" | "OVERDUE_KM" | "OVERDUE_TIME";
                   let triggerExplanation = "";
 
-                  if (isOverdue) {
+                  if (isTimeOnly) {
+                    if (isOverdue) {
+                      triggerFactor = "OVERDUE_TIME";
+                      triggerExplanation = `Dépassé dans le temps (-${Math.abs(daysToTargetDate)} jours)`;
+                    } else {
+                      triggerFactor = "TIME_FIRST";
+                      triggerExplanation = "Échéance temps réglementaire (tous les 2 ans)";
+                    }
+                  } else if (isOverdue) {
                     if (targetKm > 0 && currentKm >= targetKm) {
                       triggerFactor = "OVERDUE_KM";
                       triggerExplanation = `Dépassé au compteur (-${Math.abs(currentKm - targetKm).toLocaleString("fr-FR")} km)`;
@@ -1337,13 +1351,13 @@ export function VehicleDetailClientView({
                         <span className="min-w-0">
                           Butoir :{" "}
                           <strong className={
-                            isOverdue && currentKm >= targetKm
+                            isOverdue && !isTimeOnly && currentKm >= targetKm
                               ? "text-rose-800 font-extrabold"
                               : triggerFactor === "KM_FIRST"
                               ? "text-blue-700 font-black"
                               : "text-slate-800"
                           }>
-                            {(ech.km_preconise || 0).toLocaleString("fr-FR")} km
+                            {isTimeOnly ? "Tous les 2 ans" : `${(ech.km_preconise || 0).toLocaleString("fr-FR")} km`}
                           </strong>
                         </span>
                       </div>

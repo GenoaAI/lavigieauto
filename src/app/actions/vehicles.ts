@@ -602,8 +602,16 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
     const regDate = new Date(regDateStr);
 
     const newEcheances = filteredOps.map((op: any) => {
-      const intervalKm = op.intervalKm || 20000;
-      const intervalMonths = op.intervalMonths || 12;
+      const isPurelyTimeBased =
+        op.category === "controle_technique" ||
+        op.category === "ct" ||
+        (op.title || "").toLowerCase().includes("contrôle technique") ||
+        (op.title || "").toLowerCase().includes("controle technique") ||
+        op.intervalKm === 0 ||
+        op.intervalKm >= 999999;
+
+      const intervalKm = isPurelyTimeBased ? 0 : (op.intervalKm || 20000);
+      const intervalMonths = op.intervalMonths || (isPurelyTimeBased ? 24 : 12);
       const { lastService, justification } = reconcileSingleOperationWithHistory({
         category: op.category || "",
         title: op.title || "",
@@ -617,43 +625,81 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
 
       if (lastService && (lastService.kilometrage_intervention > 0 || lastService.date_intervention)) {
         // 1. Si une intervention réelle a été enregistrée
-        targetKm = Number(lastService.kilometrage_intervention || km) + intervalKm;
-        const timeDueDate = new Date(lastService.date_intervention || new Date());
+        const lastDate = new Date(lastService.date_intervention || new Date());
+        const timeDueDate = new Date(lastDate);
         timeDueDate.setMonth(timeDueDate.getMonth() + intervalMonths);
 
-        const remainingKm = targetKm - km;
-        const daysUntilDueByKm = Math.round(remainingKm / (dailyKm || 35));
-        const mileageDueDate = new Date();
-        mileageDueDate.setDate(mileageDueDate.getDate() + daysUntilDueByKm);
+        if (isPurelyTimeBased) {
+          targetKm = 0;
+          dueDateStr = timeDueDate.toISOString().split("T")[0];
+          isOverdue = timeDueDate.getTime() <= new Date().getTime();
+        } else {
+          targetKm = Number(lastService.kilometrage_intervention || km) + intervalKm;
 
-        const projectedDueDate = timeDueDate.getTime() < mileageDueDate.getTime() ? timeDueDate : mileageDueDate;
-        dueDateStr = projectedDueDate.toISOString().split("T")[0];
+          if (targetKm <= km) {
+            // Butoir kilométrique dépassé dans le passé : date estimée de franchissement
+            const daysToCap = Math.round(intervalKm / (dailyKm || 35));
+            const pastMileageDate = new Date(lastDate);
+            pastMileageDate.setDate(pastMileageDate.getDate() + daysToCap);
 
-        isOverdue = projectedDueDate.getTime() <= new Date().getTime() || (targetKm > 0 && targetKm <= km);
+            const pastDueDate = timeDueDate.getTime() < pastMileageDate.getTime() ? timeDueDate : pastMileageDate;
+            dueDateStr = pastDueDate.toISOString().split("T")[0];
+            isOverdue = true;
+          } else {
+            // Butoir kilométrique dans le futur
+            const remainingKm = targetKm - km;
+            const daysUntilDueByKm = Math.round(remainingKm / (dailyKm || 35));
+            const mileageDueDate = new Date();
+            mileageDueDate.setDate(mileageDueDate.getDate() + daysUntilDueByKm);
+
+            const projectedDueDate = timeDueDate.getTime() < mileageDueDate.getTime() ? timeDueDate : mileageDueDate;
+            dueDateStr = projectedDueDate.toISOString().split("T")[0];
+            isOverdue = projectedDueDate.getTime() <= new Date().getTime();
+          }
+        }
       } else {
         // 2. Si AUCUNE facture n'est trouvée pour cette opération
-        // Vérifier si l'échéance depuis l'immatriculation est échue
-        const firstCapKm = intervalKm;
-        const firstCapDate = new Date(regDate);
-        firstCapDate.setMonth(firstCapDate.getMonth() + intervalMonths);
+        if (isPurelyTimeBased) {
+          // CT : 1er passage obligatoire à 4 ans (48 mois), puis tous les 2 ans (24 mois)
+          const firstCtDate = new Date(regDate);
+          firstCtDate.setMonth(firstCtDate.getMonth() + 48);
 
-        if (firstCapKm <= km || firstCapDate.getTime() <= new Date().getTime()) {
-          // L'opération n'a JAMAIS été faite et son terme est dépassé -> EN RETARD
-          isOverdue = true;
-          const cyclesElapsed = Math.max(1, Math.floor(km / intervalKm));
-          targetKm = cyclesElapsed * intervalKm;
-
-          // Date butoir théorique échue
-          const overdueDate = new Date(regDate);
-          const monthsElapsed = Math.max(1, Math.floor((new Date().getTime() - regDate.getTime()) / (1000 * 3600 * 24 * 30.4375)));
-          const timeCycles = Math.max(1, Math.floor(monthsElapsed / intervalMonths));
-          overdueDate.setMonth(overdueDate.getMonth() + timeCycles * intervalMonths);
-          dueDateStr = overdueDate.toISOString().split("T")[0];
+          if (firstCtDate.getTime() <= new Date().getTime()) {
+            isOverdue = true;
+            const monthsElapsed = Math.max(0, Math.floor((new Date().getTime() - firstCtDate.getTime()) / (1000 * 3600 * 24 * 30.4375)));
+            const cyclesElapsed = Math.floor(monthsElapsed / 24) + 1;
+            const overdueDate = new Date(firstCtDate);
+            overdueDate.setMonth(overdueDate.getMonth() + (cyclesElapsed - 1) * 24);
+            dueDateStr = overdueDate.toISOString().split("T")[0];
+          } else {
+            isOverdue = false;
+            dueDateStr = firstCtDate.toISOString().split("T")[0];
+          }
+          targetKm = 0;
         } else {
-          // Opération future normale
-          isOverdue = false;
-          targetKm = intervalKm;
-          dueDateStr = firstCapDate.toISOString().split("T")[0];
+          // Opération standard (kilomètre et temps)
+          const firstCapKm = intervalKm;
+          const firstCapDate = new Date(regDate);
+          firstCapDate.setMonth(firstCapDate.getMonth() + intervalMonths);
+
+          if (firstCapKm <= km || firstCapDate.getTime() <= new Date().getTime()) {
+            // L'opération n'a JAMAIS été faite et son terme est dépassé -> EN RETARD
+            isOverdue = true;
+            const cyclesElapsed = Math.max(1, Math.floor(km / intervalKm));
+            targetKm = cyclesElapsed * intervalKm;
+
+            // Date butoir théorique échue
+            const overdueDate = new Date(regDate);
+            const monthsElapsed = Math.max(1, Math.floor((new Date().getTime() - regDate.getTime()) / (1000 * 3600 * 24 * 30.4375)));
+            const timeCycles = Math.max(1, Math.floor(monthsElapsed / intervalMonths));
+            overdueDate.setMonth(overdueDate.getMonth() + timeCycles * intervalMonths);
+            dueDateStr = overdueDate.toISOString().split("T")[0];
+          } else {
+            // Opération future normale
+            isOverdue = false;
+            targetKm = intervalKm;
+            dueDateStr = firstCapDate.toISOString().split("T")[0];
+          }
         }
       }
 

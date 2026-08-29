@@ -141,7 +141,7 @@ export const GOLDEN_OEM_PLANS: Record<string, OfficialMaintenancePlan> = {
         category: "controle_technique",
         title: "Contrôle Technique réglementaire périodique (UTAC / OTC)",
         description: "Contrôle périodique obligatoire à 4 ans puis tous les 2 ans.",
-        intervalKm: 50000,
+        intervalKm: 0,
         intervalMonths: 24,
         estimatedCostMinEur: 75,
         estimatedCostMaxEur: 95,
@@ -205,6 +205,12 @@ export function sanitizeOfficialMaintenancePlan(
       if (isSuzuki || isVitara) {
         return false;
       }
+    }
+
+    // 4. RÈGLE CONTRÔLE TECHNIQUE : Purement calendaire (tous les 24 mois), 0 butoir kilométrique légal
+    if (cat === "controle_technique" || title.includes("contrôle technique") || title.includes("controle technique")) {
+      op.intervalKm = 0;
+      op.intervalMonths = 24;
     }
 
     return true;
@@ -401,7 +407,7 @@ export async function fetchOnlineManufacturerPlan(vehicle: {
         category: "controle_technique",
         title: "Contrôle Technique réglementaire périodique (UTAC / OTC)",
         description: "Contrôle réglementaire obligatoire de sécurité et pollution.",
-        intervalKm: 50000,
+        intervalKm: 0,
         intervalMonths: 24,
         estimatedCostMinEur: 75,
         estimatedCostMaxEur: 95,
