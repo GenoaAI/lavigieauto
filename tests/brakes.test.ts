@@ -75,10 +75,16 @@ export function testBrakePredictiveEngine() {
     ],
   });
 
-  if (vitaraAssessment.frontAxle.remainingLiningThicknessMm < 2.0) {
-    throw new Error('Épaisseur résiduelle Vitara sous la cote légale: ' + vitaraAssessment.frontAxle.remainingLiningThicknessMm);
+  if (vitaraAssessment.frontAxle.remainingLiningThicknessMm < 7.0) {
+    throw new Error('Épaisseur résiduelle Vitara sous-évaluée malgré CT favorable: ' + vitaraAssessment.frontAxle.remainingLiningThicknessMm);
   }
-  console.log('  ✔ Cas réel Suzuki Vitara validé (Épaisseur conforme, suivi régulier).');
+  if (vitaraAssessment.urgentActionNeeded) {
+    throw new Error('Fausse alerte urgente déclenchée pour le Vitara avec CT vierge');
+  }
+  if (vitaraAssessment.frontAxle.status !== 'GOOD') {
+    throw new Error('Statut Vitara non optimal malgré CT favorable: ' + vitaraAssessment.frontAxle.status);
+  }
+  console.log('  ✔ Cas réel Suzuki Vitara validé (Épaisseur conforme ~9 mm, statut Optimal, zéro fausse alerte).');
 
   // 4. Test défaillance critique CT (1.1.13.a.1)
   const criticalAssessment = calculateVehicleBrakeAssessment({

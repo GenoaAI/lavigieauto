@@ -209,10 +209,15 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     }
   }
 
-  // Contrôle Technique : recherche de défaillances plaquettes 1.1.13 ou disques 1.1.14
+  // Contrôle Technique : recherche du dernier CT et des défaillances plaquettes 1.1.13 ou disques 1.1.14
   let hasBrakePadDefect = false;
   let hasDiscDefect = false;
+  let latestFavorableCt: { date: string; mileage: number } | null = null;
+
   for (const insp of params.inspections || []) {
+    if (insp.isFavorable && !latestFavorableCt) {
+      latestFavorableCt = { date: insp.date, mileage: insp.mileage || currentKm };
+    }
     for (const d of insp.defects || []) {
       const code = d.code || '';
       const desc = (d.description || '').toUpperCase();
@@ -231,7 +236,7 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
   let frontThickness = 12.0;
   let frontLastEventDate = params.invoices[0]?.date || '2023-01-01';
   let frontLastEventKm = params.invoices[0]?.mileage || Math.max(0, currentKm - 15000);
-  let frontLastEventLabel = 'Estimation prédictive standard';
+  let frontLastEventLabel = 'Suivi régulier (Contrôle visuel au prochain entretien)';
 
   if (latestFrontMeasurement) {
     frontSourceType = 'WORKSHOP_MEASUREMENT';
@@ -257,11 +262,20 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     const kmSince = Math.max(0, currentKm - frontLastEventKm);
     frontWearPct = Math.min(100, Math.round((kmSince / frontBaseLifespan) * 100));
     frontThickness = Math.max(2.0, Math.round((12.0 - (frontWearPct / 100) * 10.0) * 10) / 10);
-  } else {
-    // Estimé d'après kilométrage total ou cycle moyen
-    const cycleKm = currentKm % frontBaseLifespan;
-    frontWearPct = Math.min(100, Math.round((cycleKm / frontBaseLifespan) * 100));
+  } else if (latestFavorableCt) {
+    // Si un Contrôle Technique récent a été validé avec succès sans défaillance de freinage
+    frontSourceType = 'ESTIMATED';
+    frontLastEventDate = latestFavorableCt.date;
+    frontLastEventKm = latestFavorableCt.mileage;
+    frontLastEventLabel = 'Contrôle Technique Favorable (Organes validés)';
+    const kmSinceCt = Math.max(0, currentKm - latestFavorableCt.mileage);
+    const ctBaseWear = 30; // Usure max moyenne lors d'un CT sans défaillance
+    frontWearPct = Math.min(65, Math.round(ctBaseWear + (kmSinceCt / frontBaseLifespan) * 100));
     frontThickness = Math.max(2.0, Math.round((12.0 - (frontWearPct / 100) * 10.0) * 10) / 10);
+  } else {
+    // Estimé de base modéré sans fausse alerte mathématique
+    frontWearPct = 35;
+    frontThickness = 8.5;
   }
 
   if (hasBrakePadDefect) {
@@ -328,7 +342,7 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
   let rearThickness = 10.0;
   let rearLastEventDate = params.invoices[0]?.date || '2023-01-01';
   let rearLastEventKm = params.invoices[0]?.mileage || Math.max(0, currentKm - 25000);
-  let rearLastEventLabel = 'Estimation prédictive standard';
+  let rearLastEventLabel = 'Suivi régulier (Contrôle visuel au prochain entretien)';
 
   if (latestRearMeasurement) {
     rearSourceType = 'WORKSHOP_MEASUREMENT';
@@ -354,10 +368,18 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     const kmSince = Math.max(0, currentKm - rearLastEventKm);
     rearWearPct = Math.min(100, Math.round((kmSince / rearBaseLifespan) * 100));
     rearThickness = Math.max(2.0, Math.round((10.0 - (rearWearPct / 100) * 8.0) * 10) / 10);
-  } else {
-    const cycleKm = currentKm % rearBaseLifespan;
-    rearWearPct = Math.min(100, Math.round((cycleKm / rearBaseLifespan) * 100));
+  } else if (latestFavorableCt) {
+    rearSourceType = 'ESTIMATED';
+    rearLastEventDate = latestFavorableCt.date;
+    rearLastEventKm = latestFavorableCt.mileage;
+    rearLastEventLabel = 'Contrôle Technique Favorable (Organes validés)';
+    const kmSinceCt = Math.max(0, currentKm - latestFavorableCt.mileage);
+    const ctBaseWear = 25;
+    rearWearPct = Math.min(60, Math.round(ctBaseWear + (kmSinceCt / rearBaseLifespan) * 100));
     rearThickness = Math.max(2.0, Math.round((10.0 - (rearWearPct / 100) * 8.0) * 10) / 10);
+  } else {
+    rearWearPct = 30;
+    rearThickness = 7.6;
   }
 
   const rearRemainingKm = Math.max(0, Math.round(((100 - rearWearPct) / 100) * rearBaseLifespan));
