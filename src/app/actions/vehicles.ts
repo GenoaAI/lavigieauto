@@ -389,14 +389,41 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       .eq("vehicule_id", vehicle.id)
       .order("date_document", { ascending: false });
 
-    const latestCt = (allDocs || []).find(
-      (d: any) =>
-        d.file_type === "TECHNICAL_INSPECTION" ||
-        d.file_type === "CT" ||
-        d.file_type === "controle_technique" ||
-        (d.emetteur || "").toLowerCase().includes("ct") ||
-        (d.emetteur || "").toLowerCase().includes("technique")
-    );
+    const latestCt = (allDocs || []).find((d: any) => {
+      const ft = (d.file_type || "").toLowerCase();
+      const em = (d.emetteur || "").toLowerCase();
+      return (
+        ft === "technical_inspection" ||
+        ft === "ct" ||
+        ft === "controle_technique" ||
+        em.includes("dekra") ||
+        em.includes("autosur") ||
+        em.includes("securitest") ||
+        em.includes("sécuritest") ||
+        em.includes("autovision") ||
+        em.includes("auto securite") ||
+        em.includes("auto sécurité") ||
+        em.includes("norisko") ||
+        em.includes("autocontrol") ||
+        em.includes("mon controle technique") ||
+        em.includes("mon contrôle technique") ||
+        em.includes("service controle") ||
+        em.includes("service contrôle") ||
+        em.includes("centre de controle") ||
+        em.includes("centre de contrôle") ||
+        em.includes("controle technique") ||
+        em.includes("contrôle technique") ||
+        em.includes("ct") ||
+        em.includes("technique")
+      );
+    });
+
+    if (latestCt && latestCt.file_type !== "controle_technique" && latestCt.id) {
+      await (supabase as any)
+        .from("documents_sources")
+        .update({ file_type: "controle_technique" })
+        .eq("id", latestCt.id);
+    }
 
     const interventions = (pastInterventions || []) as Array<{
       operation: string;

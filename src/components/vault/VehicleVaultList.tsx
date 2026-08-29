@@ -99,17 +99,44 @@ export function VehicleVaultList({
     }
   };
 
-  const getDocTypeBadge = (type: string) => {
-    switch (type) {
-      case "facture":
-        return { label: "Facture Atelier", bg: "bg-blue-50 text-blue-700 border-blue-200" };
-      case "controle_technique":
-        return { label: "Procès-Verbal CT", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" };
-      case "carte_grise":
-        return { label: "Certificat d'Immatriculation", bg: "bg-purple-50 text-purple-700 border-purple-200" };
-      default:
-        return { label: "Document", bg: "bg-slate-50 text-slate-700 border-slate-200" };
+  const getDocTypeBadge = (type: string, doc?: VaultDocumentItem) => {
+    const normType = (type || "").toLowerCase();
+    const em = (doc?.entityName || doc?.fileName || "").toLowerCase();
+
+    if (
+      normType === "controle_technique" ||
+      normType === "technical_inspection" ||
+      normType === "ct" ||
+      em.includes("dekra") ||
+      em.includes("autosur") ||
+      em.includes("securitest") ||
+      em.includes("sécuritest") ||
+      em.includes("autovision") ||
+      em.includes("auto securite") ||
+      em.includes("auto sécurité") ||
+      em.includes("norisko") ||
+      em.includes("autocontrol") ||
+      em.includes("mon controle technique") ||
+      em.includes("mon contrôle technique") ||
+      em.includes("service controle") ||
+      em.includes("service contrôle") ||
+      em.includes("centre de controle") ||
+      em.includes("centre de contrôle") ||
+      em.includes("controle technique") ||
+      em.includes("contrôle technique")
+    ) {
+      return { label: "Procès-Verbal CT", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" };
     }
+
+    if (normType === "carte_grise" || normType === "registration_card" || normType === "cg") {
+      return { label: "Certificat d'Immatriculation", bg: "bg-purple-50 text-purple-700 border-purple-200" };
+    }
+
+    if (normType === "facture" || normType === "invoice") {
+      return { label: "Facture Atelier", bg: "bg-blue-50 text-blue-700 border-blue-200" };
+    }
+
+    return { label: "Document", bg: "bg-slate-50 text-slate-700 border-slate-200" };
   };
 
   return (
@@ -240,7 +267,7 @@ export function VehicleVaultList({
       ) : (
         <div className="grid gap-3.5">
           {filteredDocs.map((doc) => {
-            const badge = getDocTypeBadge(doc.fileType);
+            const badge = getDocTypeBadge(doc.fileType, doc);
 
             return (
               <div

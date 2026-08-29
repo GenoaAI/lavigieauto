@@ -92,9 +92,17 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     documentType = "carte_grise";
   } else if (
     lowerFileName.includes("controle") ||
+    lowerFileName.includes("contrôle") ||
     lowerFileName.includes("technique") ||
     lowerFileName.includes("ct") ||
-    lowerFileName.includes("pv_")
+    lowerFileName.includes("pv_") ||
+    lowerFileName.includes("dekra") ||
+    lowerFileName.includes("autosur") ||
+    lowerFileName.includes("securitest") ||
+    lowerFileName.includes("sécuritest") ||
+    lowerFileName.includes("autovision") ||
+    lowerFileName.includes("autocontrol") ||
+    lowerFileName.includes("norisko")
   ) {
     documentType = "controle_technique";
   }
@@ -140,7 +148,70 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     const data = extractionResult.data;
 
     // Auto-détection intelligente du type de document d'après le contenu réel extrait par l'assistant
-    if (data.control_technique || data.inspectionResult || data.centre_controle || data.defaillances || (data.defects && data.defects.length > 0)) {
+    const detectedEmitterName = (
+      (data.emetteur?.nom && data.emetteur.nom !== "Atelier Professionnel" ? data.emetteur.nom : null) ||
+      data.garage?.nom ||
+      (data.garage?.name && data.garage?.name !== "Atelier Professionnel" ? data.garage?.name : null) ||
+      data.center?.name ||
+      data.centre_controle?.nom ||
+      ""
+    ).toLowerCase();
+
+    const isCtNetwork =
+      detectedEmitterName.includes("dekra") ||
+      detectedEmitterName.includes("autosur") ||
+      detectedEmitterName.includes("securitest") ||
+      detectedEmitterName.includes("sécuritest") ||
+      detectedEmitterName.includes("autovision") ||
+      detectedEmitterName.includes("auto securite") ||
+      detectedEmitterName.includes("auto sécurité") ||
+      detectedEmitterName.includes("norisko") ||
+      detectedEmitterName.includes("autocontrol") ||
+      detectedEmitterName.includes("mon controle technique") ||
+      detectedEmitterName.includes("mon contrôle technique") ||
+      detectedEmitterName.includes("verifas") ||
+      detectedEmitterName.includes("bureau veritas") ||
+      detectedEmitterName.includes("controle technique") ||
+      detectedEmitterName.includes("contrôle technique") ||
+      detectedEmitterName.includes("service controle") ||
+      detectedEmitterName.includes("service contrôle") ||
+      detectedEmitterName.includes("centre de controle") ||
+      detectedEmitterName.includes("centre de contrôle") ||
+      detectedEmitterName.includes("controle auto") ||
+      detectedEmitterName.includes("contrôle auto");
+
+    const hasCtItems = (
+      (data.items || data.lineItems || data.prestations || data.operations || data.lines || []) as any[]
+    ).some((it) => {
+      const itDesc = (it.description || it.label || it.libelle || it.designation || "").toLowerCase();
+      const itCode = (it.canonicalCode || it.category || "").toUpperCase();
+      return (
+        itCode.includes("TECHNICAL_INSPECTION") ||
+        itDesc.includes("contrôle technique") ||
+        itDesc.includes("controle technique") ||
+        itDesc.includes("visite technique") ||
+        itDesc.includes("visite périodique") ||
+        itDesc.includes("visite periodique") ||
+        itDesc.includes("procès-verbal") ||
+        itDesc.includes("proces-verbal") ||
+        itDesc.includes("pv de contrôle") ||
+        itDesc.includes("pv de controle") ||
+        itDesc.includes("redevance otc") ||
+        itDesc.includes("controle pollution") ||
+        itDesc.includes("contrôle pollution")
+      );
+    });
+
+    if (
+      isCtNetwork ||
+      hasCtItems ||
+      data.control_technique ||
+      data.inspectionResult ||
+      data.centre_controle ||
+      data.defaillances ||
+      (data.defects && data.defects.length > 0) ||
+      data.center
+    ) {
       documentType = "controle_technique";
     } else if (data["D.1"] || data.typeVariantVersion || (data.firstRegistrationDate && !data.invoice && !data.facture && !data.garage && !data.prestations)) {
       documentType = "carte_grise";
@@ -762,6 +833,26 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       });
 
       await (adminSupabase as any).from("lignes_interventions").insert(linesToInsert);
+    } else if (documentType === "controle_technique" && vehicleId && documentId) {
+      // Enregistrement d'une ligne d'intervention CT certifiée pour réconciliation immédiate
+      await (adminSupabase as any).from("lignes_interventions").insert({
+        foyer_id: foyerId,
+        vehicule_id: vehicleId,
+        document_source_id: documentId,
+        categorie: "controle_technique",
+        operation: `Contrôle Technique Périodique (${data.inspectionResult?.status || "Favorable"})`,
+        description: `Visite périodique de contrôle technique automobile réglementaire (Norme UTAC / OTC). ${docEmitter ? `Centre : ${docEmitter}` : ""}`,
+        quantite: 1,
+        prix_total_ttc: totalTTC || 85,
+        date_intervention: docDate,
+        kilometrage_intervention: extractedMileage || matchedVehicle?.kilometrage_actuel || 0,
+        emetteur: docEmitter,
+        metadata: {
+          canonical_code: "TECHNICAL_INSPECTION",
+          action_type: "INSPECT_ONLY",
+          result_status: data.inspectionResult?.status || "FAVORABLE",
+        },
+      });
     }
 
     // 5. Consolidation et synchronisation du kilométrage certifié et du plan constructeur

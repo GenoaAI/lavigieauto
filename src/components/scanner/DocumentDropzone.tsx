@@ -46,9 +46,22 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
 
       // Guess type from name
       const lowerName = file.name.toLowerCase();
-      if (lowerName.includes("carte") || lowerName.includes("grise") || lowerName.includes("immat")) {
+      if (lowerName.includes("carte") || lowerName.includes("grise") || lowerName.includes("immat") || lowerName.includes("certificat_immat") || lowerName.includes("ci_")) {
         formData.append("documentType", "carte_grise");
-      } else if (lowerName.includes("ct") || lowerName.includes("controle") || lowerName.includes("technique")) {
+      } else if (
+        lowerName.includes("ct") ||
+        lowerName.includes("controle") ||
+        lowerName.includes("contrôle") ||
+        lowerName.includes("technique") ||
+        lowerName.includes("pv_") ||
+        lowerName.includes("dekra") ||
+        lowerName.includes("autosur") ||
+        lowerName.includes("securitest") ||
+        lowerName.includes("sécuritest") ||
+        lowerName.includes("autovision") ||
+        lowerName.includes("autocontrol") ||
+        lowerName.includes("norisko")
+      ) {
         formData.append("documentType", "controle_technique");
       } else {
         formData.append("documentType", "facture");

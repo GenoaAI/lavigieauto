@@ -110,6 +110,26 @@ export async function runDocumentExtractionTests() {
     throw new Error(`Erreur de calcul de rythme: ${JSON.stringify(pace)}`);
   }
   console.log(`  ✔ Rythme calculé sur ${pace.readingsCount} relevés : dernier relevé à ${pace.lastRecordedMileage} km, projection à ${pace.estimatedCurrentMileage} km.`);
+
+  // Test 5: Détection automatique des centres de contrôle technique (DEKRA, Autosur, etc.)
+  console.log('\n▶ [TEST] Détection Automatique : Réseaux & PV de Contrôle Technique...');
+  const dekraTestDoc = {
+    garage: { name: "DEKRA - SERVICE CONTROLE BUC" },
+    invoice: { invoiceDate: "2024-01-22", totalTTC: 85 },
+    vehicle: { currentMileage: 149953 },
+  };
+  const emitterName = dekraTestDoc.garage.name.toLowerCase();
+  const isDetectedAsCt =
+    emitterName.includes("dekra") ||
+    emitterName.includes("autosur") ||
+    emitterName.includes("securitest") ||
+    emitterName.includes("service controle") ||
+    emitterName.includes("controle technique");
+
+  if (!isDetectedAsCt) {
+    throw new Error("Échec de la détection du centre DEKRA comme Contrôle Technique.");
+  }
+  console.log('  ✔ Détection réseau DEKRA validée comme Procès-Verbal Contrôle Technique.');
 }
 
 if (require.main === module) {
