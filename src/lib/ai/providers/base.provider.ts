@@ -33,7 +33,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
       apiKey: config.apiKey,
       model: config.model,
       temperature: config.temperature ?? 0.1, // Low temp for extraction precision
-      maxTokens: config.maxTokens ?? 4096,
+      maxTokens: config.maxTokens ?? 8192,
       maxRetries: config.maxRetries ?? 3,
       timeoutMs: config.timeoutMs ?? 30000,
     };
@@ -80,8 +80,7 @@ INSTRUCTIONS CRITIQUES :
         );
 
         const latencyMs = Date.now() - startTime;
-        const cleanedJson = this.sanitizeJsonString(generationResult.text);
-        const parsed = JSON.parse(cleanedJson);
+        const parsed = this.robustJsonParse(generationResult.text);
 
         // Zod schema validation
         const validationResult = options.schema.safeParse(parsed);
@@ -232,6 +231,70 @@ INSTRUCTIONS CRITIQUES :
       images,
       systemPrompt: skill.systemPrompt,
     });
+  }
+
+  /**
+   * Parse JSON de manière ultra-résiliente avec auto-réparation (virgules orphelines, guillemets non fermés, troncature)
+   */
+  public robustJsonParse(rawText: string): any {
+    const cleaned = this.sanitizeJsonString(rawText);
+
+    // 1. Décodage standard
+    try {
+      return JSON.parse(cleaned);
+    } catch (firstErr) {
+      // 2. Nettoyage chirurgical
+      let repaired = cleaned;
+      // Supprimer commentaires
+      repaired = repaired.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*/g, '$1');
+      // Supprimer virgules orphelines avant } ou ]
+      repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+      // Remplacer guillemets typographiques
+      repaired = repaired.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+
+      try {
+        return JSON.parse(repaired);
+      } catch {
+        // 3. Réparation des fermetures et chaînes tronquées
+        let balanced = repaired.trim();
+        const quoteCount = (balanced.match(/(?<!\\)"/g) || []).length;
+        if (quoteCount % 2 !== 0) {
+          balanced += '"';
+        }
+        balanced = balanced.replace(/,\s*$/, '');
+        const openBraces = (balanced.match(/\{/g) || []).length;
+        const closeBraces = (balanced.match(/\}/g) || []).length;
+        const openBrackets = (balanced.match(/\[/g) || []).length;
+        const closeBrackets = (balanced.match(/\]/g) || []).length;
+        if (openBrackets > closeBrackets) {
+          balanced += ']'.repeat(openBrackets - closeBrackets);
+        }
+        if (openBraces > closeBraces) {
+          balanced += '}'.repeat(openBraces - closeBraces);
+        }
+        balanced = balanced.replace(/,(\s*[}\]])/g, '$1');
+
+        try {
+          return JSON.parse(balanced);
+        } catch {
+          // 4. Si un élément de tableau a été tronqué au milieu, découper au dernier objet complet
+          const lastValidItemMatch = balanced.match(/^([\s\S]*\}\s*),[^}]*$/);
+          if (lastValidItemMatch && lastValidItemMatch[1]) {
+            let truncated = lastValidItemMatch[1].trim();
+            const ob = (truncated.match(/\{/g) || []).length;
+            const cb = (truncated.match(/\}/g) || []).length;
+            const obr = (truncated.match(/\[/g) || []).length;
+            const cbr = (truncated.match(/\]/g) || []).length;
+            if (obr > cbr) truncated += ']'.repeat(obr - cbr);
+            if (ob > cb) truncated += '}'.repeat(ob - cb);
+            try {
+              return JSON.parse(truncated);
+            } catch {}
+          }
+          throw firstErr;
+        }
+      }
+    }
   }
 
   /**
