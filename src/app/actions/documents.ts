@@ -433,7 +433,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
             puissance_din: dinPower,
             statut: "actif",
             image_url: defaultImg,
-            usage_type: "principal",
+            usage_type: "quotidien",
             km_annuel_moyen: 12000,
           })
           .select()
