@@ -223,6 +223,21 @@ export function sanitizeOfficialMaintenancePlan(
       op.intervalMonths = 24;
     }
 
+    // 5. RÈGLE TRANSMISSION 4x4 : Si traction 2WD (deux roues motrices), pas de vidange de pont arrière
+    const ver = (vehicle.version || "").toLowerCase();
+    const is4x4 =
+      ver.includes("allgrip") ||
+      ver.includes("4x4") ||
+      ver.includes("4wd") ||
+      ver.includes("awd") ||
+      ver.includes("quattro") ||
+      ver.includes("4motion") ||
+      ver.includes("xdrive");
+
+    if (!is4x4 && (cat === "vidange_pont" || title.includes("pont arrière") || title.includes("boîte de transfert") || desc.includes("différentiel arrière"))) {
+      return false;
+    }
+
     return true;
   });
 

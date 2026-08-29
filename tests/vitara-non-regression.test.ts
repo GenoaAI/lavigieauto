@@ -12,12 +12,12 @@ export async function testVitaraFullStackNonRegression() {
   console.log("🛡️ [NON-REGRESSION] SUZUKI VITARA 1.6 VVT (M16A ALLGRIP) INTEGRITY SUITE");
   console.log("=================================================\n");
 
-  const vitaraVehicle = {
+  const vitara2WD = {
     id: "vitara-test-uuid",
     foyer_id: "foyer-test-uuid",
     marque: "Suzuki",
     modele: "Vitara",
-    version: "1.6 VVT 120 ch AllGrip Pack",
+    version: "1.6 VVT 120 ch Pack",
     immatriculation: "EC-301-JX",
     energie: "Essence",
     annee_mise_en_circulation: 2016,
@@ -26,14 +26,20 @@ export async function testVitaraFullStackNonRegression() {
     vin: "TSMEYA21S00123456",
   };
 
+  const vitara4WD = {
+    ...vitara2WD,
+    version: "1.6 VVT 120 ch AllGrip Pack",
+  };
+
   // -------------------------------------------------------------------------
-  // 1. VÉRIFICATION DU PLAN CONSTRUCTEUR OFFICIEL OEM (SUZUKI VITARA 1.6 VVT)
+  // 1. VÉRIFICATION DU PLAN CONSTRUCTEUR OFFICIEL OEM (SUZUKI VITARA 1.6 VVT 2WD & 4WD)
   // -------------------------------------------------------------------------
-  console.log("▶ [VITARA 1] Plan Constructeur OEM & Gardes-Fous Déterministes...");
-  const plan = await fetchOnlineManufacturerPlan(vitaraVehicle);
+  console.log("▶ [VITARA 1] Plan Constructeur OEM & Gardes-Fous Déterministes (2WD vs 4WD)...");
+  const plan2WD = await fetchOnlineManufacturerPlan(vitara2WD);
+  const plan4WD = await fetchOnlineManufacturerPlan(vitara4WD);
 
   // A. Zéro recharge clim
-  const acOps = plan.operations.filter(
+  const acOps = plan2WD.operations.filter(
     (op) =>
       op.category === "climatisation" ||
       op.title.toLowerCase().includes("recharge fluide") ||
@@ -47,10 +53,10 @@ export async function testVitaraFullStackNonRegression() {
   console.log("  ✔ Zéro opération de recharge de climatisation dans le plan d'entretien.");
 
   // B. Distribution par chaîne
-  if (plan.vehicleSummary.timingType !== "chaine") {
-    throw new Error(`[RÉGRESSION VITARA] Type de distribution erroné: attendu 'chaine', obtenu '${plan.vehicleSummary.timingType}'`);
+  if (plan2WD.vehicleSummary.timingType !== "chaine") {
+    throw new Error(`[RÉGRESSION VITARA] Type de distribution erroné: attendu 'chaine', obtenu '${plan2WD.vehicleSummary.timingType}'`);
   }
-  const timingBeltOps = plan.operations.filter(
+  const timingBeltOps = plan2WD.operations.filter(
     (op) => op.category === "courroie_distribution" || op.title.toLowerCase().includes("courroie de distribution")
   );
   if (timingBeltOps.length > 0) {
@@ -59,7 +65,7 @@ export async function testVitaraFullStackNonRegression() {
   console.log("  ✔ Distribution par chaîne validée (zéro courroie de distribution).");
 
   // C. Zéro filtre à essence externe périodique (crépine immergée)
-  const fuelFilterOps = plan.operations.filter(
+  const fuelFilterOps = plan2WD.operations.filter(
     (op) => op.category === "filtre_carburant" || op.title.toLowerCase().includes("filtre à essence") || op.title.toLowerCase().includes("filtre à carburant")
   );
   if (fuelFilterOps.length > 0) {
@@ -67,8 +73,21 @@ export async function testVitaraFullStackNonRegression() {
   }
   console.log("  ✔ Filtre à carburant externe absent (crépine immergée conforme).");
 
-  // D. Présence des opérations périodiques Suzuki officielles
-  const requiredCategories = [
+  // D. Transmission 2WD vs 4WD AllGrip
+  const pont2WD = plan2WD.operations.find((op) => op.category === "vidange_pont");
+  if (pont2WD) {
+    throw new Error("[RÉGRESSION VITARA] Une vidange de pont a été générée pour une version 2WD (Traction) !");
+  }
+  console.log("  ✔ Version 2WD (Traction) : 0 vidange de pont générée.");
+
+  const pont4WD = plan4WD.operations.find((op) => op.category === "vidange_pont");
+  if (!pont4WD) {
+    throw new Error("[RÉGRESSION VITARA] Vidange de pont manquante sur version 4WD AllGrip !");
+  }
+  console.log("  ✔ Version 4WD (AllGrip) : Vidange de pont arrière présente.");
+
+  // E. Présence des opérations périodiques Suzuki officielles 2WD
+  const requiredCategories2WD = [
     "vidange",
     "filtre_air",
     "filtre_habitacle",
@@ -76,20 +95,19 @@ export async function testVitaraFullStackNonRegression() {
     "liquide_frein",
     "courroie_accessoire",
     "liquide_refroidissement",
-    "vidange_pont",
     "controle_technique",
   ];
 
-  for (const cat of requiredCategories) {
-    const found = plan.operations.find((op) => op.category === cat);
+  for (const cat of requiredCategories2WD) {
+    const found = plan2WD.operations.find((op) => op.category === cat);
     if (!found) {
       throw new Error(`[RÉGRESSION VITARA] Opération constructeur requise manquante : '${cat}'`);
     }
   }
-  console.log(`  ✔ Les ${requiredCategories.length} opérations officielles Suzuki (dont vidange pont 4x4 et purge DOT 4) sont présentes.`);
+  console.log(`  ✔ Les ${requiredCategories2WD.length} opérations officielles Suzuki 2WD sont présentes.`);
 
-  // E. Contrôle Technique réglementaire sans butoir km
-  const ctOp = plan.operations.find((op) => op.category === "controle_technique");
+  // F. Contrôle Technique réglementaire sans butoir km
+  const ctOp = plan2WD.operations.find((op) => op.category === "controle_technique");
   if (!ctOp || ctOp.intervalKm !== 0 || ctOp.intervalMonths !== 24) {
     throw new Error(`[RÉGRESSION VITARA] Contrôle Technique mal calibré : intervalKm=${ctOp?.intervalKm}, intervalMonths=${ctOp?.intervalMonths}`);
   }
@@ -100,12 +118,12 @@ export async function testVitaraFullStackNonRegression() {
   // -------------------------------------------------------------------------
   console.log("\n▶ [VITARA 2] Suivi Prédictif des Pneumatiques (215/55 R17)...");
   const vitaraTires = calculateVehicleTireAssessment({
-    vehicleId: vitaraVehicle.id,
-    currentMileage: vitaraVehicle.kilometrage_actuel,
+    vehicleId: vitara2WD.id,
+    currentMileage: vitara2WD.kilometrage_actuel,
     dailyKmRate: 35,
     make: "Suzuki",
     model: "Vitara",
-    version: "1.6 VVT 120 ch AllGrip",
+    version: "1.6 VVT 120 ch Pack",
     invoices: [
       {
         date: "2026-08-21",
