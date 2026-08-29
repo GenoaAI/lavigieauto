@@ -138,6 +138,16 @@ export const GOLDEN_OEM_PLANS: Record<string, OfficialMaintenancePlan> = {
         criticite: "elevee",
       },
       {
+        category: "vidange_pont",
+        title: "Vidange pont arrière & boîte de transfert 4x4 (AllGrip)",
+        description: "Renouvellement huile hypoïde 80W90 pour le différentiel arrière et le renvoi d'angle AllGrip.",
+        intervalKm: 60000,
+        intervalMonths: 48,
+        estimatedCostMinEur: 75,
+        estimatedCostMaxEur: 130,
+        criticite: "elevee",
+      },
+      {
         category: "controle_technique",
         title: "Contrôle Technique réglementaire périodique (UTAC / OTC)",
         description: "Contrôle périodique obligatoire à 4 ans puis tous les 2 ans.",
