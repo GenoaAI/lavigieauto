@@ -65,11 +65,22 @@ export interface TireCalculationParams {
 
 export function getStandardHomologatedTireSize(make?: string, model?: string, version?: string): string {
   const mod = (model || "").toLowerCase();
+  const ver = (version || "").toLowerCase();
+
   if (mod.includes("clio")) {
     return "185/60 R15 88H"; // Dimension homologuée de référence Renault Clio III
   }
   if (mod.includes("espace")) {
-    return "225/55 R18 102V"; // Dimension homologuée Renault Espace V
+    if (ver.includes("initiale") || ver.includes("20") || ver.includes("paris")) {
+      return "255/45 R20 105V"; // Monte homologuée Initiale Paris (20 pouces)
+    }
+    if (ver.includes("zen") || ver.includes("intens") || ver.includes("19")) {
+      return "235/55 R19 105V"; // Monte la plus courante Espace V (19 pouces)
+    }
+    if (ver.includes("18")) {
+      return "235/60 R18 103V"; // Monte 18 pouces Espace V
+    }
+    return "235/55 R19 105V"; // Dimension homologuée standard Renault Espace V
   }
   if (mod.includes("vitara")) {
     return "215/55 R17 94W"; // Dimension homologuée Suzuki Vitara
@@ -83,12 +94,20 @@ export function getStandardHomologatedTireSize(make?: string, model?: string, ve
   return "Dimensions Homologuées Constructeur";
 }
 
-export function extractTireDimension(text?: string, defaultDim: string = "Dimensions Homologuées"): string {
+export function extractTireDimension(text?: string, defaultDim: string = "Dimensions Homologuées Constructeur"): string {
   if (!text) return defaultDim;
-  const dimMatch = text.match(/\b(\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}(?:\s*\d{2,3}[A-Z])?)\b/i)
-    || text.match(/\b(\d{3}\s*\/\s*\d{2}\s*R\d{2}(?:\s*\d{2,3}[A-Z])?)\b/i);
+  const dimMatch = text.match(/\b(\d{3}\s*[\/\-]\s*\d{2}\s*R\s*\d{2}(?:\s*\d{2,3}\s*[A-Z])?)\b/i)
+    || text.match(/\b(\d{3}\s*[\/\-]\s*\d{2}\s*R\d{2}(?:\s*\d{2,3}\s*[A-Z])?)\b/i)
+    || text.match(/\b(\d{3}\s+\d{2}\s+R\s*\d{2}(?:\s*\d{2,3}\s*[A-Z])?)\b/i);
   if (dimMatch) {
-    return dimMatch[1].replace(/(\d{2})R(\d{2})/, "$1 R$2").toUpperCase().trim();
+    let clean = dimMatch[1].toUpperCase().replace(/\s+/g, " ").trim();
+    clean = clean.replace(/(\d{3})[\s\-]+(\d{2})/, "$1/$2");
+    clean = clean.replace(/(\d{2})R(\d{2})/, "$1 R$2");
+    return clean;
+  }
+  const simpleMatch = text.match(/\b(\d{3})[\/\s\-](\d{2})[\/\s\-](\d{2})\b/i);
+  if (simpleMatch) {
+    return `${simpleMatch[1]}/${simpleMatch[2]} R${simpleMatch[3]}`;
   }
   return defaultDim;
 }

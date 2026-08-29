@@ -831,7 +831,32 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         else if (cat.includes("spark") || cat.includes("plug") || desc.toLowerCase().includes("bougie")) normalizedCat = "moteur";
         else if (cat.includes("coolant") || desc.toLowerCase().includes("refroidissement")) normalizedCat = "moteur";
         else if (cat.includes("brake") || desc.toLowerCase().includes("frein") || desc.toLowerCase().includes("plaquette") || desc.toLowerCase().includes("disque")) normalizedCat = "freinage";
-        else if (cat.includes("tire") || desc.toLowerCase().includes("pneu") || desc.toLowerCase().includes("pneumatique") || desc.toLowerCase().includes("turanza") || desc.toLowerCase().includes("bridgestone") || desc.toLowerCase().includes("michelin") || desc.toLowerCase().includes("kleber") || desc.toLowerCase().includes("valve") || desc.toLowerCase().includes("equi")) normalizedCat = "pneumatiques";
+        else if (
+          cat.includes("tire") ||
+          cat.includes("pneu") ||
+          desc.toLowerCase().includes("pneu") ||
+          desc.toLowerCase().includes("pneumatique") ||
+          desc.toLowerCase().includes("turanza") ||
+          desc.toLowerCase().includes("bridgestone") ||
+          desc.toLowerCase().includes("michelin") ||
+          desc.toLowerCase().includes("kleber") ||
+          desc.toLowerCase().includes("continental") ||
+          desc.toLowerCase().includes("goodyear") ||
+          desc.toLowerCase().includes("pirelli") ||
+          desc.toLowerCase().includes("hankook") ||
+          desc.toLowerCase().includes("dunlop") ||
+          desc.toLowerCase().includes("crossclimate") ||
+          desc.toLowerCase().includes("primacy") ||
+          desc.toLowerCase().includes("dynaxer") ||
+          desc.toLowerCase().includes("ecocontact") ||
+          desc.toLowerCase().includes("efficientgrip") ||
+          desc.toLowerCase().includes("valve") ||
+          desc.toLowerCase().includes("equi") ||
+          desc.toLowerCase().includes("parallélisme") ||
+          desc.toLowerCase().includes("parallelisme") ||
+          desc.toLowerCase().includes("geometrie") ||
+          /\b\d{3}[\/\s\-]\d{2}\s*R\s*\d{2}\b/i.test(desc)
+        ) normalizedCat = "pneumatiques";
         else if (cat.includes("cabin") || desc.toLowerCase().includes("clim") || desc.toLowerCase().includes("habitacle") || desc.toLowerCase().includes("pollen")) normalizedCat = "climatisation";
         else if (cat.includes("belt") || cat.includes("accessory") || desc.toLowerCase().includes("courroie") || desc.toLowerCase().includes("distribution") || desc.toLowerCase().includes("accessoire") || desc.toLowerCase().includes("alternateur") || desc.toLowerCase().includes("galet")) normalizedCat = "distribution";
         else if (cat.includes("gearbox") || desc.toLowerCase().includes("boite") || desc.toLowerCase().includes("transmission") || desc.toLowerCase().includes("vitesse")) normalizedCat = "transmission";

@@ -186,7 +186,28 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     else if (op.includes("bougie") || op.includes("allumage") || cat.includes("allumage")) mappedCat = "SPARK_PLUGS";
     else if (op.includes("refroidissement") || op.includes("liquide refroidissement") || op.includes("antigel") || op.includes("radiateur")) mappedCat = "COOLANT";
     else if (cat.includes("distribution") || op.includes("courroie") || op.includes("galet")) mappedCat = "ACCESSORY_BELT";
-    else if (cat.includes("pneumatiques") || op.includes("pneu") || op.includes("turanza") || op.includes("bridgestone") || op.includes("michelin") || op.includes("roue") || op.includes("valve") || op.includes("equilibrage")) mappedCat = "TIRES_FRONT";
+    else if (
+      cat.includes("pneumatiques") ||
+      cat.includes("tire") ||
+      op.includes("pneu") ||
+      op.includes("pneumatique") ||
+      op.includes("turanza") ||
+      op.includes("bridgestone") ||
+      op.includes("michelin") ||
+      op.includes("kleber") ||
+      op.includes("continental") ||
+      op.includes("goodyear") ||
+      op.includes("pirelli") ||
+      op.includes("hankook") ||
+      op.includes("dunlop") ||
+      op.includes("crossclimate") ||
+      op.includes("primacy") ||
+      op.includes("dynaxer") ||
+      op.includes("roue") ||
+      op.includes("valve") ||
+      op.includes("equilibrage") ||
+      /\b\d{3}[\/\s\-]\d{2}\s*R\s*\d{2}\b/i.test(op)
+    ) mappedCat = "TIRES_FRONT";
     else if (cat.includes("electricite") || op.includes("batterie")) mappedCat = "BATTERY";
     else if (cat.includes("transmission") || op.includes("boite") || op.includes("pont")) mappedCat = "GEARBOX_OIL";
 
