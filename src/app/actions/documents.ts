@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { AIProviderRegistry } from "@/lib/ai/registry";
 import { syncVehicleManufacturerScheduleAction } from "@/app/actions/vehicles";
