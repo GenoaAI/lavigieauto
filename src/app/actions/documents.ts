@@ -333,7 +333,23 @@ export async function processDocumentAction(formData: FormData): Promise<Process
 
     // A. Si vehicleId est explicitement fourni dans l'appel :
     if (vehicleId) {
-      matchedVehicle = vehicleList.find((v) => v.id === vehicleId) || null;
+      const explicitVehicle = vehicleList.find((v) => v.id === vehicleId) || null;
+      // Garde-fou anti-conflit : si le document extrait une plaque formelle différente, on priorise la vérité de la plaque
+      if (explicitVehicle && extractedPlate) {
+        const explicitPlate = (explicitVehicle.immatriculation || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        if (explicitPlate && explicitPlate !== extractedPlate && !explicitPlate.includes("NOUVEAU") && !explicitPlate.includes("XXX")) {
+          // Conflit : la facture porte une autre plaque -> recherche du vrai véhicule destinataire
+          const correctVehicle = vehicleList.find((v) => {
+            const vPlate = (v.immatriculation || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+            return vPlate && vPlate === extractedPlate;
+          });
+          matchedVehicle = correctVehicle || null;
+        } else {
+          matchedVehicle = explicitVehicle;
+        }
+      } else {
+        matchedVehicle = explicitVehicle;
+      }
     }
 
     // B. Recherche par immatriculation ou VIN exact
@@ -371,7 +387,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         if (firstFoyer?.id) resolvedFoyerId = firstFoyer.id;
       }
 
-      // CRÉATION AUTOMATIQUE DU VÉHICULE DANS LE FOYER dès le premier document (Carte Grise, Facture ou CT)
+      // CRÉATION AUTOMATIQUE D'UN NOUVEAU VÉHICULE DÉDIÉ dès le premier document d'un modèle distinct
       if (extractedPlate || extractedVin || extractedMake || extractedModel || documentType === "carte_grise") {
         const targetFoyerId = resolvedFoyerId || (vehicleList[0]?.foyer_id ?? "11111111-1111-1111-1111-111111111111");
         const yearVal = extractedFirstReg
@@ -418,8 +434,13 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           matchedVehicle = newVehicle as Vehicule;
         }
       } else if (!extractedPlate && vehicleList.length === 1) {
-        // Uniquement si aucun numéro d'immatriculation n'est extrait et qu'il n'y a qu'un seul véhicule dans le foyer
-        matchedVehicle = vehicleList[0];
+        // Uniquement si la marque/modèle concorde strictement avec le véhicule unique
+        const onlyVeh = vehicleList[0];
+        const vMake = (onlyVeh.marque || "").toUpperCase();
+        const docMake = (extractedMake || "").toUpperCase();
+        if (!docMake || vMake.includes(docMake) || docMake.includes(vMake)) {
+          matchedVehicle = onlyVeh;
+        }
       }
     }
 
