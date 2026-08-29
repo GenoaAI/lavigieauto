@@ -6,6 +6,7 @@ import { calculateConformityScore, ConformityAuditResult, TechnicalInspectionHis
 import { MaintenanceCategory } from "@/lib/ai";
 import { generateReservationKit, ReservationKit } from "@/lib/engine/reservation-kit";
 import { calculateVehicleTireAssessment, VehicleTireAssessment } from "@/lib/engine/tires";
+import { calculateVehicleBrakeAssessment, VehicleBrakeAssessment } from "@/lib/engine/brakes";
 import { fetchOnlineManufacturerPlan, OfficialMaintenancePlan } from "@/lib/engine/manufacturer-retriever";
 import { resolveRecommendedGarage, ResolveGarageResult, EnrichedGarage } from "@/lib/engine/garage-resolver";
 import { reconcileSingleOperationWithHistory } from "@/lib/engine/reconciliation";
@@ -51,6 +52,7 @@ export interface VehicleDetailsActionResult {
   conformity: ConformityAuditResult;
   reservationKit: ReservationKit;
   tires: VehicleTireAssessment;
+  brakes: VehicleBrakeAssessment;
   garageRecommendation?: ResolveGarageResult;
 }
 
@@ -334,6 +336,34 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     invoices: allTireOperations,
   });
 
+  const inspectionsForBrakes = (vehicle.documents_sources || [])
+    .filter((d) => d.file_type === "controle_technique")
+    .map((d) => {
+      const ocr = (d.ocr_structured_data || {}) as any;
+      return {
+        date: d.date_document || "2026-08-20",
+        mileage: d.kilometrage_document || vehicle.kilometrage_actuel || 0,
+        observations: ocr.observations ? JSON.stringify(ocr.observations) : undefined,
+        isFavorable: ocr.inspectionResult?.isFavorable ?? true,
+        defects: (vehicle.defaillances_ct || []).map((df) => ({
+          code: df.code_defaillance || undefined,
+          description: df.libelle,
+        })),
+      };
+    });
+
+  const brakes = calculateVehicleBrakeAssessment({
+    vehicleId: vehicle.id,
+    currentMileage: vehicle.kilometrage_actuel || 0,
+    dailyKmRate: forecast.vehiclePace.dailyKmRate,
+    make: vehicle.marque,
+    model: vehicle.modele,
+    version: vehicle.version || undefined,
+    transmission: vehicle.boite_vitesse || undefined,
+    invoices: allTireOperations,
+    inspections: inspectionsForBrakes,
+  });
+
   const garageRecommendation = resolveRecommendedGarage({
     vehicle,
     garages: foyerData.garages || [],
@@ -347,6 +377,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     conformity,
     reservationKit,
     tires,
+    brakes,
     garageRecommendation,
   };
 }

@@ -25,6 +25,7 @@ import { testManufacturerPlanRobustness } from "./manufacturer-plan-robustness.t
 import { runAdversarialPowertrainTests } from "./adversarial-powertrain-archetypes.test";
 import { testVitaraFullStackNonRegression } from "./vitara-non-regression.test";
 import { testVehicleCatalogResolution } from "./vehicle-catalog.test";
+import { testBrakePredictiveEngine } from "./brakes.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -63,6 +64,7 @@ async function runAllTests() {
     { name: "Matrice Multi-Archetypes & Stress Adversarial (Challenger 2)", fn: runAdversarialPowertrainTests },
     { name: "Non-Régression Formelle Suzuki Vitara 1.6 VVT AllGrip (M16A Full Stack)", fn: testVitaraFullStackNonRegression },
     { name: "Référentiel Catalogue Véhicules & Découplage Zéro Hardcoding", fn: testVehicleCatalogResolution },
+    { name: "Moteur Prédictif du Freinage (Plaquettes, Disques & Usure Atelier)", fn: testBrakePredictiveEngine },
   ];
 
 

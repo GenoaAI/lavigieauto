@@ -7,6 +7,7 @@ import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
 import { DeleteVehicleModal } from "@/components/vehicles/DeleteVehicleModal";
 import { TireWearTracker } from "@/components/vehicles/TireWearTracker";
+import { BrakeWearTracker } from "@/components/vehicles/BrakeWearTracker";
 import { VehicleVaultList } from "@/components/vault/VehicleVaultList";
 import {
   getVehicleDetailsAction,
@@ -1038,6 +1039,16 @@ export function VehicleDetailClientView({
                 />
               )}
 
+              {/* SUIVI PRÉDICTIF DU FREINAGE (PLAQUETTES & DISQUES) */}
+              {vehicleData?.brakes && (
+                <BrakeWearTracker
+                  assessment={vehicleData.brakes}
+                  vehicleName={`${v.marque} ${v.modele}`}
+                  licensePlate={v.immatriculation}
+                  vehicleId={v.id}
+                />
+              )}
+
               {/* BILAN CONTRÔLE TECHNIQUE */}
               {(() => {
                 const ctDoc = (v.documents_sources || []).find((d: any) => d.file_type === "controle_technique");
@@ -1462,6 +1473,16 @@ export function VehicleDetailClientView({
           {vehicleData?.tires && (
             <TireWearTracker
               assessment={vehicleData.tires}
+              vehicleName={`${v.marque} ${v.modele}`}
+              licensePlate={v.immatriculation}
+              vehicleId={v.id}
+            />
+          )}
+
+          {/* 5. SUIVI PRÉDICTIF & SÉCURITÉ DU FREINAGE (PLAQUETTES & DISQUES) */}
+          {vehicleData?.brakes && (
+            <BrakeWearTracker
+              assessment={vehicleData.brakes}
               vehicleName={`${v.marque} ${v.modele}`}
               licensePlate={v.immatriculation}
               vehicleId={v.id}
