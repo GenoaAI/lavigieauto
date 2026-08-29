@@ -63,8 +63,8 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
           }}
           className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
         >
-          <Wrench className="w-3.5 h-3.5 text-rose-400" />
-          <span>Kit Devis Freins</span>
+          <Wrench className="w-3.5 h-3.5 text-amber-400" />
+          <span>Devis Freinage</span>
         </button>
       }
       bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
@@ -88,18 +88,18 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
         </div>
       )}
 
-      {/* MODAL / TIROIR KIT DEVIS FREINAGE */}
+      {/* MODAL / TIROIR KIT DEVIS FREINAGE (IDENTIQUE AU DESIGN PNEUS) */}
       {showQuoteKit && (
-        <div className="p-5 bg-gradient-to-br from-slate-900 via-rose-950/40 to-slate-950 text-white rounded-2xl space-y-4 shadow-lg animate-in fade-in">
+        <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 shadow-lg animate-in fade-in border border-slate-800">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
-              <Gauge className="w-4 h-4 text-rose-400" />
-              <h3 className="text-sm font-bold">Script Garagiste & Estimation Budget Freinage</h3>
+              <Gauge className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-white">Script Garagiste & Estimation Budget Freinage</h3>
             </div>
             <button
               type="button"
               onClick={() => setShowQuoteKit(false)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-slate-400 hover:text-white transition"
             >
               ✕ Fermer
             </button>
@@ -108,24 +108,24 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
           <div className="grid sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white/10 rounded-xl space-y-1">
               <span className="text-slate-400 block font-semibold text-[11px]">Forfait Plaquettes seules (TTC posé) :</span>
-              <p className="font-bold text-emerald-400 text-sm">
+              <p className="font-mono font-bold text-emerald-400 text-sm">
                 ~{assessment.estimatedCostRange.padsOnlyTTC.min} € à {assessment.estimatedCostRange.padsOnlyTTC.max} € TTC
               </p>
-              <p className="text-slate-300 text-[11px]">Jeu de plaquettes avant homologuées constructeur + MO</p>
+              <p className="text-slate-300 text-[11px]">Jeu de plaquettes homologuées constructeur + pose</p>
             </div>
             <div className="p-3 bg-white/10 rounded-xl space-y-1">
               <span className="text-slate-400 block font-semibold text-[11px]">Pack Combiné Disques + Plaquettes (TTC posé) :</span>
-              <p className="font-bold text-rose-300 text-sm">
+              <p className="font-mono font-bold text-white text-sm">
                 ~{assessment.estimatedCostRange.discsAndPadsTTC.min} € à {assessment.estimatedCostRange.discsAndPadsTTC.max} € TTC
               </p>
-              <p className="text-slate-300 text-[11px]">Économise 1 main d&apos;œuvre de dépose si les disques sont en fin de vie</p>
+              <p className="text-slate-300 text-[11px]">Économise 1 forfait de main-d&apos;œuvre si les disques sont à remplacer</p>
             </div>
           </div>
 
-          <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-xs text-rose-100 space-y-1">
-            <span className="font-bold text-rose-300">💡 Script téléphonique prêt-à-dire :</span>
-            <p className="italic">
-              « Bonjour, je souhaite un devis pour le remplacement des <strong>plaquettes de frein {assessment.nextReplacementAxle === "BOTH" ? "avant et arrière" : assessment.nextReplacementAxle === "FRONT" ? "avant" : "arrière"}</strong> pour mon {vehicleName} ({licensePlate}). Merci de me préciser également l&apos;épaisseur de mes disques et si un remplacement combiné est conseillé. »
+          <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-xs text-indigo-100 space-y-1">
+            <span className="font-bold text-amber-300">💡 Script téléphonique prêt-à-dire :</span>
+            <p className="italic text-slate-200">
+              « Bonjour, je souhaite un devis pour le remplacement des <strong>plaquettes de frein {assessment.nextReplacementAxle === "BOTH" ? "avant et arrière" : assessment.nextReplacementAxle === "FRONT" ? "avant" : "arrière"}</strong> pour mon {vehicleName} ({licensePlate}). Avez-vous les pièces homologuées constructeur en stock et pouvez-vous également vérifier l&apos;épaisseur de mes disques ? »
             </p>
           </div>
         </div>
@@ -136,66 +136,74 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
         <button
           type="button"
           onClick={() => setSelectedAxle("FRONT")}
-          className={
-            "p-3.5 rounded-2xl border text-left transition relative " +
-            (selectedAxle === "FRONT"
-              ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-rose-500/20"
-              : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200")
-          }
+          className={`p-4 rounded-2xl text-left border transition ${
+            selectedAxle === "FRONT"
+              ? "border-rose-600 bg-rose-50/50 shadow-sm ring-2 ring-rose-500/20"
+              : "border-slate-200 hover:border-slate-300 bg-white"
+          }`}
         >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider opacity-75">
-              Essieu Avant
-            </span>
-            <span
-              className={
-                "text-[10px] font-bold px-1.5 py-0.5 rounded-md " +
-                (selectedAxle === "FRONT"
-                  ? "bg-rose-500 text-white"
-                  : front.wearPercentage >= 75
-                  ? "bg-rose-100 text-rose-700"
-                  : "bg-emerald-100 text-emerald-700")
-              }
-            >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-900">Train Avant (70% Puissance)</span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+              front.wearPercentage >= 80
+                ? "bg-rose-100 text-rose-800"
+                : front.wearPercentage >= 50
+                ? "bg-amber-100 text-amber-800"
+                : "bg-emerald-100 text-emerald-800"
+            }`}>
               {front.remainingLiningThicknessMm} mm
             </span>
           </div>
-          <p className="font-bold text-sm truncate">70% Force Freinage</p>
-          <p className="text-[11px] opacity-75 mt-0.5 truncate">
-            {100 - front.wearPercentage}% santé • {front.statusLabel}
+          <p className="text-[11px] text-slate-500 mt-1 truncate">
+            {front.statusLabel} • {front.wearPercentage}% d&apos;usure
+          </p>
+          <div className="mt-2.5 w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                front.wearPercentage >= 80 ? "bg-rose-500" : front.wearPercentage >= 50 ? "bg-amber-500" : "bg-emerald-500"
+              }`}
+              style={{ width: `${Math.max(5, 100 - front.wearPercentage)}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-slate-500 font-semibold mt-1.5">
+            {100 - front.wearPercentage}% de garniture (~{front.remainingKm.toLocaleString()} km)
           </p>
         </button>
 
         <button
           type="button"
           onClick={() => setSelectedAxle("REAR")}
-          className={
-            "p-3.5 rounded-2xl border text-left transition relative " +
-            (selectedAxle === "REAR"
-              ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-rose-500/20"
-              : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200")
-          }
+          className={`p-4 rounded-2xl text-left border transition ${
+            selectedAxle === "REAR"
+              ? "border-rose-600 bg-rose-50/50 shadow-sm ring-2 ring-rose-500/20"
+              : "border-slate-200 hover:border-slate-300 bg-white"
+          }`}
         >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider opacity-75">
-              Essieu Arrière
-            </span>
-            <span
-              className={
-                "text-[10px] font-bold px-1.5 py-0.5 rounded-md " +
-                (selectedAxle === "REAR"
-                  ? "bg-rose-500 text-white"
-                  : rear.wearPercentage >= 75
-                  ? "bg-rose-100 text-rose-700"
-                  : "bg-emerald-100 text-emerald-700")
-              }
-            >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-900">Train Arrière (30% Puissance)</span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+              rear.wearPercentage >= 80
+                ? "bg-rose-100 text-rose-800"
+                : rear.wearPercentage >= 50
+                ? "bg-amber-100 text-amber-800"
+                : "bg-emerald-100 text-emerald-800"
+            }`}>
               {rear.remainingLiningThicknessMm} mm
             </span>
           </div>
-          <p className="font-bold text-sm truncate">30% Force Freinage</p>
-          <p className="text-[11px] opacity-75 mt-0.5 truncate">
-            {100 - rear.wearPercentage}% santé • {rear.statusLabel}
+          <p className="text-[11px] text-slate-500 mt-1 truncate">
+            {rear.statusLabel} • {rear.wearPercentage}% d&apos;usure
+          </p>
+          <div className="mt-2.5 w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                rear.wearPercentage >= 80 ? "bg-rose-500" : rear.wearPercentage >= 50 ? "bg-amber-500" : "bg-emerald-500"
+              }`}
+              style={{ width: `${Math.max(5, 100 - rear.wearPercentage)}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-slate-500 font-semibold mt-1.5">
+            {100 - rear.wearPercentage}% de garniture (~{rear.remainingKm.toLocaleString()} km)
           </p>
         </button>
       </div>
