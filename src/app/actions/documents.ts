@@ -330,8 +330,13 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     const vehicleList = (allFoyerVehicles || []) as Vehicule[];
     let matchedVehicle: Vehicule | null = null;
 
-    // A. Recherche par immatriculation ou VIN exact
-    if (extractedPlate || extractedVin) {
+    // A. Si vehicleId est explicitement fourni dans l'appel :
+    if (vehicleId) {
+      matchedVehicle = vehicleList.find((v) => v.id === vehicleId) || null;
+    }
+
+    // B. Recherche par immatriculation ou VIN exact
+    if (!matchedVehicle && (extractedPlate || extractedVin)) {
       matchedVehicle =
         vehicleList.find((v) => {
           const vPlate = (v.immatriculation || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -343,9 +348,9 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         }) || null;
     }
 
-    // B. Si aucun véhicule existant ne correspond à la plaque/VIN extraite :
+    // C. Si aucun véhicule existant ne correspond à la plaque/VIN extraite :
     if (!matchedVehicle) {
-      // Résolution dynamique du foyer du foyer actif
+      // Résolution dynamique du foyer actif
       let resolvedFoyerId: string | null = null;
       if (user) {
         const { data: mem } = await (adminSupabase as any)
@@ -365,10 +370,14 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         if (firstFoyer?.id) resolvedFoyerId = firstFoyer.id;
       }
 
-      if (documentType === "carte_grise" && (extractedPlate || extractedVin)) {
-        // CAS : Scan d'une Carte Grise d'un nouveau véhicule -> CRÉATION AUTOMATIQUE DU VÉHICULE DANS LE FOYER !
+      // CRÉATION AUTOMATIQUE DU VÉHICULE DANS LE FOYER dès le premier document (Carte Grise, Facture ou CT)
+      if (extractedPlate || extractedVin || extractedMake || extractedModel || documentType === "carte_grise") {
         const targetFoyerId = resolvedFoyerId || (vehicleList[0]?.foyer_id ?? "11111111-1111-1111-1111-111111111111");
-        const yearVal = extractedFirstReg ? parseInt(extractedFirstReg.split("-")[0]) : new Date().getFullYear();
+        const yearVal = extractedFirstReg
+          ? parseInt(extractedFirstReg.split("-")[0])
+          : docDate
+          ? parseInt(docDate.split("-")[0])
+          : 2021;
 
         const makeStr = (extractedMake || "").toUpperCase().trim();
         const modelStr = (extractedModel || "").toUpperCase().trim();
@@ -378,12 +387,12 @@ export async function processDocumentAction(formData: FormData): Promise<Process
 
         if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
           defaultImg = "/images/vehicles/suzuki-vitara-2016.jpg";
-          enhancedVersion = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
-          dinPower = 120;
-        } else if (modelStr.includes("ESPACE")) {
+          enhancedVersion = enhancedVersion || "1.6 VVT 120 ch 2WD (LYD21SAT2)";
+          dinPower = dinPower || 120;
+        } else if (makeStr.includes("RENAULT") || modelStr.includes("ESPACE")) {
           defaultImg = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";
-          enhancedVersion = "2.0 Blue dCi 200 ch EDC Initiale Paris";
-          dinPower = 200;
+          enhancedVersion = enhancedVersion || "2.0 Blue dCi 200 ch EDC Initiale Paris";
+          dinPower = dinPower || 200;
         } else if (modelStr.includes("CLIO")) {
           defaultImg = "/images/vehicles/renault-clio-2007.jpg";
           const kw = extractedPowerKw || 0;
@@ -406,26 +415,26 @@ export async function processDocumentAction(formData: FormData): Promise<Process
             foyer_id: targetFoyerId,
             immatriculation: extractedPlate || "NOUVEAU",
             vin: extractedVin || null,
-            marque: extractedMake || "Véhicule",
-            modele: extractedModel || "Modèle",
+            marque: extractedMake || (modelStr.includes("ESPACE") ? "Renault" : "Véhicule"),
+            modele: extractedModel || (modelStr.includes("ESPACE") ? "Espace V" : "Modèle"),
             version: enhancedVersion,
-            annee_mise_en_circulation: isNaN(yearVal) ? 2020 : yearVal,
-            date_premiere_immatriculation: extractedFirstReg || new Date().toISOString().split("T")[0],
-            kilometrage_actuel: 0,
-            date_releve_kilometrage: extractedFirstReg || new Date().toISOString().split("T")[0],
+            annee_mise_en_circulation: isNaN(yearVal) ? 2021 : yearVal,
+            date_premiere_immatriculation: extractedFirstReg || (docDate ? `${docDate.split("-")[0]}-01-01` : new Date().toISOString().split("T")[0]),
+            kilometrage_actuel: extractedMileage || 0,
+            date_releve_kilometrage: docDate || new Date().toISOString().split("T")[0],
             energie: extractedFuel
               ? extractedFuel.toLowerCase().includes("es")
                 ? "essence"
                 : extractedFuel.toLowerCase().includes("go")
                 ? "diesel"
                 : "hybride"
-              : "essence",
-            puissance_fiscale: extractedFiscalPower || 6,
+              : (modelStr.includes("ESPACE") || modelStr.includes("DCI") ? "diesel" : "essence"),
+            puissance_fiscale: extractedFiscalPower || (modelStr.includes("ESPACE") ? 11 : 6),
             puissance_din: dinPower,
             statut: "actif",
             image_url: defaultImg,
-            usage_type: "secondaire",
-            km_annuel_moyen: 10000,
+            usage_type: "principal",
+            km_annuel_moyen: 12000,
           })
           .select()
           .single();
@@ -433,9 +442,8 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         if (newVehicle) {
           matchedVehicle = newVehicle as Vehicule;
         }
-      } else if (vehicleId) {
-        matchedVehicle = vehicleList.find((v) => v.id === vehicleId) || null;
-      } else if (vehicleList.length > 0) {
+      } else if (!extractedPlate && vehicleList.length === 1) {
+        // Uniquement si aucun numéro d'immatriculation n'est extrait et qu'il n'y a qu'un seul véhicule dans le foyer
         matchedVehicle = vehicleList[0];
       }
     }
