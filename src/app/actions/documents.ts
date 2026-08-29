@@ -600,13 +600,23 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     const finalStoragePath = vaultUpload.storagePath || `uploads/${foyerId}/${Date.now()}_${file.name}`;
     const finalFileName = vaultUpload.fileName || file.name;
 
+    const enrichedData = {
+      ...data,
+      _metadata: {
+        fileHash,
+        originalFileName: file.name,
+        fileSize: buffer.byteLength,
+        uploadedAt: new Date().toISOString(),
+      },
+    };
+
     // Dédoublonnage intelligent multi-critères : recherche par véhicule et type
     let documentId: string | null = null;
 
     if (vehicleId) {
       const { data: existingDocs } = await (adminSupabase as any)
         .from("documents_sources")
-        .select("id, date_document, kilometrage_document, emetteur, nom_fichier, file_type, ocr_structured_data, montant_ttc")
+        .select("id, date_document, kilometrage_document, emetteur, nom_fichier, file_type, ocr_structured_data, montant_ttc, storage_path, taille_octets")
         .eq("vehicule_id", vehicleId)
         .eq("file_type", documentType);
 
@@ -623,7 +633,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         const currentNormNum = extractedInvoiceNumber ? extractedInvoiceNumber.toString().trim().toUpperCase() : null;
         const existNormNum = existingInvNum ? existingInvNum.toString().trim().toUpperCase() : null;
 
-        // 1. Si les deux documents ont un numéro de facture non vide et non générique :
+        // 1. RÈGLE N°1 : Même numéro de facture officiel exact et non vide
         if (currentNormNum && existNormNum && currentNormNum.length >= 2 && existNormNum.length >= 2) {
           if (currentNormNum === existNormNum) {
             return true; // Même numéro de facture exact -> VRAI doublon
@@ -632,62 +642,23 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           }
         }
 
-        // 2. Si les dates sont distinctes -> PAS un doublon (ex: 11/12/2023 vs 15/12/2023)
-        if (existing.date_document && docDate && existing.date_document !== docDate) {
-          return false;
+        // 2. RÈGLE N°2 : Même empreinte cryptographique de fichier (SHA-256 du contenu)
+        const existingHash = existing.ocr_structured_data?._metadata?.fileHash || (existing.storage_path ? existing.storage_path.split("_").pop()?.replace(/\.[^.]+$/, "") : null);
+        if (existingHash && fileHash && existingHash === fileHash) {
+          return true; // Exactement le même fichier uploadé une 2ème fois
         }
 
-        // 3. Si les montants sont tous les deux présents et significativement différents (> 0.50 €) -> PAS un doublon
-        const existAmount = Number(existing.montant_ttc || existing.ocr_structured_data?.invoice?.totalTTC || 0);
-        const currAmount = Number(totalTTC || 0);
-        if (existAmount > 0 && currAmount > 0 && Math.abs(existAmount - currAmount) > 0.50) {
-          return false;
-        }
-
-        // 4. Détection des noms de fichiers génériques (mobiles, scan, appareil photo)
-        const isGenericName = (name: string) => {
-          const lower = (name || "").toLowerCase();
-          return (
-            lower.startsWith("image") ||
-            lower.startsWith("img_") ||
-            lower.startsWith("photo") ||
-            lower.startsWith("scan") ||
-            lower.startsWith("facture") ||
-            lower.startsWith("document") ||
-            lower.startsWith("file") ||
-            lower.startsWith("upload") ||
-            lower.startsWith("sans_titre") ||
-            lower === "facture.pdf" ||
-            lower === "scan.pdf" ||
-            lower === "image.png" ||
-            lower === "image.jpg" ||
-            lower === "image.jpeg"
-          );
-        };
-
-        // Si le nom de fichier est spécifique et strictement identique ET sans contradiction sur montant/date
+        // 3. RÈGLE N°3 : Même nom de fichier source brut ET même taille exacte en octets ET même date ET même montant
         if (
-          existing.nom_fichier &&
-          (existing.nom_fichier === file.name || existing.nom_fichier === finalFileName) &&
-          !isGenericName(file.name)
-        ) {
-          return true;
-        }
-
-        // 5. Même date ET même montant non nul ET même émetteur (triplet strict quand pas de numéro de facture)
-        if (
-          existing.date_document &&
+          existing.nom_fichier === file.name &&
+          existing.taille_octets === buffer.byteLength &&
           existing.date_document === docDate &&
-          currAmount > 0 &&
-          existAmount > 0 &&
-          Math.abs(existAmount - currAmount) < 0.05 &&
-          docEmitter &&
-          existing.emetteur &&
-          existing.emetteur.toLowerCase().trim() === docEmitter.toLowerCase().trim()
+          Math.abs(Number(existing.montant_ttc || 0) - Number(totalTTC || 0)) < 0.05
         ) {
           return true;
         }
 
+        // DANS TOUS LES AUTRES CAS : DEUX DOCUMENTS DISTINCTS -> NE JAMAIS FUSIONNER NI ÉCRASER !
         return false;
       });
 
@@ -703,7 +674,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
             mime_type: file.type || "application/pdf",
             taille_octets: buffer.byteLength,
             statut_ocr: "traite",
-            ocr_structured_data: data,
+            ocr_structured_data: enrichedData,
             confidence_score: extractionResult.confidenceScore ? Math.round(extractionResult.confidenceScore * 100) : 95,
             date_document: matchingDoc.date_document || docDate,
             kilometrage_document: extractedMileage || matchingDoc.kilometrage_document,
@@ -732,7 +703,7 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           mime_type: file.type || "application/pdf",
           taille_octets: buffer.byteLength,
           statut_ocr: "traite",
-          ocr_structured_data: data,
+          ocr_structured_data: enrichedData,
           confidence_score: extractionResult.confidenceScore ? Math.round(extractionResult.confidenceScore * 100) : 95,
           date_document: docDate,
           kilometrage_document: extractedMileage,
