@@ -47,17 +47,35 @@ export interface ConformityAuditResult {
   certifiedAt: string;
 }
 
-/**
- * Calculate the Manufacturer Conformity Score (Score de Conformité Constructeur)
- */
-export function calculateConformityScore(params: {
+export interface ConformityCalculationParams {
   vehicleFirstRegistration: string;
   currentMileage: number;
   maintenanceHistory: MaintenanceHistoryItem[];
   ctHistory: TechnicalInspectionHistoryItem[];
   overdueMilestones: ProjectedMilestone[];
-}): ConformityAuditResult {
-  const { maintenanceHistory, ctHistory, overdueMilestones } = params;
+  brakeSafetyAssessment?: {
+    urgentActionNeeded?: boolean;
+    globalHealthScore?: number;
+    frontWearPercentage?: number;
+    rearWearPercentage?: number;
+  };
+  tireSafetyAssessment?: {
+    urgentActionNeeded?: boolean;
+    globalHealthScore?: number;
+  };
+}
+
+/**
+ * Calculate the Manufacturer Conformity Score (Score de Conformité Constructeur)
+ */
+export function calculateConformityScore(params: ConformityCalculationParams): ConformityAuditResult {
+  const {
+    maintenanceHistory,
+    ctHistory,
+    overdueMilestones,
+    brakeSafetyAssessment,
+    tireSafetyAssessment,
+  } = params;
 
   // 1. Timeline compliance (35%)
   let timelineScore = 100;
@@ -77,7 +95,7 @@ export function calculateConformityScore(params: {
     );
   }
 
-  // 3. Critical safety operations (25%)
+  // 3. Critical safety operations & Wear Sensors (25%)
   let safetyScore = 100;
   const criticalCategories: MaintenanceCategory[] = [
     'DRAIN_OIL',
@@ -93,6 +111,17 @@ export function calculateConformityScore(params: {
   if (missingCriticalOverdue.length > 0) {
     safetyScore -= missingCriticalOverdue.length * 25;
   }
+
+  // Pénalisation immédiate si une alerte de sécurité active est détectée (Freins ou Pneus)
+  const hasBrakeEmergency = brakeSafetyAssessment?.urgentActionNeeded === true;
+  const hasTireEmergency = tireSafetyAssessment?.urgentActionNeeded === true;
+
+  if (hasBrakeEmergency) {
+    safetyScore = Math.min(safetyScore, 35);
+  }
+  if (hasTireEmergency) {
+    safetyScore = Math.min(safetyScore, 35);
+  }
   safetyScore = Math.max(0, Math.min(100, safetyScore));
 
   // 4. CT History (20%)
@@ -105,12 +134,18 @@ export function calculateConformityScore(params: {
   }
 
   // Weighted overall score
-  const overallScore = Math.round(
+  let overallScore = Math.round(
     timelineScore * 0.35 +
       authenticityScore * 0.2 +
       safetyScore * 0.25 +
       ctScore * 0.2
   );
+
+  // GARDE-FOU STRICT DE SÉCURITÉ : Interdiction d'une note A/A+ si une alerte rouge est active
+  const hasAnyCriticalAlert = hasBrakeEmergency || hasTireEmergency || missingCriticalOverdue.length > 0;
+  if (hasAnyCriticalAlert) {
+    overallScore = Math.min(overallScore, 68); // Plafond strict à 68% (Note C / B max)
+  }
 
   let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F' = 'B';
   let certificationTitle = 'Suivi Régulier';
@@ -118,13 +153,13 @@ export function calculateConformityScore(params: {
   let timeToSell = 30;
   let buyerConfidence: 'TRES_ELEVE' | 'ELEVE' | 'MOYEN' | 'FAIBLE' = 'MOYEN';
 
-  if (overallScore >= 90) {
+  if (!hasAnyCriticalAlert && overallScore >= 90) {
     grade = 'A+';
     certificationTitle = 'Exemplaire — Suivi Constructeur Intégral';
     bonusPercent = 10;
     timeToSell = 12;
     buyerConfidence = 'TRES_ELEVE';
-  } else if (overallScore >= 80) {
+  } else if (!hasAnyCriticalAlert && overallScore >= 80) {
     grade = 'A';
     certificationTitle = 'Très Bon Entretien — Dossier Complet';
     bonusPercent = 6;
@@ -132,19 +167,19 @@ export function calculateConformityScore(params: {
     buyerConfidence = 'ELEVE';
   } else if (overallScore >= 65) {
     grade = 'B';
-    certificationTitle = 'Entretien Conforme';
-    bonusPercent = 2;
+    certificationTitle = hasAnyCriticalAlert ? 'Entretien à Régulariser (Alerte Sécurité)' : 'Entretien Conforme';
+    bonusPercent = hasAnyCriticalAlert ? 0 : 2;
     timeToSell = 25;
     buyerConfidence = 'MOYEN';
   } else if (overallScore >= 50) {
     grade = 'C';
-    certificationTitle = 'Entretien Partiel';
+    certificationTitle = 'Intervention Requise Avant Revente';
     bonusPercent = -5;
     timeToSell = 40;
     buyerConfidence = 'FAIBLE';
   } else {
     grade = 'F';
-    certificationTitle = 'Historique Incomplet';
+    certificationTitle = 'Historique Incomplet / Défauts Critiques';
     bonusPercent = -12;
     timeToSell = 60;
     buyerConfidence = 'FAIBLE';
@@ -153,12 +188,28 @@ export function calculateConformityScore(params: {
   const strengths: string[] = [];
   const weaknesses: string[] = [];
 
-  if (safetyScore >= 90) strengths.push('Organes de sécurité (freinage, pneumatiques) à jour des préconisations.');
-  if (ctScore >= 90) strengths.push('Bilan Contrôle Technique vierge ou défaillances corrigées.');
-  if (authenticityScore >= 80) strengths.push('Factures professionnelles certifiées disponibles.');
+  if (!hasBrakeEmergency && !hasTireEmergency && safetyScore >= 90) {
+    strengths.push('Organes de sécurité (freinage, pneumatiques) à jour des préconisations constructeur.');
+  }
+  if (ctScore >= 90) {
+    strengths.push('Bilan Contrôle Technique vierge ou favorable sans défaillance majeure.');
+  }
+  if (authenticityScore >= 80) {
+    strengths.push('Factures professionnelles certifiées disponibles dans le coffre-fort.');
+  }
 
-  if (timelineScore < 70) weaknesses.push('Des échéances d entretien préventif sont en retard.');
-  if (authenticityScore < 60) weaknesses.push('Factures justificatives manquantes sur certaines périodes.');
+  if (hasBrakeEmergency) {
+    weaknesses.push('Alerte Freinage : Remplacement urgent des plaquettes ou disques requis.');
+  }
+  if (hasTireEmergency) {
+    weaknesses.push('Alerte Pneumatiques : Remplacement requis (témoin d\'usure légal atteint).');
+  }
+  if (timelineScore < 70) {
+    weaknesses.push('Des échéances d\'entretien préventif sont échues ou en retard.');
+  }
+  if (authenticityScore < 60) {
+    weaknesses.push('Factures justificatives manquantes sur certaines périodes.');
+  }
 
   return {
     overallScore,

@@ -60,6 +60,29 @@ export function testConformityScore() {
   if (result.resaleImpact.estimatedValueBonusPercent <= 0) {
     throw new Error("La valorisation à la revente devrait être positive.");
   }
+  console.log(`  ✔ Score exemplaire calculé : ${result.overallScore}% (${result.grade}) — Bonus revente : +${result.resaleImpact.estimatedValueBonusPercent}%.`);
 
-  console.log(`  ✔ Score calculé : ${result.overallScore}% (${result.grade}) — Bonus revente : +${result.resaleImpact.estimatedValueBonusPercent}%.`);
+  // 2. Test pénalisation stricte en cas d'alerte sécurité freinage (ex: Espace V avec plaquettes à 80%)
+  const penalizedResult = calculateConformityScore({
+    vehicleFirstRegistration: "2020-03-15",
+    currentMileage: 272448,
+    maintenanceHistory: [],
+    ctHistory: [],
+    overdueMilestones: [],
+    brakeSafetyAssessment: {
+      urgentActionNeeded: true,
+      globalHealthScore: 20,
+    },
+  });
+
+  if (penalizedResult.grade === "A" || penalizedResult.grade === "A+") {
+    throw new Error(`Grade non plafonné en cas d'alerte freinage : ${penalizedResult.grade}`);
+  }
+  if (penalizedResult.overallScore > 68) {
+    throw new Error(`Score non plafonné en cas d'alerte freinage : ${penalizedResult.overallScore}%`);
+  }
+  if (penalizedResult.resaleImpact.estimatedValueBonusPercent > 0) {
+    throw new Error("Bonus revente non neutralisé lors d'une alerte sécurité critique");
+  }
+  console.log(`  ✔ Garde-fou sécurité validé : alerte freinage plafonne le score à ${penalizedResult.overallScore}% (${penalizedResult.grade}) avec bonus neutralisé.`);
 }

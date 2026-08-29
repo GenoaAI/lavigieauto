@@ -258,41 +258,6 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
       };
     });
 
-  const conformity = calculateConformityScore({
-    vehicleFirstRegistration: regDate,
-    currentMileage: vehicle.kilometrage_actuel || 0,
-    maintenanceHistory: (vehicle.lignes_interventions || []).map((l) => ({
-      id: l.id || "int-1",
-      category: (l.categorie || "OTHER") as any,
-      title: l.description || l.operation || "Intervention",
-      performedDate: l.date_intervention || new Date().toISOString(),
-      mileage: l.kilometrage_intervention || 0,
-      totalCostTTC: Number(l.prix_total_ttc) || 0,
-      garageName: (l as any).emetteur || "Atelier",
-      invoiceUrl: l.document_source_id ? `vault://${l.document_source_id}` : "vault://doc",
-    })),
-    ctHistory,
-    overdueMilestones: forecast.projectedMilestones.filter((m) => m.urgency === "OVERDUE" || m.urgency === "CRITICAL"),
-  });
-
-  const urgentMilestones = forecast.projectedMilestones.filter((m) => m.urgency !== "OK");
-  const milestonesForKit = urgentMilestones.length > 0
-    ? urgentMilestones
-    : forecast.projectedMilestones.slice(0, 2);
-
-  const reservationKit = generateReservationKit({
-    vehicle: {
-      make: vehicle.marque,
-      model: vehicle.modele,
-      version: vehicle.version || undefined,
-      licensePlate: vehicle.immatriculation,
-      vin: vehicle.vin || undefined,
-      currentMileage: vehicle.kilometrage_actuel || 0,
-      fuelType: vehicle.energie || undefined,
-    },
-    upcomingMilestones: milestonesForKit,
-  });
-
   const allTireOperations: Array<{
     date: string;
     mileage: number;
@@ -373,6 +338,51 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     transmission: vehicle.boite_vitesse || undefined,
     invoices: allTireOperations,
     inspections: inspectionsForBrakes,
+  });
+
+  const conformity = calculateConformityScore({
+    vehicleFirstRegistration: regDate,
+    currentMileage: vehicle.kilometrage_actuel || 0,
+    maintenanceHistory: (vehicle.lignes_interventions || []).map((l) => ({
+      id: l.id || "int-1",
+      category: (l.categorie || "OTHER") as any,
+      title: l.description || l.operation || "Intervention",
+      performedDate: l.date_intervention || new Date().toISOString(),
+      mileage: l.kilometrage_intervention || 0,
+      totalCostTTC: Number(l.prix_total_ttc) || 0,
+      garageName: (l as any).emetteur || "Atelier",
+      invoiceUrl: l.document_source_id ? `vault://${l.document_source_id}` : "vault://doc",
+    })),
+    ctHistory,
+    overdueMilestones: forecast.projectedMilestones.filter((m) => m.urgency === "OVERDUE" || m.urgency === "CRITICAL"),
+    brakeSafetyAssessment: {
+      urgentActionNeeded: brakes.urgentActionNeeded,
+      globalHealthScore: brakes.globalHealthScore,
+      frontWearPercentage: brakes.frontAxle.wearPercentage,
+      rearWearPercentage: brakes.rearAxle.wearPercentage,
+    },
+    tireSafetyAssessment: {
+      urgentActionNeeded: tires.frontAxle.status === "CRITICAL" || tires.rearAxle.status === "CRITICAL",
+      globalHealthScore: Math.round(((100 - tires.frontAxle.wearPercentage) + (100 - tires.rearAxle.wearPercentage)) / 2),
+    },
+  });
+
+  const urgentMilestones = forecast.projectedMilestones.filter((m) => m.urgency !== "OK");
+  const milestonesForKit = urgentMilestones.length > 0
+    ? urgentMilestones
+    : forecast.projectedMilestones.slice(0, 2);
+
+  const reservationKit = generateReservationKit({
+    vehicle: {
+      make: vehicle.marque,
+      model: vehicle.modele,
+      version: vehicle.version || undefined,
+      licensePlate: vehicle.immatriculation,
+      vin: vehicle.vin || undefined,
+      currentMileage: vehicle.kilometrage_actuel || 0,
+      fuelType: vehicle.energie || undefined,
+    },
+    upcomingMilestones: milestonesForKit,
   });
 
   const garageRecommendation = resolveRecommendedGarage({

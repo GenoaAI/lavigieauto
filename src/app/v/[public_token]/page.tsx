@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldCheck, CheckCircle2, Award, Calendar, Wrench, ArrowRight, Car, FileCheck, Info } from "lucide-react";
+import { ShieldCheck, CheckCircle2, Award, Calendar, Wrench, ArrowRight, Car, FileCheck, Info, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { getVehicleDetailsAction, EnrichedVehicle } from "@/app/actions/vehicles";
 import { CertificateExportToolbar } from "@/components/certificate/CertificateExportToolbar";
@@ -45,6 +45,11 @@ export default async function PublicResaleReportPage({
   const overallScore = conformity?.overallScore ?? 94;
   const grade = conformity?.grade ?? "A+";
   const resaleBonusPercent = conformity?.resaleImpact?.estimatedValueBonusPercent ?? 8;
+  const brakes = result?.brakes;
+  const tires = result?.tires;
+  const hasOverdueMilestones = (result?.forecast?.projectedMilestones || []).some(
+    (m) => m.urgency === "OVERDUE" || m.urgency === "CRITICAL"
+  );
 
   // Groupement des lignes d'intervention par date et garage (facture complète)
   const groupedMap = new Map<string, any>();
@@ -71,9 +76,11 @@ export default async function PublicResaleReportPage({
 
   const auditedItems = [
     {
-      title: "Régularité des révisions & interventions certifiées",
-      status: "VALID",
-      detail: `${interventions.length > 0 ? `${interventions.length} passage(s) en atelier certifié(s)` : "Programme d'entretien constructeur respecté"} d'après les factures acquittées.`,
+      title: "Régularité des révisions & interventions constructeur",
+      status: hasOverdueMilestones ? "WARNING" : "VALID",
+      detail: hasOverdueMilestones
+        ? "Attention : une ou plusieurs échéances d'entretien constructeur sont échues et à régulariser avant revente."
+        : `${interventions.length > 0 ? `${interventions.length} passage(s) en atelier certifié(s)` : "Programme d'entretien constructeur respecté"} d'après les factures acquittées.`,
     },
     {
       title: "Cohérence de la progression kilométrique",
@@ -81,23 +88,37 @@ export default async function PublicResaleReportPage({
       detail: `Kilométrage certifié cohérent (${(vehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km) avec progression linéaire vérifiée par l'assistant.`,
     },
     {
-      title: "Contrôle Technique & Organes de sécurité",
+      title: "Système de Freinage & Sécurité Active",
+      status: brakes?.urgentActionNeeded ? "ACTION_REQUIRED" : "VALID",
+      detail: brakes?.urgentActionNeeded
+        ? `🚨 Intervention requise : plaquettes de frein avant à ${brakes.frontAxle.wearPercentage}% d'usure relevée. Remplacement immédiat conseillé.`
+        : brakes
+        ? `Organes de freinage conformes (~${brakes.frontAxle.remainingLiningThicknessMm} mm de garniture restante) et validés.`
+        : "Organes de freinage conformes et contrôlés.",
+    },
+    {
+      title: "Pneumatiques & Adhérence certifiés",
+      status: (tires?.frontAxle?.status === "CRITICAL" || tires?.rearAxle?.status === "CRITICAL") ? "ACTION_REQUIRED" : "VALID",
+      detail: (tires?.frontAxle?.status === "CRITICAL" || tires?.rearAxle?.status === "CRITICAL")
+        ? "🚨 Attention : pneumatiques au témoin d'usure légal (1.6 mm). Remplacement nécessaire."
+        : "Montes de pneumatiques conformes, factures d'ateliers et contrôle visuel récents sans usure anormale.",
+    },
+    {
+      title: "Contrôle Technique Réglementaire",
       status: "VALID",
       detail: hasCt
         ? "Procès-verbal de contrôle technique officiel numérisé et favorable (A). Zéro défaillance majeure ou critique."
         : "Bilan vierge de défaillance critique. Organes de sécurité conformes.",
     },
     {
-      title: "Pneumatiques & Adhérence certifiés",
-      status: "VALID",
-      detail: "Montes de pneumatiques conformes, factures d'ateliers et contrôle visuel récents sans usure anormale.",
-    },
-    {
-      title: "Traçabilité des factures d'ateliers",
+      title: "Traçabilité & Coffre-fort documentaire",
       status: "VALID",
       detail: "Toutes les opérations proviennent de factures professionnelles numérisées et vérifiées par l'assistant.",
     },
   ];
+
+  const scoreColorClass = overallScore >= 80 ? "text-emerald-600" : overallScore >= 65 ? "text-blue-600" : overallScore >= 50 ? "text-amber-600" : "text-rose-600";
+  const bonusColorClass = resaleBonusPercent > 0 ? "text-blue-600" : resaleBonusPercent === 0 ? "text-slate-600" : "text-rose-600";
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 sm:py-10 px-4 sm:px-6 lg:px-8 print:bg-white print:p-0">
@@ -153,12 +174,14 @@ export default async function PublicResaleReportPage({
             <div className="h-10 w-px bg-slate-200" />
             <div>
               <p className="text-xs text-slate-500 font-bold uppercase">Score de Santé</p>
-              <p className="text-2xl font-black text-emerald-600 mt-0.5">{overallScore}% ({grade})</p>
+              <p className={`text-2xl font-black mt-0.5 ${scoreColorClass}`}>{overallScore}% ({grade})</p>
             </div>
             <div className="h-10 w-px bg-slate-200" />
             <div>
               <p className="text-xs text-slate-500 font-bold uppercase">Bonus Revente</p>
-              <p className="text-2xl font-black text-blue-600 mt-0.5">+{resaleBonusPercent}%</p>
+              <p className={`text-2xl font-black mt-0.5 ${bonusColorClass}`}>
+                {resaleBonusPercent > 0 ? `+${resaleBonusPercent}%` : `${resaleBonusPercent}%`}
+              </p>
             </div>
           </div>
         </div>
@@ -168,11 +191,42 @@ export default async function PublicResaleReportPage({
           <h2 className="text-lg font-bold text-slate-900">Points de Contrôle & Conformité Constructeur</h2>
           <div className="space-y-4">
             {auditedItems.map((item, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+              <div
+                key={idx}
+                className={`p-4 rounded-2xl border flex items-start gap-3 ${
+                  item.status === "ACTION_REQUIRED"
+                    ? "bg-rose-50/70 border-rose-200"
+                    : item.status === "WARNING"
+                    ? "bg-amber-50/70 border-amber-200"
+                    : "bg-slate-50 border-slate-100"
+                }`}
+              >
+                {item.status === "ACTION_REQUIRED" ? (
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                ) : item.status === "WARNING" ? (
+                  <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                )}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">{item.detail}</p>
+                  <h3 className={`text-sm font-bold ${
+                    item.status === "ACTION_REQUIRED"
+                      ? "text-rose-950"
+                      : item.status === "WARNING"
+                      ? "text-amber-950"
+                      : "text-slate-900"
+                  }`}>
+                    {item.title}
+                  </h3>
+                  <p className={`text-xs mt-0.5 ${
+                    item.status === "ACTION_REQUIRED"
+                      ? "text-rose-800"
+                      : item.status === "WARNING"
+                      ? "text-amber-800"
+                      : "text-slate-500"
+                  }`}>
+                    {item.detail}
+                  </p>
                 </div>
               </div>
             ))}
