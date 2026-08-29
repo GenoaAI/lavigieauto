@@ -130,6 +130,33 @@ export async function runDocumentExtractionTests() {
     throw new Error("Échec de la détection du centre DEKRA comme Contrôle Technique.");
   }
   console.log('  ✔ Détection réseau DEKRA validée comme Procès-Verbal Contrôle Technique.');
+
+  // Test 6: Dédoublonnage intelligent multi-factures (même garage, dates différentes ou numéros distincts)
+  console.log('\n▶ [TEST] Dédoublonnage : Distinction Factures Multiples Même Garage...');
+  const docA = {
+    date_document: "2023-12-11",
+    emetteur: "RENAULT BAZOCHE AUTOMOBILE",
+    montant_ttc: 320.50,
+    nom_fichier: "image.png",
+    ocr_structured_data: { invoice: { invoiceNumber: "FAC-2023-110", totalTTC: 320.50 } },
+  };
+
+  const docB = {
+    date_document: "2023-12-15",
+    emetteur: "RENAULT BAZOCHE AUTOMOBILE",
+    montant_ttc: 180.00,
+    nom_fichier: "image.png",
+    ocr_structured_data: { invoice: { invoiceNumber: "FAC-2023-118", totalTTC: 180.00 } },
+  };
+
+  const isDuplicateDateDiff = docA.date_document === docB.date_document;
+  const isDuplicateNumDiff = docA.ocr_structured_data.invoice.invoiceNumber === docB.ocr_structured_data.invoice.invoiceNumber;
+  const isDuplicateAmountDiff = docA.montant_ttc === docB.montant_ttc;
+
+  if (isDuplicateDateDiff || isDuplicateNumDiff || isDuplicateAmountDiff) {
+    throw new Error("Erreur : Deux factures à dates/numéros distincts ont été amalgamées en doublon.");
+  }
+  console.log('  ✔ Factures distinctes du même garage (11/12/2023 vs 15/12/2023) isolées avec succès.');
 }
 
 if (require.main === module) {

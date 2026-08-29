@@ -577,12 +577,12 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     if (vehicleId) {
       const { data: existingDocs } = await (adminSupabase as any)
         .from("documents_sources")
-        .select("id, date_document, kilometrage_document, emetteur, nom_fichier, file_type, ocr_structured_data")
+        .select("id, date_document, kilometrage_document, emetteur, nom_fichier, file_type, ocr_structured_data, montant_ttc")
         .eq("vehicule_id", vehicleId)
         .eq("file_type", documentType);
 
       const matchingDoc = (existingDocs || []).find((existing: any) => {
-        // 1. Même numéro de facture officiel sur le même véhicule
+        // Numéro de facture officiel existant
         const existingInvNum =
           existing.ocr_structured_data?.invoice?.invoiceNumber ||
           existing.ocr_structured_data?.invoice?.numero ||
@@ -591,27 +591,67 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           existing.ocr_structured_data?.facture?.numero ||
           existing.ocr_structured_data?.facture?.numero_facture;
 
+        const currentNormNum = extractedInvoiceNumber ? extractedInvoiceNumber.toString().trim().toUpperCase() : null;
+        const existNormNum = existingInvNum ? existingInvNum.toString().trim().toUpperCase() : null;
+
+        // 1. Si les deux documents ont un numéro de facture non vide et non générique :
+        if (currentNormNum && existNormNum && currentNormNum.length >= 2 && existNormNum.length >= 2) {
+          if (currentNormNum === existNormNum) {
+            return true; // Même numéro de facture exact -> VRAI doublon
+          } else {
+            return false; // Numéros de facture distincts -> INTERVENTIONS DIFFÉRENTES, JAMAIS UN DOUBLON !
+          }
+        }
+
+        // 2. Si les dates sont distinctes -> PAS un doublon (ex: 11/12/2023 vs 15/12/2023)
+        if (existing.date_document && docDate && existing.date_document !== docDate) {
+          return false;
+        }
+
+        // 3. Si les montants sont tous les deux présents et significativement différents (> 0.50 €) -> PAS un doublon
+        const existAmount = Number(existing.montant_ttc || existing.ocr_structured_data?.invoice?.totalTTC || 0);
+        const currAmount = Number(totalTTC || 0);
+        if (existAmount > 0 && currAmount > 0 && Math.abs(existAmount - currAmount) > 0.50) {
+          return false;
+        }
+
+        // 4. Détection des noms de fichiers génériques (mobiles, scan, appareil photo)
+        const isGenericName = (name: string) => {
+          const lower = (name || "").toLowerCase();
+          return (
+            lower.startsWith("image") ||
+            lower.startsWith("img_") ||
+            lower.startsWith("photo") ||
+            lower.startsWith("scan") ||
+            lower.startsWith("facture") ||
+            lower.startsWith("document") ||
+            lower.startsWith("file") ||
+            lower.startsWith("upload") ||
+            lower.startsWith("sans_titre") ||
+            lower === "facture.pdf" ||
+            lower === "scan.pdf" ||
+            lower === "image.png" ||
+            lower === "image.jpg" ||
+            lower === "image.jpeg"
+          );
+        };
+
+        // Si le nom de fichier est spécifique et strictement identique ET sans contradiction sur montant/date
         if (
-          extractedInvoiceNumber &&
-          existingInvNum &&
-          extractedInvoiceNumber.toString().trim().toUpperCase() === existingInvNum.toString().trim().toUpperCase()
+          existing.nom_fichier &&
+          (existing.nom_fichier === file.name || existing.nom_fichier === finalFileName) &&
+          !isGenericName(file.name)
         ) {
           return true;
         }
 
-        // 2. Même nom de fichier exact sur le même véhicule
-        if (existing.nom_fichier && (existing.nom_fichier === file.name || existing.nom_fichier === finalFileName)) {
-          return true;
-        }
-
-        // 3. Même date ET même montant non nul ET même émetteur (si pas de numéro de facture disponible)
+        // 5. Même date ET même montant non nul ET même émetteur (triplet strict quand pas de numéro de facture)
         if (
-          !extractedInvoiceNumber &&
           existing.date_document &&
           existing.date_document === docDate &&
-          totalTTC &&
-          existing.montant_ttc &&
-          Math.abs(Number(existing.montant_ttc) - Number(totalTTC)) < 0.01 &&
+          currAmount > 0 &&
+          existAmount > 0 &&
+          Math.abs(existAmount - currAmount) < 0.05 &&
           docEmitter &&
           existing.emetteur &&
           existing.emetteur.toLowerCase().trim() === docEmitter.toLowerCase().trim()
