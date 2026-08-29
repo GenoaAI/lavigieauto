@@ -140,24 +140,51 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     );
   }
 
-  // Récupération exhaustive des relevés kilométriques certifiés
-  const readingsMap = new Map<string, number>();
+  // Récupération exhaustive des relevés kilométriques certifiés issus des pièces réelles
+  const docReadings: Array<{ date: string; km: number }> = [];
 
   (vehicle.documents_sources || [])
-    .filter((d) => d.kilometrage_document && d.date_document)
+    .filter((d) => Boolean(d.kilometrage_document && d.date_document))
     .forEach((d) => {
       if (d.date_document && d.kilometrage_document) {
-        readingsMap.set(d.date_document, Math.max(readingsMap.get(d.date_document) || 0, Number(d.kilometrage_document)));
+        docReadings.push({ date: d.date_document, km: Number(d.kilometrage_document) });
       }
     });
 
   (vehicle.lignes_interventions || [])
-    .filter((l) => l.kilometrage_intervention && l.date_intervention)
+    .filter((l) => Boolean(l.kilometrage_intervention && l.date_intervention))
     .forEach((l) => {
       if (l.date_intervention && l.kilometrage_intervention) {
-        readingsMap.set(l.date_intervention, Math.max(readingsMap.get(l.date_intervention) || 0, Number(l.kilometrage_intervention)));
+        docReadings.push({ date: l.date_intervention, km: Number(l.kilometrage_intervention) });
       }
     });
+
+  // Si des documents réels existent, le kilométrage réel certifié est celui de la pièce la plus récente
+  if (docReadings.length > 0) {
+    const sortedDocs = [...docReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const latestDoc = sortedDocs[0];
+    if (vehicle.kilometrage_actuel !== latestDoc.km) {
+      vehicle.kilometrage_actuel = latestDoc.km;
+      vehicle.date_releve_kilometrage = latestDoc.date;
+      (async () => {
+        try {
+          const adminSup = createAdminClient();
+          await (adminSup as any)
+            .from("vehicules")
+            .update({
+              kilometrage_actuel: latestDoc.km,
+              date_releve_kilometrage: latestDoc.date,
+            })
+            .eq("id", vehicle.id);
+        } catch {}
+      })();
+    }
+  }
+
+  const readingsMap = new Map<string, number>();
+  docReadings.forEach((r) => {
+    readingsMap.set(r.date, Math.max(readingsMap.get(r.date) || 0, r.km));
+  });
 
   if (vehicle.kilometrage_actuel && vehicle.date_releve_kilometrage) {
     readingsMap.set(vehicle.date_releve_kilometrage, Math.max(readingsMap.get(vehicle.date_releve_kilometrage) || 0, Number(vehicle.kilometrage_actuel)));
@@ -393,10 +420,6 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       vin: vehicle.vin || undefined,
     });
 
-    const km = vehicle.kilometrage_actuel || 0;
-    const annualKm = vehicle.km_annuel_moyen || 14000;
-    const dailyKm = annualKm / 365;
-
     // 3. Récupérer l'historique des interventions réelles et des documents du véhicule pour ancrer les échéances
     const { data: pastInterventions } = await (supabase as any)
       .from("lignes_interventions")
@@ -409,6 +432,23 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       .select("id, date_document, kilometrage_document, file_type, emetteur")
       .eq("vehicule_id", vehicle.id)
       .order("date_document", { ascending: false });
+
+    const docKmList: Array<{ date: string; km: number }> = [];
+    (allDocs || []).forEach((d: any) => {
+      if (d.kilometrage_document && d.date_document) docKmList.push({ date: d.date_document, km: Number(d.kilometrage_document) });
+    });
+    (pastInterventions || []).forEach((l: any) => {
+      if (l.kilometrage_intervention && l.date_intervention) docKmList.push({ date: l.date_intervention, km: Number(l.kilometrage_intervention) });
+    });
+
+    let km = vehicle.kilometrage_actuel || 0;
+    if (docKmList.length > 0) {
+      const sorted = [...docKmList].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      km = sorted[0].km;
+    }
+
+    const annualKm = vehicle.km_annuel_moyen || 14000;
+    const dailyKm = annualKm / 365;
 
     const latestCt = (allDocs || []).find((d: any) => {
       const ft = (d.file_type || "").toLowerCase();

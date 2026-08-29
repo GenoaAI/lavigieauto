@@ -953,13 +953,13 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       }
 
       if (allReadings.length > 0) {
-        const maxKm = Math.max(...allReadings.map((r) => r.km));
-        const latestReadingDate = [...allReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date;
+        const sortedReadings = [...allReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const latestReading = sortedReadings[0];
         await (adminSupabase as any)
           .from("vehicules")
           .update({
-            kilometrage_actuel: maxKm,
-            date_releve_kilometrage: latestReadingDate,
+            kilometrage_actuel: latestReading.km,
+            date_releve_kilometrage: latestReading.date,
           })
           .eq("id", vehicleId);
       }
