@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { STORAGE_CONFIG, VaultDocumentType } from '@/config/storage.config';
 
+import crypto from 'crypto';
+
 export interface UploadToVaultParams {
   fileBuffer: Buffer;
   mimeType: string;
@@ -13,6 +15,8 @@ export interface UploadToVaultParams {
     mileage: number;
     entityName?: string | null;
     originalFileName?: string;
+    invoiceNumber?: string | null;
+    uniqueHash?: string | null;
   };
 }
 
@@ -101,7 +105,10 @@ export class VaultStorageService {
     if (metadata.type === 'technical_inspection') folder = STORAGE_CONFIG.folders.inspections;
     else if (metadata.type === 'registration_card') folder = STORAGE_CONFIG.folders.registration;
 
-    // D. Nomenclature prédictive et construction du chemin
+    // D. Hash de contenu unique garantissant l'absence de collision physique
+    const uniqueHash = metadata.uniqueHash || crypto.createHash('sha256').update(fileBuffer).digest('hex').substring(0, 8);
+
+    // E. Nomenclature prédictive et construction du chemin
     const fileName = STORAGE_CONFIG.formatFileName({
       date: metadata.date,
       licensePlate: metadata.licensePlate,
@@ -109,6 +116,8 @@ export class VaultStorageService {
       mileage: metadata.mileage,
       entityName: metadata.entityName,
       extension: ext,
+      invoiceNumber: metadata.invoiceNumber,
+      uniqueHash,
     });
 
     const storagePath = STORAGE_CONFIG.buildStoragePath({

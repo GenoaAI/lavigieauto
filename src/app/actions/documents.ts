@@ -553,6 +553,8 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       }
     }
 
+    const fileHash = crypto.createHash("sha256").update(buffer).digest("hex").substring(0, 8);
+
     const vaultUpload = await vaultStorageService.uploadToVault({
       fileBuffer: buffer,
       mimeType: file.type || "application/pdf",
@@ -565,6 +567,8 @@ export async function processDocumentAction(formData: FormData): Promise<Process
         mileage: extractedMileage || matchedVehicle?.kilometrage_actuel || 0,
         entityName: docEmitter,
         originalFileName: file.name,
+        invoiceNumber: extractedInvoiceNumber || undefined,
+        uniqueHash: fileHash,
       },
     });
 

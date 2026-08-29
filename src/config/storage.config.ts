@@ -24,6 +24,8 @@ export const STORAGE_CONFIG = {
     mileage: number;
     entityName?: string | null;
     extension: string;
+    invoiceNumber?: string | null;
+    uniqueHash?: string | null;
   }) => {
     const cleanDate = params.date || new Date().toISOString().split('T')[0];
     const cleanPlate = (params.licensePlate || 'VEHICULE').toUpperCase().replace(/[^A-Z0-9]/g, '-');
@@ -33,7 +35,12 @@ export const STORAGE_CONFIG = {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, '-');
     const cleanExt = params.extension.replace(/^\./, '') || 'pdf';
-    return `${cleanDate}_${cleanPlate}_${params.type}_${params.mileage}km_${cleanEntity}.${cleanExt}`;
+    const cleanInvoice = params.invoiceNumber
+      ? `_facture-${params.invoiceNumber.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+      : params.uniqueHash
+      ? `_${params.uniqueHash}`
+      : '';
+    return `${cleanDate}_${cleanPlate}_${params.type}_${params.mileage}km_${cleanEntity}${cleanInvoice}.${cleanExt}`;
   },
   buildStoragePath: (params: {
     userId: string;

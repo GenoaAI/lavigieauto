@@ -55,6 +55,22 @@ export function testVaultStorageConfiguration() {
     throw new Error(`Chemin de stockage incorrect.\nObtenu  : "${storagePath}"\nAttendu : "${expectedPath}"`);
   }
   console.log(`  ✔ Chemin de stockage validé : "${storagePath}".`);
+
+  // 6. Test d'isolation physique des scans multiples même date / même garage
+  const nameWithInvoice = STORAGE_CONFIG.formatFileName({
+    date: '2023-12-15',
+    licensePlate: 'ES-123-PA',
+    type: 'invoice',
+    mileage: 149718,
+    entityName: 'Renault Retail Group Versailles',
+    extension: '.pdf',
+    invoiceNumber: 'FA-2023-442',
+  });
+  const expectedInvoiceName = '2023-12-15_ES-123-PA_invoice_149718km_renault-retail-group-versailles_facture-fa-2023-442.pdf';
+  if (nameWithInvoice !== expectedInvoiceName) {
+    throw new Error(`Nomenclature avec facture incorrecte.\nObtenu  : "${nameWithInvoice}"\nAttendu : "${expectedInvoiceName}"`);
+  }
+  console.log(`  ✔ Isolation physique multi-factures même garage validée : "${nameWithInvoice}".`);
 }
 
 if (require.main === module) {
