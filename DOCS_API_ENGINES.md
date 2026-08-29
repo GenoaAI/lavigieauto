@@ -74,4 +74,44 @@ Produit les éléments de communication et de négociation avant d'amener le vé
 ## 5. Récupérateur en Ligne du Plan Constructeur Officiel (`manufacturer-retriever.ts`)
 
 ### Rôle
-Interroge l'IA avec le contexte précis du véhicule (Marque, Modèle, Finition, Motorisation, Année, VIN) pour récupérer le carnet d'entretien constructeur officiel complet (viscosité d'huile homologuée, périodicités de vidange, filtres, bougies, kit de distribution).
+Interroge l'IA avec le contexte précis du véhicule (Marque, Modèle, Finition, Motorisation, Année, VIN) pour récupérer le carnet d'entretien constructeur officiel complet (viscosité d'huile homologuée, périodicités de vidange, filtres, bougies, kit de distribution), avec filtrage déterministe pour éradiquer toute fausse alerte (ex: recharge de climatisation ou courroie sur moteur à chaîne).
+
+---
+
+## 6. Moteur Prédictif des Pneumatiques (`tires.ts`)
+
+### Rôle
+Modélise l'usure physique de la bande de roulement en millimètres (`8.0 mm` neuf $\rightarrow$ `3.0 mm` alerte $\rightarrow$ `1.6 mm` témoin légal) pour le train avant et le train arrière selon le type de motricité (Traction, Propulsion, 4WD/AllGrip).
+
+### Fonctions Clés
+* `calculateVehicleTireAssessment(params)` : Déduit la monte pneumatique, la date et le kilométrage de la dernière monte, l'usure en millimètres, l'autonomie restante et la date d'échéance prévisionnelle.
+* `findBestTireMatches(options)` : Recherche et compare les offres du marché avec estimation du coût de pose et équilibrage.
+
+---
+
+## 7. Moteur Prédictif du Freinage (`brakes.ts`)
+
+### Rôle
+Modélise l'usure physique des garnitures de plaquettes de frein (`12 mm` neuf AV / `10 mm` neuf AR $\rightarrow$ `4 mm` alerte $\rightarrow$ `2 mm` témoin critique), extrait les mesures réelles d'atelier (ex: `80% d'usure`), et applique la règle 2-pour-1 pour les disques.
+
+### Fonctions Clés
+* `calculateVehicleBrakeAssessment(params)` : Évalue l'épaisseur restante en millimètres sur l'essieu avant et arrière, l'indice de santé global sur 100%, l'état des disques (`OPTIMAL` vs `REPLACE_WITH_NEXT_PADS`), et produit le devis estimatif ainsi que le script garagiste.
+* `extractBrakeWearMeasurements(invoices, inspections)` : Parseur par expressions régulières pour isoler les pourcentages d'usure notés par les techniciens sur les factures et les défaillances réglementaires au contrôle technique (`1.1.13.a.1`).
+
+---
+
+## 8. Catalogue Véhicules & Découplage Moteurs (`vehicle-catalog.ts`)
+
+### Rôle
+Fournit le référentiel pur pour déduire les puissances (DIN / kW / Fiscale), motorisations exactes, transmissions (BVM vs BVA EDC/EAT/DSG), types de distribution (chaîne vs courroie), consommations, rythmes kilométriques et visuels officiels.
+
+### Fonctions Clés
+* `resolveVehicleCatalogSpecs(params)` : Résolution robuste et pure des spécifications d'un véhicule sans effet de bord ni hardcoding.
+
+---
+
+## 9. Moteur de Résolution & Pondération Garages (`garage-resolver.ts`)
+
+### Rôle
+Analyse l'historique des documents sources pour identifier et recommander le garage habituel de confiance selon la récence des interventions, la marque du véhicule et le type d'opération requise.
+

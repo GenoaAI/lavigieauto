@@ -6,10 +6,22 @@
 * **Gestion des États Vides** : Si la base ne contient aucun véhicule, renvoyer `[]` et afficher un état vide authentique invitant l'utilisateur à scanner son premier document.
 * **Isolation du Seeding** : Les graines de test appartiennent exclusivement à `supabase/seed.sql`.
 
-## 2. RÈGLES SERVER ACTIONS & APP ROUTER ("use server")
+## 2. CLOISONNEMENT STRICT INTER-VÉHICULES (VEHICLE ISOLATION)
+* **Priorité à la Vérité de la Plaque** : Une facture ou un contrôle technique portant une immatriculation identifiée doit obligatoirement être rattaché au véhicule correspondant à cette plaque, même si l'upload est déclenché depuis la fiche d'un autre véhicule.
+* **Interdiction du Rattachement Aveugle** : Si aucune plaque n'est extraite d'un document, il est formellement interdit de l'affecter par défaut au premier véhicule du foyer si la marque ou le modèle ne concordent pas strictement.
+* **Auto-Guérison Odométrique (Auto-Healing)** : Le kilométrage actuel d'un véhicule est strictement borné et dérivé du maximum réel de **ses propres documents certifiés**. Un document d'un véhicule tiers ne peut en aucun cas altérer l'odomètre ou l'échéancier d'un autre véhicule.
+* **Isolation Totale des Échéanciers** : Les calculs de cycles, rythmes annuels, historiques d'interventions et alertes de maintenance sont hermétiquement cloisonnés par `vehicule_id`.
+
+## 3. RÈGLES SERVER ACTIONS & APP ROUTER ("use server")
 * Dans tout fichier portant la directive `"use server"`, **SEULES des fonctions `async`** peuvent être exportées.
 * Aucune constante, objet ou tableau ne doit être exporté depuis un fichier `"use server"`.
 
-## 3. PROTOCOLE DE DÉPLOIEMENT VERCEL
+## 4. DÉCOUPLAGE MÉTIER & CATALOGUE VÉHICULES
+* Les règles de déduction des caractéristiques techniques (puissance, transmission, type de distribution, monte pneumatique, images officielles) sont centralisées dans `src/lib/engine/vehicle-catalog.ts`.
+* Zéro logique de typage de motorisation hardcodée dans les Server Actions ou composants UI.
+
+## 5. PROTOCOLE DE DÉPLOIEMENT VERCEL
+* Toujours exécuter et valider l'intégralité des 29 suites de tests (`npm test` et `npx tsc --noEmit`) avant tout commit.
 * Toujours inspecter le statut officiel du déploiement (`npx vercel ls` / `npx vercel inspect <url> --logs`) avant de confirmer la mise en ligne.
 * Toujours vérifier le rendu HTTP réel (`read_url_content`) en direct sur le domaine de production.
+
