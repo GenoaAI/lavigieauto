@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Disc, AlertTriangle, Info, Gauge, Sparkles, Wrench } from "lucide-react";
+import { Disc, AlertTriangle, Info, Gauge, Sparkles, Wrench, Calendar } from "lucide-react";
 import { VehicleTireAssessment } from "@/lib/engine/tires";
 import { TireOffersCard } from "@/components/tires/TireOffersCard";
 import { CollapsibleModuleCard } from "@/components/ui/CollapsibleModuleCard";
+import { UniversalCalendarDropdown } from "@/components/calendar/UniversalCalendarDropdown";
+import type { UniversalCalendarEvent } from "@/lib/calendar/universal-calendar";
 
 interface TireWearTrackerProps {
   assessment: VehicleTireAssessment;
@@ -20,6 +22,17 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
   const front = assessment.frontAxle;
   const rear = assessment.rearAxle;
   const activeAxle = selectedAxle === "FRONT" ? front : rear;
+
+  const tireCalendarEvent: UniversalCalendarEvent = {
+    id: `tire-wear-${vehicleId || licensePlate}`,
+    title: `🔧 RDV Pneumatiques : ${vehicleName} [${licensePlate}]`,
+    startDate: assessment.nextReplacementDate || new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+    vehicleMakeModel: vehicleName,
+    licensePlate,
+    dueMileage: (front.currentEstimatedMileage || 0) + (front.remainingKm || 0),
+    estimatedCostEur: 280,
+    description: `Remplacement pneumatiques préconisé : ${assessment.nextReplacementAxle === "BOTH" ? "4 Pneus (AV + AR)" : assessment.nextReplacementAxle === "FRONT" ? "Train Avant" : "Train Arrière"} en dimension ${front.dimension}.\nModèle préconisé : ${front.brandAndModel}\n\nScript d'appel garage :\n« Bonjour, je souhaite un devis pour 2 pneumatiques en ${front.dimension} pour mon ${vehicleName} (${licensePlate}) avec forfait montage et équilibrage. »`,
+  };
 
   return (
     <CollapsibleModuleCard
@@ -69,17 +82,23 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
         </div>
       }
       actions={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowQuoteKit(!showQuoteKit);
-          }}
-          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
-        >
-          <Wrench className="w-3.5 h-3.5" />
-          <span>Kit Devis Pneus</span>
-        </button>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <UniversalCalendarDropdown
+            event={tireCalendarEvent}
+            buttonLabel="Rappel Agenda"
+            variant="outline"
+            size="sm"
+            filename={`rdv-pneus-${licensePlate}`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowQuoteKit(!showQuoteKit)}
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+          >
+            <Wrench className="w-3.5 h-3.5 text-amber-400" />
+            <span>Kit Devis Pneus</span>
+          </button>
+        </div>
       }
       bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
     >
@@ -106,13 +125,22 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
               <Gauge className="w-4 h-4 text-amber-400" />
               <h3 className="text-sm font-bold">Script Garagiste & Commande Pneus homologués</h3>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowQuoteKit(false)}
-              className="text-xs text-slate-400 hover:text-white"
-            >
-              ✕ Fermer
-            </button>
+            <div className="flex items-center gap-2">
+              <UniversalCalendarDropdown
+                event={tireCalendarEvent}
+                buttonLabel="Ajouter à l'agenda"
+                variant="dark"
+                size="sm"
+                filename={`rdv-pneus-${licensePlate}`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowQuoteKit(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                ✕ Fermer
+              </button>
+            </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white/10 rounded-xl space-y-1">

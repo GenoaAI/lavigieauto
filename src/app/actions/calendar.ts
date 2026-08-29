@@ -287,6 +287,88 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
           }
         }
       }
+
+      // ÉCHÉANCE PNEUMATIQUES : Synchronisation dans Google Calendar
+      if (details.tires?.nextReplacementDate) {
+        const tireSummary = `🚗 [LaVigieAuto] Remplacement Pneumatiques (${details.tires.frontAxle.dimension}) — ${v.marque} ${v.modele}`;
+        const tireTargetKm = (details.tires.frontAxle.currentEstimatedMileage || 0) + (details.tires.frontAxle.remainingKm || 0);
+        const tireDesc = [
+          `🚗 LAVIGIEAUTO — PRÉCONISATION PNEUMATIQUES`,
+          `Véhicule : ${v.marque} ${v.modele} [${v.immatriculation}]`,
+          `Dimension officielle : ${details.tires.frontAxle.dimension}`,
+          `Modèle préconisé : ${details.tires.frontAxle.brandAndModel}`,
+          `Essieu concerné : ${details.tires.nextReplacementAxle === "BOTH" ? "4 Pneus (AV + AR)" : details.tires.nextReplacementAxle === "FRONT" ? "Train Avant" : "Train Arrière"}`,
+          `Échéance kilométrique cible : ~${tireTargetKm.toLocaleString("fr-FR")} km`,
+          `Budget estimé : ~280 € TTC (pose & équilibrage)`,
+          ``,
+          `📞 SCRIPT TÉLÉPHONIQUE GARAGE / CENTRE AUTO :`,
+          `« Bonjour, je souhaite un devis pour 2 pneumatiques en ${details.tires.frontAxle.dimension} pour mon ${v.marque} ${v.modele} (${v.immatriculation}) avec forfait montage et équilibrage. »`,
+        ].join("\n");
+
+        syncedEvents.push({
+          vehicle: `${v.marque} ${v.modele}`,
+          licensePlate: v.immatriculation,
+          title: `Pneumatiques (${details.tires.frontAxle.dimension})`,
+          dueDate: details.tires.nextReplacementDate,
+          dueMileage: tireTargetKm,
+          estimatedCost: 280,
+          phoneScript: `Devis pneus ${details.tires.frontAxle.dimension} pour ${v.marque} ${v.modele}`,
+        });
+
+        if (calendarService) {
+          try {
+            await calendarService.injectCustomMaintenanceEvent({
+              calendarId: targetCalendarId,
+              summary: tireSummary,
+              description: tireDesc,
+              startDate: details.tires.nextReplacementDate,
+            });
+          } catch (tireErr) {
+            console.warn("Avertissement injection événement pneus:", tireErr);
+          }
+        }
+      }
+
+      // ÉCHÉANCE FREINAGE (PLAQUETTES & DISQUES) : Synchronisation dans Google Calendar
+      if (details.brakes?.frontAxle?.projectedReplacementDate) {
+        const brakeNextAxle = details.brakes.nextReplacementAxle === "REAR" ? details.brakes.rearAxle : details.brakes.frontAxle;
+        const brakeTargetKm = (brakeNextAxle.currentEstimatedMileage || 0) + (brakeNextAxle.remainingKm || 0);
+        const brakeSummary = `🚗 [LaVigieAuto] Remplacement Plaquettes de Frein — ${v.marque} ${v.modele}`;
+        const brakeDesc = [
+          `🚗 LAVIGIEAUTO — SÉCURITÉ & FREINAGE`,
+          `Véhicule : ${v.marque} ${v.modele} [${v.immatriculation}]`,
+          `Épaisseur garniture actuelle : ${brakeNextAxle.remainingLiningThicknessMm} mm`,
+          `Préconisation : ${brakeNextAxle.discsCondition === "REPLACE_WITH_NEXT_PADS" ? "Pack combiné Disques + Plaquettes" : "Plaquettes seules"}`,
+          `Échéance kilométrique cible : ~${brakeTargetKm.toLocaleString("fr-FR")} km`,
+          `Budget prévisionnel : ~${details.brakes.estimatedCostRange.padsOnlyTTC.min} € à ${details.brakes.estimatedCostRange.padsOnlyTTC.max} € TTC`,
+          ``,
+          `📞 SCRIPT TÉLÉPHONIQUE GARAGE :`,
+          `« Bonjour, je souhaite un devis pour le remplacement des plaquettes de frein ${details.brakes.nextReplacementAxle === "BOTH" ? "avant et arrière" : details.brakes.nextReplacementAxle === "FRONT" ? "avant" : "arrière"} pour mon ${v.marque} ${v.modele} (${v.immatriculation}) avec contrôle de l'épaisseur des disques. »`,
+        ].join("\n");
+
+        syncedEvents.push({
+          vehicle: `${v.marque} ${v.modele}`,
+          licensePlate: v.immatriculation,
+          title: `Plaquettes de frein (${brakeNextAxle.label})`,
+          dueDate: brakeNextAxle.projectedReplacementDate,
+          dueMileage: brakeTargetKm,
+          estimatedCost: details.brakes.estimatedCostRange.padsOnlyTTC.max,
+          phoneScript: `Devis plaquettes de frein pour ${v.marque} ${v.modele}`,
+        });
+
+        if (calendarService) {
+          try {
+            await calendarService.injectCustomMaintenanceEvent({
+              calendarId: targetCalendarId,
+              summary: brakeSummary,
+              description: brakeDesc,
+              startDate: brakeNextAxle.projectedReplacementDate,
+            });
+          } catch (brakeErr) {
+            console.warn("Avertissement injection événement freinage:", brakeErr);
+          }
+        }
+      }
     }
 
     const supabase = await createClient();

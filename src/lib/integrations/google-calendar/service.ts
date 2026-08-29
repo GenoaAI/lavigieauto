@@ -243,4 +243,56 @@ export class GoogleCalendarService {
     const event = await res.json();
     return event.id;
   }
+
+  /**
+   * Inject a dedicated custom maintenance event (e.g. Tires, Brakes) into Google Calendar
+   */
+  async injectCustomMaintenanceEvent(params: {
+    calendarId: string;
+    summary: string;
+    description: string;
+    startDate: string;
+    attendeesEmails?: string[];
+  }): Promise<string> {
+    const { calendarId, summary, description, startDate, attendeesEmails = [] } = params;
+    const computeNextDay = (dateStr: string) => {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().split("T")[0];
+    };
+
+    const payload: CalendarEventPayload = {
+      summary,
+      description,
+      start: { date: startDate },
+      end: { date: computeNextDay(startDate) },
+      attendees: attendeesEmails.map((email) => ({ email })),
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: "popup", minutes: 30 * 24 * 60 }, // J-30
+          { method: "popup", minutes: 7 * 24 * 60 },  // J-7
+          { method: "email", minutes: 7 * 24 * 60 },  // J-7
+        ],
+      },
+    };
+
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Erreur injection événement personnalisé dans Google Calendar: ${err}`);
+    }
+
+    const event = await res.json();
+    return event.id;
+  }
 }

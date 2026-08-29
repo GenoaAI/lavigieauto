@@ -15,12 +15,15 @@ export async function testCalendarSyncEngine() {
   }
   console.log("  ✔ URL d'authentification Google OAuth 2.0 validée avec scopes Calendar.");
 
-  // 2. Validation du nommage de l'agenda dédié
+  // 2. Validation du nommage de l'agenda dédié et des méthodes d'injection
   const service = new GoogleCalendarService("mock_token");
   if (typeof service.getOrCreateLaVigieAutoCalendar !== "function") {
     throw new Error("La méthode getOrCreateLaVigieAutoCalendar est absente.");
   }
-  console.log("  ✔ Service Google Calendar LaVigieAuto configuré pour agenda dédié.");
+  if (typeof service.injectCustomMaintenanceEvent !== "function") {
+    throw new Error("La méthode injectCustomMaintenanceEvent est absente.");
+  }
+  console.log("  ✔ Service Google Calendar LaVigieAuto configuré pour agenda dédié et injection des événements pneus/freins.");
 
   // 3. Validation de la génération du Kit pour injection Calendar
   const kit = generateReservationKit({

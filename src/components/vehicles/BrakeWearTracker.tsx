@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Disc, AlertTriangle, Gauge, Sparkles, Wrench, ShieldAlert, CheckCircle2, ArrowRight } from "lucide-react";
+import { Disc, AlertTriangle, Gauge, Sparkles, Wrench, ShieldAlert, CheckCircle2, ArrowRight, Calendar } from "lucide-react";
 import { VehicleBrakeAssessment } from "@/lib/engine/brakes";
 import { CollapsibleModuleCard } from "@/components/ui/CollapsibleModuleCard";
+import { UniversalCalendarDropdown } from "@/components/calendar/UniversalCalendarDropdown";
+import type { UniversalCalendarEvent } from "@/lib/calendar/universal-calendar";
 
 interface BrakeWearTrackerProps {
   assessment: VehicleBrakeAssessment;
@@ -19,6 +21,18 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
   const front = assessment.frontAxle;
   const rear = assessment.rearAxle;
   const activeAxle = selectedAxle === "FRONT" ? front : rear;
+
+  const nextAxle = assessment.nextReplacementAxle === "REAR" ? rear : front;
+  const brakeCalendarEvent: UniversalCalendarEvent = {
+    id: `brake-wear-${vehicleId || licensePlate}`,
+    title: `🔧 RDV Freinage : ${vehicleName} [${licensePlate}]`,
+    startDate: nextAxle.projectedReplacementDate || new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+    vehicleMakeModel: vehicleName,
+    licensePlate,
+    dueMileage: (nextAxle.currentEstimatedMileage || 0) + (nextAxle.remainingKm || 0),
+    estimatedCostEur: assessment.estimatedCostRange.padsOnlyTTC.max,
+    description: `Remplacement plaquettes de frein préconisé : ${assessment.nextReplacementAxle === "BOTH" ? "Avant et Arrière" : assessment.nextReplacementAxle === "FRONT" ? "Train Avant" : "Train Arrière"} (Garniture restante : ${nextAxle.remainingLiningThicknessMm} mm).\nPrestation : ${nextAxle.discsCondition === "REPLACE_WITH_NEXT_PADS" ? "Pack combiné Disques + Plaquettes" : "Plaquettes seules"}.\nBudget estimé : ~${assessment.estimatedCostRange.padsOnlyTTC.min} € à ${assessment.estimatedCostRange.padsOnlyTTC.max} € TTC.\n\nScript garage :\n« Bonjour, je souhaite un devis pour le remplacement des plaquettes de frein pour mon ${vehicleName} (${licensePlate}). »`,
+  };
 
   const healthColorClass =
     assessment.globalHealthScore >= 75
@@ -55,17 +69,23 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
         </div>
       }
       actions={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowQuoteKit(!showQuoteKit);
-          }}
-          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
-        >
-          <Wrench className="w-3.5 h-3.5 text-amber-400" />
-          <span>Devis Freinage</span>
-        </button>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <UniversalCalendarDropdown
+            event={brakeCalendarEvent}
+            buttonLabel="Rappel Agenda"
+            variant="outline"
+            size="sm"
+            filename={`rdv-freins-${licensePlate}`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowQuoteKit(!showQuoteKit)}
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+          >
+            <Wrench className="w-3.5 h-3.5 text-amber-400" />
+            <span>Devis Freinage</span>
+          </button>
+        </div>
       }
       bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
     >
@@ -96,15 +116,23 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
               <Gauge className="w-4 h-4 text-amber-400" />
               <h3 className="text-sm font-bold text-white">Script Garagiste & Estimation Budget Freinage</h3>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowQuoteKit(false)}
-              className="text-xs text-slate-400 hover:text-white transition"
-            >
-              ✕ Fermer
-            </button>
+            <div className="flex items-center gap-2">
+              <UniversalCalendarDropdown
+                event={brakeCalendarEvent}
+                buttonLabel="Ajouter à l'agenda"
+                variant="dark"
+                size="sm"
+                filename={`rdv-freins-${licensePlate}`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowQuoteKit(false)}
+                className="text-xs text-slate-400 hover:text-white transition"
+              >
+                ✕ Fermer
+              </button>
+            </div>
           </div>
-
           <div className="grid sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white/10 rounded-xl space-y-1">
               <span className="text-slate-400 block font-semibold text-[11px]">Forfait Plaquettes seules (TTC posé) :</span>
@@ -121,7 +149,6 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
               <p className="text-slate-300 text-[11px]">Économise 1 forfait de main-d&apos;œuvre si les disques sont à remplacer</p>
             </div>
           </div>
-
           <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-xs text-indigo-100 space-y-1">
             <span className="font-bold text-amber-300">💡 Script téléphonique prêt-à-dire :</span>
             <p className="italic text-slate-200">
