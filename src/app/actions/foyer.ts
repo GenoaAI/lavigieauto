@@ -211,14 +211,26 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       const allEchs = (echsRes?.data || []) as any[];
       const allAudits = (auditsRes?.data || []) as any[];
 
-      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => ({
-        ...v,
-        documents_sources: allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
-        lignes_interventions: allLines.filter((l) => matchesVehicleId(l.vehicule_id, v)),
-        defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
-        echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
-        audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
-      }));
+      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => {
+        const docs = allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v));
+        const lines = allLines.filter((l) => matchesVehicleId(l.vehicule_id, v));
+        const docMaxKm = Math.max(
+          0,
+          ...docs.map((d) => Number(d.kilometrage_document) || 0),
+          ...lines.map((l) => Number(l.kilometrage_intervention) || 0)
+        );
+        const effectiveKm = docMaxKm > 0 && (v.kilometrage_actuel || 0) > docMaxKm ? docMaxKm : v.kilometrage_actuel;
+
+        return {
+          ...v,
+          kilometrage_actuel: effectiveKm,
+          documents_sources: docs,
+          lignes_interventions: lines,
+          defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+          echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
+          audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
+        };
+      });
 
       const fetchedGarages = garagesRes?.data && garagesRes.data.length > 0 ? (garagesRes.data as Garage[]) : [];
 
@@ -329,14 +341,26 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       const allEchs = (echsRes?.data || []) as any[];
       const allAudits = (auditsRes?.data || []) as any[];
 
-      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => ({
-        ...v,
-        documents_sources: allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
-        lignes_interventions: allLines.filter((l) => matchesVehicleId(l.vehicule_id, v)),
-        defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
-        echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
-        audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
-      }));
+      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => {
+        const docs = allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v));
+        const lines = allLines.filter((l) => matchesVehicleId(l.vehicule_id, v));
+        const docMaxKm = Math.max(
+          0,
+          ...docs.map((d) => Number(d.kilometrage_document) || 0),
+          ...lines.map((l) => Number(l.kilometrage_intervention) || 0)
+        );
+        const effectiveKm = docMaxKm > 0 && (v.kilometrage_actuel || 0) > docMaxKm ? docMaxKm : v.kilometrage_actuel;
+
+        return {
+          ...v,
+          kilometrage_actuel: effectiveKm,
+          documents_sources: docs,
+          lignes_interventions: lines,
+          defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+          echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
+          audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
+        };
+      });
 
       const customResult: FoyerOverviewResult = {
         foyer: matchedFoyer as Foyer,

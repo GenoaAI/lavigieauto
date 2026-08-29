@@ -155,6 +155,17 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
       }
     });
 
+  const docMaxKm = Math.max(
+    0,
+    ...(vehicle.documents_sources || []).map((d) => Number(d.kilometrage_document) || 0),
+    ...(vehicle.lignes_interventions || []).map((l) => Number(l.kilometrage_intervention) || 0)
+  );
+
+  // Auto-guérison si le kilométrage en base a été artificiellement gonflé au-delà des documents réels du véhicule
+  if (docMaxKm > 0 && (vehicle.kilometrage_actuel || 0) > docMaxKm) {
+    vehicle.kilometrage_actuel = docMaxKm;
+  }
+
   if (vehicle.kilometrage_actuel && vehicle.date_releve_kilometrage) {
     readingsMap.set(vehicle.date_releve_kilometrage, Math.max(readingsMap.get(vehicle.date_releve_kilometrage) || 0, Number(vehicle.kilometrage_actuel)));
   }
