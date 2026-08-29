@@ -101,7 +101,7 @@ export function VehicleVaultList({
 
   const getDocTypeBadge = (type: string, doc?: VaultDocumentItem) => {
     const normType = (type || "").toLowerCase();
-    const em = (doc?.entityName || doc?.fileName || "").toLowerCase();
+    const em = (doc?.emitter || doc?.fileName || "").toLowerCase();
 
     if (
       normType === "controle_technique" ||
