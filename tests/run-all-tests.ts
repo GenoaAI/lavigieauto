@@ -24,6 +24,7 @@ import { runCollapsibleStressTests } from "./collapsible-stress.test";
 import { testManufacturerPlanRobustness } from "./manufacturer-plan-robustness.test";
 import { runAdversarialPowertrainTests } from "./adversarial-powertrain-archetypes.test";
 import { testVitaraFullStackNonRegression } from "./vitara-non-regression.test";
+import { testVehicleCatalogResolution } from "./vehicle-catalog.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -61,6 +62,7 @@ async function runAllTests() {
     { name: "Robustesse & Exactitude des Plans Constructeurs (Zéro Fausse Clim & OEM)", fn: testManufacturerPlanRobustness },
     { name: "Matrice Multi-Archetypes & Stress Adversarial (Challenger 2)", fn: runAdversarialPowertrainTests },
     { name: "Non-Régression Formelle Suzuki Vitara 1.6 VVT AllGrip (M16A Full Stack)", fn: testVitaraFullStackNonRegression },
+    { name: "Référentiel Catalogue Véhicules & Découplage Zéro Hardcoding", fn: testVehicleCatalogResolution },
   ];
 
 

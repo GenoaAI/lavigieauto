@@ -3,7 +3,8 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Foyer, FoyerMember, Garage, matchesVehicleId } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "./vehicles";
-import { DEFAULT_FOYER_ID, DEFAULT_VEHICLES_SEED, DEFAULT_GARAGES_SEED } from "@/config/foyer.seed";
+import { DEFAULT_FOYER_ID } from "@/config/foyer.seed";
+import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { updateHouseholdNameSchema, inviteHouseholdMemberSchema } from "@/lib/security/schemas";
@@ -85,29 +86,17 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         };
       }
 
-      let resolvedImg = v.image_url || (v.metadata as any)?.image_url || null;
-      let resolvedVersion = v.version;
-      const makeStr = (v.marque || "").toUpperCase();
-      const modelStr = (v.modele || "").toUpperCase();
+      const catalogSpecs = resolveVehicleCatalogSpecs({
+        make: v.marque,
+        model: v.modele,
+        version: v.version,
+        fuel: v.energie,
+        fiscalPower: v.puissance_fiscale,
+        powerKw: undefined,
+      });
 
-      if (!resolvedImg) {
-        if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
-          resolvedImg = "/images/vehicles/suzuki-vitara-2016.jpg";
-        } else if (modelStr.includes("ESPACE")) {
-          resolvedImg = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";
-        } else if (modelStr.includes("CLIO")) {
-          resolvedImg = "/images/vehicles/renault-clio-2007.jpg";
-        } else if (modelStr.includes("CHEROKEE")) {
-          resolvedImg = "/images/vehicles/jeep-cherokee-1981.jpg";
-        }
-      }
-
-      if (resolvedVersion === "LYD21SAT2" || (!resolvedVersion && modelStr.includes("VITARA"))) {
-        resolvedVersion = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
-      }
-      if (modelStr.includes("CLIO") && (v.puissance_fiscale === 7 || (resolvedVersion && resolvedVersion.includes("BR1B0H")) || v.puissance_din === 112)) {
-        resolvedVersion = "1.6 16V 112 ch (BR1B0H)";
-      }
+      const resolvedImg = v.image_url || (v.metadata as any)?.image_url || catalogSpecs.imageUrl || null;
+      const resolvedVersion = (!v.version || v.version === "Standard") ? (catalogSpecs.version || v.version) : v.version;
 
       // Si enregistré en base de données comme archivé/suspendu
       if (
@@ -222,18 +211,16 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       const allEchs = (echsRes?.data || []) as any[];
       const allAudits = (auditsRes?.data || []) as any[];
 
-      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.length > 0
-        ? rawVehicles.map((v) => ({
-            ...v,
-            documents_sources: allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
-            lignes_interventions: allLines.filter((l) => matchesVehicleId(l.vehicule_id, v)),
-            defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
-            echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
-            audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
-          }))
-        : (DEFAULT_VEHICLES_SEED as EnrichedVehicle[]);
+      const fetchedVehicles: EnrichedVehicle[] = rawVehicles.map((v) => ({
+        ...v,
+        documents_sources: allDocs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+        lignes_interventions: allLines.filter((l) => matchesVehicleId(l.vehicule_id, v)),
+        defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
+        echeances_previsionnelles: allEchs.filter((e) => matchesVehicleId(e.vehicule_id, v)),
+        audits_conformite: allAudits.filter((a) => matchesVehicleId(a.vehicule_id, v)),
+      }));
 
-      const fetchedGarages = garagesRes?.data && garagesRes.data.length > 0 ? (garagesRes.data as Garage[]) : (DEFAULT_GARAGES_SEED as Garage[]);
+      const fetchedGarages = garagesRes?.data && garagesRes.data.length > 0 ? (garagesRes.data as Garage[]) : [];
 
       const result: FoyerOverviewResult = {
         foyer: (foyerRes?.data || defaultFoyer) as Foyer,
@@ -258,9 +245,9 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       const fallbackResult: FoyerOverviewResult = {
         foyer: defaultFoyer,
         role: "owner",
-        vehicles: DEFAULT_VEHICLES_SEED,
+        vehicles: [],
         members: defaultMembers,
-        garages: DEFAULT_GARAGES_SEED as Garage[],
+        garages: [],
       };
       memoryCache = {
         key: cacheKey,
@@ -270,7 +257,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       return {
         ...fallbackResult,
         foyer: applyFoyerOverrides(fallbackResult.foyer),
-        vehicles: applyTrackingOverrides(DEFAULT_VEHICLES_SEED),
+        vehicles: [],
       };
     }
   }

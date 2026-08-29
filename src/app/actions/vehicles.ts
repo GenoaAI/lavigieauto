@@ -28,6 +28,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { getFoyerOverviewAction, invalidateFoyerCache } from "@/app/actions/foyer";
 import { checkVehicleQuota } from "@/lib/integrations/stripe/quota";
+import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
 
 export interface EnrichedVehicle extends Partial<Vehicule> {
   id: string;
@@ -98,34 +99,27 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     // Ignore cookie read error
   }
 
+  const catalogSpecs = resolveVehicleCatalogSpecs({
+    make: vehicle.marque,
+    model: vehicle.modele,
+    version: vehicle.version,
+    fuel: vehicle.energie,
+    fiscalPower: vehicle.puissance_fiscale,
+    powerKw: undefined,
+  });
+
   if (!vehicle.image_url) {
-    if ((vehicle.metadata as any)?.image_url) {
-      vehicle.image_url = (vehicle.metadata as any).image_url;
-    } else {
-      const makeStr = (vehicle.marque || "").toUpperCase();
-      const modelStr = (vehicle.modele || "").toUpperCase();
-      if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
-        vehicle.image_url = "/images/vehicles/suzuki-vitara-2016.jpg";
-      } else if (modelStr.includes("ESPACE")) {
-        vehicle.image_url = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";
-      } else if (modelStr.includes("CLIO")) {
-        vehicle.image_url = "/images/vehicles/renault-clio-2007.jpg";
-      } else if (modelStr.includes("CHEROKEE")) {
-        vehicle.image_url = "/images/vehicles/jeep-cherokee-1981.jpg";
-      }
-    }
+    vehicle.image_url = (vehicle.metadata as any)?.image_url || catalogSpecs.imageUrl || null;
   }
 
-  if (vehicle.version === "LYD21SAT2" || (!vehicle.version && (vehicle.modele || "").toUpperCase().includes("VITARA"))) {
-    vehicle.version = "1.6 VVT 120 ch 2WD (LYD21SAT2)";
-    vehicle.puissance_din = 120;
+  if (!vehicle.version || vehicle.version === "Standard") {
+    vehicle.version = catalogSpecs.version || vehicle.version;
   }
-  if ((vehicle.modele || "").toUpperCase().includes("CLIO")) {
-    if (vehicle.puissance_fiscale === 7 || vehicle.version?.includes("BR1B0H") || vehicle.puissance_din === 112) {
-      vehicle.version = "1.6 16V 112 ch (BR1B0H)";
-      vehicle.puissance_din = 112;
-      vehicle.boite_vitesse = "manuelle";
-    }
+  if (!vehicle.puissance_din && catalogSpecs.dinPower) {
+    vehicle.puissance_din = catalogSpecs.dinPower;
+  }
+  if (!vehicle.boite_vitesse && catalogSpecs.boiteVitesse) {
+    vehicle.boite_vitesse = catalogSpecs.boiteVitesse;
   }
 
   if (vehicle.lignes_interventions) {
@@ -140,51 +134,24 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     );
   }
 
-  // Récupération exhaustive des relevés kilométriques certifiés issus des pièces réelles
-  const docReadings: Array<{ date: string; km: number }> = [];
+  // Récupération exhaustive des relevés kilométriques certifiés
+  const readingsMap = new Map<string, number>();
 
   (vehicle.documents_sources || [])
-    .filter((d) => Boolean(d.kilometrage_document && d.date_document))
+    .filter((d) => d.kilometrage_document && d.date_document)
     .forEach((d) => {
       if (d.date_document && d.kilometrage_document) {
-        docReadings.push({ date: d.date_document, km: Number(d.kilometrage_document) });
+        readingsMap.set(d.date_document, Math.max(readingsMap.get(d.date_document) || 0, Number(d.kilometrage_document)));
       }
     });
 
   (vehicle.lignes_interventions || [])
-    .filter((l) => Boolean(l.kilometrage_intervention && l.date_intervention))
+    .filter((l) => l.kilometrage_intervention && l.date_intervention)
     .forEach((l) => {
       if (l.date_intervention && l.kilometrage_intervention) {
-        docReadings.push({ date: l.date_intervention, km: Number(l.kilometrage_intervention) });
+        readingsMap.set(l.date_intervention, Math.max(readingsMap.get(l.date_intervention) || 0, Number(l.kilometrage_intervention)));
       }
     });
-
-  // Si des documents réels existent, le kilométrage réel certifié est celui de la pièce la plus récente
-  if (docReadings.length > 0) {
-    const sortedDocs = [...docReadings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const latestDoc = sortedDocs[0];
-    if (vehicle.kilometrage_actuel !== latestDoc.km) {
-      vehicle.kilometrage_actuel = latestDoc.km;
-      vehicle.date_releve_kilometrage = latestDoc.date;
-      (async () => {
-        try {
-          const adminSup = createAdminClient();
-          await (adminSup as any)
-            .from("vehicules")
-            .update({
-              kilometrage_actuel: latestDoc.km,
-              date_releve_kilometrage: latestDoc.date,
-            })
-            .eq("id", vehicle.id);
-        } catch {}
-      })();
-    }
-  }
-
-  const readingsMap = new Map<string, number>();
-  docReadings.forEach((r) => {
-    readingsMap.set(r.date, Math.max(readingsMap.get(r.date) || 0, r.km));
-  });
 
   if (vehicle.kilometrage_actuel && vehicle.date_releve_kilometrage) {
     readingsMap.set(vehicle.date_releve_kilometrage, Math.max(readingsMap.get(vehicle.date_releve_kilometrage) || 0, Number(vehicle.kilometrage_actuel)));
@@ -420,6 +387,10 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       vin: vehicle.vin || undefined,
     });
 
+    const km = vehicle.kilometrage_actuel || 0;
+    const annualKm = vehicle.km_annuel_moyen || 14000;
+    const dailyKm = annualKm / 365;
+
     // 3. Récupérer l'historique des interventions réelles et des documents du véhicule pour ancrer les échéances
     const { data: pastInterventions } = await (supabase as any)
       .from("lignes_interventions")
@@ -432,23 +403,6 @@ export async function syncVehicleManufacturerScheduleAction(vehicleId: string): 
       .select("id, date_document, kilometrage_document, file_type, emetteur")
       .eq("vehicule_id", vehicle.id)
       .order("date_document", { ascending: false });
-
-    const docKmList: Array<{ date: string; km: number }> = [];
-    (allDocs || []).forEach((d: any) => {
-      if (d.kilometrage_document && d.date_document) docKmList.push({ date: d.date_document, km: Number(d.kilometrage_document) });
-    });
-    (pastInterventions || []).forEach((l: any) => {
-      if (l.kilometrage_intervention && l.date_intervention) docKmList.push({ date: l.date_intervention, km: Number(l.kilometrage_intervention) });
-    });
-
-    let km = vehicle.kilometrage_actuel || 0;
-    if (docKmList.length > 0) {
-      const sorted = [...docKmList].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      km = sorted[0].km;
-    }
-
-    const annualKm = vehicle.km_annuel_moyen || 14000;
-    const dailyKm = annualKm / 365;
 
     const latestCt = (allDocs || []).find((d: any) => {
       const ft = (d.file_type || "").toLowerCase();

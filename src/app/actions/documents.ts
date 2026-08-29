@@ -9,6 +9,7 @@ import { checkDocumentQuota } from "@/lib/integrations/stripe/quota";
 import { Vehicule, DocumentType } from "@/lib/types/database.types";
 import { invalidateFoyerCache } from "@/app/actions/foyer";
 import { revalidatePath } from "next/cache";
+import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
 
 export interface NormalizedDocumentExtraction {
   documentType: string;
@@ -379,35 +380,14 @@ export async function processDocumentAction(formData: FormData): Promise<Process
           ? parseInt(docDate.split("-")[0])
           : 2021;
 
-        const makeStr = (extractedMake || "").toUpperCase().trim();
-        const modelStr = (extractedModel || "").toUpperCase().trim();
-        let defaultImg: string | null = null;
-        let enhancedVersion = extractedVersion || null;
-        let dinPower: number | null = null;
-
-        if (makeStr.includes("SUZUKI") || modelStr.includes("VITARA")) {
-          defaultImg = "/images/vehicles/suzuki-vitara-2016.jpg";
-          enhancedVersion = enhancedVersion || "1.6 VVT 120 ch 2WD (LYD21SAT2)";
-          dinPower = dinPower || 120;
-        } else if (makeStr.includes("RENAULT") || modelStr.includes("ESPACE")) {
-          defaultImg = "/images/vehicles/renault-espace-noir-etoile-2021.jpg";
-          enhancedVersion = enhancedVersion || "2.0 Blue dCi 200 ch EDC Initiale Paris";
-          dinPower = dinPower || 200;
-        } else if (modelStr.includes("CLIO")) {
-          defaultImg = "/images/vehicles/renault-clio-2007.jpg";
-          const kw = extractedPowerKw || 0;
-          const cv = extractedFiscalPower || 0;
-          if (kw >= 80 || cv >= 7 || (extractedVersion && extractedVersion.includes("BR1B0H"))) {
-            enhancedVersion = "1.6 16V 112 ch (BR1B0H)";
-            dinPower = 112;
-          } else {
-            enhancedVersion = "1.2 16V 75 ch Authentique";
-            dinPower = 75;
-          }
-        } else if (modelStr.includes("CHEROKEE")) {
-          defaultImg = "/images/vehicles/jeep-cherokee-1981.jpg";
-          enhancedVersion = "5.9 V8 360ci Chief (SJ)";
-        }
+        const resolvedSpecs = resolveVehicleCatalogSpecs({
+          make: extractedMake,
+          model: extractedModel,
+          version: extractedVersion,
+          fuel: extractedFuel,
+          fiscalPower: extractedFiscalPower,
+          powerKw: extractedPowerKw,
+        });
 
         const { data: newVehicle } = await (adminSupabase as any)
           .from("vehicules")
@@ -415,26 +395,21 @@ export async function processDocumentAction(formData: FormData): Promise<Process
             foyer_id: targetFoyerId,
             immatriculation: extractedPlate || "NOUVEAU",
             vin: extractedVin || null,
-            marque: extractedMake || (modelStr.includes("ESPACE") ? "Renault" : "Véhicule"),
-            modele: extractedModel || (modelStr.includes("ESPACE") ? "Espace V" : "Modèle"),
-            version: enhancedVersion,
+            marque: extractedMake || "Véhicule",
+            modele: extractedModel || "Modèle",
+            version: resolvedSpecs.version,
             annee_mise_en_circulation: isNaN(yearVal) ? 2021 : yearVal,
             date_premiere_immatriculation: extractedFirstReg || (docDate ? `${docDate.split("-")[0]}-01-01` : new Date().toISOString().split("T")[0]),
             kilometrage_actuel: extractedMileage || 0,
             date_releve_kilometrage: docDate || new Date().toISOString().split("T")[0],
-            energie: extractedFuel
-              ? extractedFuel.toLowerCase().includes("es")
-                ? "essence"
-                : extractedFuel.toLowerCase().includes("go")
-                ? "diesel"
-                : "hybride"
-              : (modelStr.includes("ESPACE") || modelStr.includes("DCI") ? "diesel" : "essence"),
-            puissance_fiscale: extractedFiscalPower || (modelStr.includes("ESPACE") ? 11 : 6),
-            puissance_din: dinPower,
+            energie: resolvedSpecs.fuel,
+            puissance_fiscale: resolvedSpecs.fiscalPower,
+            puissance_din: resolvedSpecs.dinPower,
             statut: "actif",
-            image_url: defaultImg,
+            image_url: resolvedSpecs.imageUrl,
             usage_type: "quotidien",
-            km_annuel_moyen: 12000,
+            km_annuel_moyen: resolvedSpecs.annualKm,
+            boite_vitesse: resolvedSpecs.boiteVitesse,
           })
           .select()
           .single();
