@@ -646,12 +646,12 @@ export default function LandingPage() {
                 <Car className="w-4 h-4" />
               </div>
               <h4 className="text-sm font-bold text-slate-900">
-                {foyerVehicles[1] ? `${foyerVehicles[1].marque} ${foyerVehicles[1].modele}` : "Renault Espace IV"}
+                {foyerVehicles[1] ? `${foyerVehicles[1].marque} ${foyerVehicles[1].modele}` : "Renault Espace V"}
               </h4>
               <p className="text-xs text-slate-500">
                 {foyerVehicles[1]
                   ? `${foyerVehicles[1].immatriculation} • ${(foyerVehicles[1].kilometrage_actuel || 0).toLocaleString()} km. Surveillance prédictive active.`
-                  : "FX-563-KZ • 34 200 km. Surveillance prédictive active."}
+                  : "FX-563-KZ • 272 448 km. Surveillance prédictive active."}
               </p>
               <span className="inline-block text-[11px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">
                 Agenda Foyer Synchronisé

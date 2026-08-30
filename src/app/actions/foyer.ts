@@ -5,6 +5,7 @@ import { Foyer, FoyerMember, Garage, matchesVehicleId } from "@/lib/types/databa
 import { EnrichedVehicle } from "./vehicles";
 import { DEFAULT_FOYER_ID } from "@/config/foyer.seed";
 import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
+import { calculateTelemetryPace } from "@/lib/engine/cycles";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { updateHouseholdNameSchema, inviteHouseholdMemberSchema } from "@/lib/security/schemas";
@@ -221,9 +222,18 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         );
         const effectiveKm = docMaxKm > 0 && (v.kilometrage_actuel || 0) > docMaxKm ? docMaxKm : v.kilometrage_actuel;
 
+        const readings = [
+          ...docs.map((d) => ({ date: d.date_document, mileage: Number(d.kilometrage_document) || 0 })),
+          ...lines.map((l) => ({ date: l.date_intervention, mileage: Number(l.kilometrage_intervention) || 0 })),
+        ].filter((r) => r.date && r.mileage > 0);
+
+        const regDate = v.date_premiere_immatriculation || (v.annee_mise_en_circulation ? `${v.annee_mise_en_circulation}-01-01` : undefined);
+        const pace = calculateTelemetryPace(readings, regDate);
+
         return {
           ...v,
           kilometrage_actuel: effectiveKm,
+          km_annuel_moyen: pace.annualMileageKm > 0 ? pace.annualMileageKm : (v.km_annuel_moyen || 12000),
           documents_sources: docs,
           lignes_interventions: lines,
           defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),
@@ -351,9 +361,18 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         );
         const effectiveKm = docMaxKm > 0 && (v.kilometrage_actuel || 0) > docMaxKm ? docMaxKm : v.kilometrage_actuel;
 
+        const readings = [
+          ...docs.map((d) => ({ date: d.date_document, mileage: Number(d.kilometrage_document) || 0 })),
+          ...lines.map((l) => ({ date: l.date_intervention, mileage: Number(l.kilometrage_intervention) || 0 })),
+        ].filter((r) => r.date && r.mileage > 0);
+
+        const regDate = v.date_premiere_immatriculation || (v.annee_mise_en_circulation ? `${v.annee_mise_en_circulation}-01-01` : undefined);
+        const pace = calculateTelemetryPace(readings, regDate);
+
         return {
           ...v,
           kilometrage_actuel: effectiveKm,
+          km_annuel_moyen: pace.annualMileageKm > 0 ? pace.annualMileageKm : (v.km_annuel_moyen || 12000),
           documents_sources: docs,
           lignes_interventions: lines,
           defaillances_ct: allDefs.filter((d) => matchesVehicleId(d.vehicule_id, v)),

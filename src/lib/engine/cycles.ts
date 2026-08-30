@@ -18,6 +18,19 @@ export interface MileagePaceResult {
   daysSinceLastReading: number;
 }
 
+export const calculateTelemetryPace = (
+  readings: Array<{ date: string; mileage: number; source?: any }>,
+  vehicleFirstRegistration?: string,
+  refDateInput?: Date | number | string
+) => {
+  const normalizedReadings: MileageReading[] = (readings || []).map((r) => ({
+    date: r.date,
+    mileage: r.mileage,
+    source: r.source || "INVOICE",
+  }));
+  return calculateMileagePace(normalizedReadings, refDateInput, vehicleFirstRegistration);
+};
+
 export function calculateMileagePace(
   readings: MileageReading[],
   refDateInput?: Date | number | string,

@@ -41,6 +41,7 @@ import {
 import { Foyer, FoyerMember } from "@/lib/types/database.types";
 import { EnrichedVehicle } from "@/app/actions/vehicles";
 import { ReservationKit } from "@/lib/engine/reservation-kit";
+import { calculateTelemetryPace } from "@/lib/engine/cycles";
 
 interface DashboardClientViewProps {
   initialFoyer: Foyer | null;
@@ -417,13 +418,29 @@ export function DashboardClientView({
                 cout_estime_max: 200,
               };
 
+              const readings = [
+                ...(v.documents_sources || []).map((d: any) => ({
+                  date: d.date_document,
+                  mileage: Number(d.kilometrage_document) || 0,
+                })),
+                ...(v.lignes_interventions || []).map((l: any) => ({
+                  date: l.date_intervention,
+                  mileage: Number(l.kilometrage_intervention) || 0,
+                })),
+              ].filter((r: any) => r.date && r.mileage > 0);
+
+              const regDate = v.date_premiere_immatriculation || (v.annee_mise_en_circulation ? `${v.annee_mise_en_circulation}-01-01` : undefined);
+              const pace = calculateTelemetryPace(readings, regDate);
+
               const hasMileage = v.kilometrage_actuel && v.kilometrage_actuel > 0;
-              const annualPace = v.immatriculation?.includes("301")
-                ? "11 926 km/an"
-                : v.immatriculation?.includes("563")
-                ? "13 500 km/an"
-                : hasMileage
-                ? `${(v.km_annuel_moyen || 12000).toLocaleString("fr-FR")} km/an`
+              const displayAnnualKm = pace.annualMileageKm > 0
+                ? pace.annualMileageKm
+                : v.km_annuel_moyen && v.km_annuel_moyen > 0
+                ? v.km_annuel_moyen
+                : 12000;
+
+              const annualPace = hasMileage
+                ? `${displayAnnualKm.toLocaleString("fr-FR")} km/an`
                 : "En attente";
 
               const isSuspended = isVehicleTrackingSuspended(v);
