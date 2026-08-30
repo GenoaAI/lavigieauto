@@ -1,0 +1,142 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "208 1",
+  "modelSlug": "208-1",
+  "generation": "I (Phase 2)",
+  "engine": "1.6 BlueHDi 100 ch",
+  "engineSlug": "1-6-bluehdi-100",
+  "engineCode": "DV6FD / BHY",
+  "fuelType": "Diesel",
+  "powerHp": 100,
+  "productionYears": "2015-2019",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Peugeot 208 I 1.6 BlueHDi (100 ch) impose une vidange annuelle ou tous les 25 000 km avec une huile homologuée PSA B71 2312 (0W-30). Le kit de distribution complet (courroie + galets + pompe à eau) doit être remplacé impérativement tous les 10 ans ou 175 000 km. Une attention particulière doit être portée au réservoir et à la pompe d'AdBlue.",
+  "recommendedOilNorm": "PSA B71 2312 (0W-30)",
+  "oilViscosity": "0W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile 0W-30 B71 2312 conçue pour les moteurs BlueHDi équipés de catalyseur SCR.",
+      "intervalKm": 25000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 155,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Protection contre les pollens et gaz d’échappement.",
+      "intervalKm": 25000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-carburant",
+      "operation": "Remplacement du filtre à gazole",
+      "description": "Protection indispensable de la pompe haute pression d'injection.",
+      "intervalKm": 50000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 65,
+      "estimatedCostMax": 95,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Assure l'alimentation en air propre du turbo.",
+      "intervalKm": 50000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge du liquide de frein DOT 4+",
+      "description": "Maintien de la réactivité du système de freinage.",
+      "intervalKm": 50000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement de la courroie de distribution, galets et pompe à eau.",
+      "intervalKm": 175000,
+      "intervalMonths": 120,
+      "criticality": "securite",
+      "estimatedCostMin": 530,
+      "estimatedCostMax": 740,
+      "category": "moteur"
+    },
+    {
+      "id": "courroie-accessoires",
+      "operation": "Courroie d'accessoires",
+      "description": "Entraînement des périphériques moteur.",
+      "intervalKm": 175000,
+      "intervalMonths": 120,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 160,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Défaillance de la pompe intégrée au réservoir d'AdBlue",
+      "component": "Réservoir AdBlue / Pompe SCR",
+      "severity": "haute",
+      "description": "Une dépression dans le réservoir d'AdBlue ou la cristallisation de l'urée peut bloquer la pompe intégrée non démontable, imposant le remplacement du réservoir complet.",
+      "symptoms": [
+        "Voyant UREA allumé au tableau de bord",
+        "Message « Défaut système antipollution : Démarrage interdit dans 1100 km »"
+      ],
+      "preventiveAction": "Ajouter un additif anti-cristallisant lors de chaque appoint d'AdBlue et ne pas remplir le réservoir au-delà du déclenchement automatique.",
+      "legalContext": "Prise en charge partielle Stellantis selon l'âge et le kilométrage sous condition de carnet d'entretien à jour."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien Distribution & Révision Complète",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires + purge liquide de refroidissement",
+        "Vidange huile moteur 0W-30 B71 2312 + filtre",
+        "Filtre à gazole + filtre d’habitacle"
+      ],
+      "individualEstimatedTotal": 960,
+      "bundledEstimatedTotal": 730,
+      "savingsEur": 230,
+      "garageAdvice": "Remplacer le filtre à gazole et la courroie d'accessoires conjointement avec la distribution pour économiser 1h30 de main-d'œuvre."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie de distribution sur une 208 1.6 BlueHDi ?",
+      "answer": "La préconisation officielle Peugeot est de 10 ans ou 175 000 km (au premier des deux termes atteint)."
+    },
+    {
+      "question": "Quelle huile moteur pour la Peugeot 208 1.6 diesel 100 ch ?",
+      "answer": "L'huile certifiée obligatoire est la PSA B71 2312 en viscosité 0W-30."
+    },
+    {
+      "question": "Combien coûte le remplacement de distribution sur 208 1.6 BlueHDi ?",
+      "answer": "Le kit complet avec pompe à eau coûte entre 530 € et 740 €."
+    },
+    {
+      "question": "Que faire si le voyant UREA s'allume sur ma 208 ?",
+      "answer": "Faites diagnostiquer immédiatement le circuit d'AdBlue avant que le compte à rebours de non-redémarrage n'atteigne zéro."
+    }
+  ]
+}

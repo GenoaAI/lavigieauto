@@ -1,0 +1,144 @@
+{
+  "brand": "Renault",
+  "brandSlug": "renault",
+  "model": "Clio 4",
+  "modelSlug": "clio-4",
+  "generation": "IV (Phase 1 & 2)",
+  "engine": "0.9 TCe 90 ch",
+  "engineSlug": "0-9-tce-90",
+  "engineCode": "H4Bt 400 / 408",
+  "fuelType": "Essence",
+  "powerHp": 90,
+  "productionYears": "2012-2019",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Renault Clio 4 0.9 TCe (90 ch) impose une vidange annuelle ou tous les 30 000 km avec une huile homologuée Renault RN0710 ou RN17 (5W-40 ou 5W-30). Le bloc 3 cylindres H4Bt est équipé d'une chaîne de distribution sans remplacement périodique programmé. Une surveillance régulière du boîtier de thermostat et des bougies d'allumage tous les 60 000 km est préconisée.",
+  "recommendedOilNorm": "Renault RN0710 (5W-40) ou RN17 (5W-30)",
+  "oilViscosity": "5W-40 / 5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et remplacement filtre à huile",
+      "description": "Utilisation d'huile homologuée RN0710/RN17 protégeant le turbocompresseur et la chaîne de distribution.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 135,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement du filtre d'habitacle anti-allergènes",
+      "description": "Maintien de la qualité de l'air intérieur et protection du pulseur de climatisation.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Préserve le bon ratio air/carburant et protège la turbine du turbo contre les impuretés.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Évite les ratés d'allumage destructeurs pour le catalyseur sur le 3-cylindres turbo.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 75,
+      "estimatedCostMax": 110,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein (DOT 4+)",
+      "description": "Garantit la réactivité du circuit hydraulique et préserve le bloc ABS/ESP de l'humidité.",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-accessoires",
+      "operation": "Remplacement courroie d'accessoires et galet tendeur",
+      "description": "Entraîne l'alternateur et le compresseur de climatisation.",
+      "intervalKm": 120000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 160,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement",
+      "operation": "Remplacement liquide de refroidissement type D",
+      "description": "Protège le bloc aluminium et le radiateur contre l'oxydation interne et la surchauffe.",
+      "intervalKm": 120000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 65,
+      "estimatedCostMax": 95,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Fuite du boîtier d'eau / thermostat en plastique",
+      "component": "Boîtier de sortie d'eau & Thermostat",
+      "severity": "haute",
+      "description": "Sur le moteur 0.9 TCe, le boîtier de thermostat en plastique peut se déformer avec les cycles thermiques, provoquant une micro-fuite de liquide de refroidissement difficilement visible au début.",
+      "symptoms": [
+        "Baisse lente mais continue du niveau dans le vase dexpansion",
+        "Odeur de liquide chaud dans le compartiment moteur",
+        "Traces de résidus blanchâtres autour du boîtier"
+      ],
+      "preventiveAction": "Vérifier le niveau de liquide de refroidissement une fois par mois et remplacer le boîtier complet dès les premiers suintements.",
+      "legalContext": "Historique d'entretien requis pour justifier de l'absence de surchauffe lors de la revente."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision Complète 4 ans / 60 000 km",
+      "operationsIncluded": [
+        "Vidange huile moteur RN17 + filtre à huile",
+        "Remplacement filtre habitacle",
+        "Remplacement filtre à air",
+        "Remplacement des 3 bougies d’allumage",
+        "Purge du liquide de frein DOT 4"
+      ],
+      "individualEstimatedTotal": 340,
+      "bundledEstimatedTotal": 265,
+      "savingsEur": 75,
+      "garageAdvice": "Faites remplacer les 3 bougies d'allumage en même temps que la vidange pour mutualiser les temps de dépose du conduit d'admission."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie de distribution sur une Clio 4 0.9 TCe ?",
+      "answer": "La Clio 4 0.9 TCe est équipée d'une chaîne de distribution sans entretien périodique. Seule la courroie d'accessoires doit être remplacée à 6 ans ou 120 000 km."
+    },
+    {
+      "question": "Quelle huile moteur faut-il mettre dans une Clio 4 0.9 TCe 90 ch ?",
+      "answer": "L'huile homologuée est la Renault RN0710 en 5W-40 ou la norme plus récente RN17 en 5W-30. La contenance du carter est d'environ 4,1 litres."
+    },
+    {
+      "question": "Combien coûte l'entretien régulier d'une Clio 4 0.9 TCe ?",
+      "answer": "Une révision annuelle simple (vidange + filtre) coûte entre 95 € et 135 €. La révision des 60 000 km avec bougies et filtres d'admission coûte entre 240 € et 310 €."
+    },
+    {
+      "question": "Pourquoi surveiller le boîtier de thermostat sur le 0.9 TCe ?",
+      "answer": "Le boîtier en composite plastique est sensible aux variations thermiques et peut générer une fuite de liquide de refroidissement nécessitant un remplacement préventif."
+    }
+  ]
+}

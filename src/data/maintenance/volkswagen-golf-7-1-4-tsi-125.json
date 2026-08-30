@@ -1,0 +1,131 @@
+{
+  "brand": "Volkswagen",
+  "brandSlug": "volkswagen",
+  "model": "Golf 7",
+  "modelSlug": "golf-7",
+  "generation": "VII",
+  "engine": "1.4 TSI 125 ch",
+  "engineSlug": "1-4-tsi-125",
+  "engineCode": "EA211 / CZCA",
+  "fuelType": "Essence",
+  "powerHp": 125,
+  "productionYears": "2012-2019",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Volkswagen Golf 7 1.4 TSI (125 ch bloc EA211) prévoit une vidange LongLife tous les 2 ans ou 30 000 km avec une huile conforme VW 504.00 (5W-30). Contrairement aux anciens EA111 à chaîne, le moteur est équipé d'une courroie de distribution fiable (contrôle à 210 000 km). Le boîtier de thermostat piloté et l'actionneur de wastegate de turbo nécessitent un contrôle visuel régulier.",
+  "recommendedOilNorm": "VW 504.00 (5W-30)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur LongLife et filtre à huile",
+      "description": "Huile homologuée VW 504.00 pour moteur 4-cylindres turbo injection directe.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 125,
+      "estimatedCostMax": 170,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle Climatronic",
+      "description": "Qualité de l’air et protection évaporateur.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Protection de la turbine du turbo.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 4 bougies d'allumage",
+      "description": "Indispensable pour le bon allumage sur moteur EA211 turbo.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 135,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4 Plus",
+      "description": "Sécurité de freinage hydraulique.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement préventif courroie crantée et pompe à eau.",
+      "intervalKm": 210000,
+      "intervalMonths": 120,
+      "criticality": "securite",
+      "estimatedCostMin": 600,
+      "estimatedCostMax": 850,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Suintement du boîtier de thermostat et grippage de wastegate de turbo",
+      "component": "Boîtier thermostat & Actionneur wastegate turbo",
+      "severity": "moyenne",
+      "description": "Le boîtier de thermostat en plastique peut suinter du liquide de refroidissement avec l'âge. L'axe de wastegate peut également se gripper par manque de lubrification thermique.",
+      "symptoms": [
+        "Niveau de liquide de refroidissement en légère baisse",
+        "Vibration métallique légère de la tringlerie de turbo à la décélération"
+      ],
+      "preventiveAction": "Inspecter le boîtier d'eau lors de chaque vidange et lubrifier l'axe de wastegate avec une graisse haute température."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision LongLife 4 ans / 60 000 km Golf 7",
+      "operationsIncluded": [
+        "Vidange LongLife VW 504.00 + filtre",
+        "Filtre habitacle Climatronic",
+        "Filtre à air",
+        "4 bougies d’allumage",
+        "Purge liquide de frein"
+      ],
+      "individualEstimatedTotal": 395,
+      "bundledEstimatedTotal": 310,
+      "savingsEur": 85,
+      "garageAdvice": "Bénéficiez du forfait complet des 60 000 km pour mutualiser la dépose des bobines et le filtre à air."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "La Golf 7 1.4 TSI a-t-elle une courroie ou une chaîne de distribution ?",
+      "answer": "La Golf 7 1.4 TSI 125 ch est dotée d'une courroie de distribution crantée (moteur EA211), beaucoup plus fiable que l'ancienne chaîne de la Golf 6."
+    },
+    {
+      "question": "Quelle huile moteur pour la Golf 7 1.4 TSI 125 ch ?",
+      "answer": "Huile de synthèse homologuée VW 504.00 en viscosité 5W-30."
+    },
+    {
+      "question": "Quand changer la courroie de distribution sur Golf 7 1.4 TSI ?",
+      "answer": "Contrôle à 210 000 km par Volkswagen, avec un remplacement préventif conseillé à 10 ans ou 150 000 km."
+    },
+    {
+      "question": "Combien coûte l'entretien régulier d'une Golf 7 essence ?",
+      "answer": "Entre 125 € et 170 € pour une vidange LongLife tous les 2 ans."
+    }
+  ]
+}

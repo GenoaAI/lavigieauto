@@ -1,0 +1,132 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "208 2",
+  "modelSlug": "208-2",
+  "generation": "II",
+  "engine": "1.5 BlueHDi 100 ch",
+  "engineSlug": "1-5-bluehdi-100",
+  "engineCode": "DV5RD / YHY",
+  "fuelType": "Diesel",
+  "powerHp": 100,
+  "productionYears": "2019-2024",
+  "directAnswerSummary": "Le plan d'entretien constructeur de la Peugeot 208 II 1.5 BlueHDi (100 ch) impose une vidange annuelle ou tous les 20 000 km avec une huile normée PSA B71 2010 (0W-20). La courroie de distribution externe se remplace à 10 ans ou 180 000 km. Une vigilance critique s'impose sur la chaîne interne de synchronisation des arbres à cames (7 mm) sujette à l'allongement et à la rupture.",
+  "recommendedOilNorm": "PSA B71 2010 (0W-20) ou FPW9.55535/03",
+  "oilViscosity": "0W-20",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile 0W-20 certifiée prévenant l’usure de la chaîne d’arbres à cames.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 120,
+      "estimatedCostMax": 165,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Air purifié et protection du pulseur.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-carburant",
+      "operation": "Remplacement filtre à gazole",
+      "description": "Protection de la rampe commune haute pression.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 70,
+      "estimatedCostMax": 105,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Alimentation du turbocompresseur.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité et efficacité hydraulique.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement de la courroie crantée et pompe à eau.",
+      "intervalKm": 180000,
+      "intervalMonths": 120,
+      "criticality": "securite",
+      "estimatedCostMin": 550,
+      "estimatedCostMax": 780,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Rupture de la chaîne de synchronisation d'arbres à cames de 7 mm",
+      "component": "Chaîne d'arbres à cames (DV5)",
+      "severity": "haute",
+      "description": "Sur le bloc 1.5 BlueHDi (DV5), la chaîne reliant les deux arbres à cames de 7 mm d'origine peut s'allonger et casser prématurément, provoquant la destruction de la culasse.",
+      "symptoms": [
+        "Bruit de cliquetis métallique / claquement au ralenti à froid",
+        "Voyant moteur allumé avec décalage de synchronisation capteur"
+      ],
+      "preventiveAction": "Écouter le haut moteur au ralenti et faire installer le kit chaîne renforcé 8 mm en cas de bruit suspect.",
+      "legalContext": "Note technique officielle Stellantis prévoyant une prise en charge sous conditions strictes."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision Majeure 2 ans / 40 000 km",
+      "operationsIncluded": [
+        "Vidange huile moteur 0W-20 + filtre",
+        "Filtre d’habitacle",
+        "Filtre à air",
+        "Filtre à gazole avec purge",
+        "Purge liquide de frein"
+      ],
+      "individualEstimatedTotal": 380,
+      "bundledEstimatedTotal": 295,
+      "savingsEur": 85,
+      "garageAdvice": "Groupez la purge du filtre à gazole et le remplacement du liquide de frein lors de la révision des 40 000 km."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie sur 208 II 1.5 BlueHDi ?",
+      "answer": "La courroie externe se remplace à 10 ans ou 180 000 km."
+    },
+    {
+      "question": "Quelle huile moteur pour le 1.5 BlueHDi 100 ch ?",
+      "answer": "Huile officielle PSA B71 2010 en grade 0W-20 (ou nouvelle spécification Stellantis FPW9.55535/03)."
+    },
+    {
+      "question": "Pourquoi entend-on un cliquetis sur le moteur 1.5 BlueHDi ?",
+      "answer": "Un claquement au ralenti peut signaler la fatigue de la chaîne de synchronisation 7 mm entre les arbres à cames."
+    },
+    {
+      "question": "Combien coûte une vidange sur 208 diesel 100 ch ?",
+      "answer": "Entre 120 € et 165 € selon les ateliers."
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "308 2",
+  "modelSlug": "308-2",
+  "generation": "II",
+  "engine": "1.2 PureTech 130 ch",
+  "engineSlug": "1-2-puretech-130",
+  "engineCode": "EB2DTS / HNY",
+  "fuelType": "Essence",
+  "powerHp": 130,
+  "productionYears": "2014-2021",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Peugeot 308 II 1.2 PureTech (130 ch) impose une vidange moteur annuelle ou tous les 15 000 km avec une huile homologuée PSA B71 2312 (0W-30). Le kit de distribution à courroie humide se remplace tous les 6 ans ou 100 000 km. La dégradation de la courroie pouvant boucher la pompe à vide d'assistance au freinage, un contrôle visuel est impératif.",
+  "recommendedOilNorm": "PSA B71 2312 (0W-30)",
+  "oilViscosity": "0W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile PSA B71 2312 garantissant la longévité de la courroie.",
+      "intervalKm": 15000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 120,
+      "estimatedCostMax": 160,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Protection habitacle.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Flux d’air turbo.",
+      "intervalKm": 45000,
+      "intervalMonths": 36,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Allumage turbo haute performance.",
+      "intervalKm": 45000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 90,
+      "estimatedCostMax": 130,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité du circuit de freinage.",
+      "intervalKm": 45000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Courroie en bain d’huile et pompe neuves.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 620,
+      "estimatedCostMax": 840,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Perte d'assistance de freinage par colmatage de la pompe à vide",
+      "component": "Pompe à vide de freinage & Crépine",
+      "severity": "haute",
+      "description": "Les particules de courroie désagrégée migrent dans le circuit de dépression de freinage, durcissant la pédale de frein.",
+      "symptoms": [
+        "Pédale de frein dure nécessitant un effort accru",
+        "Alerte pression d’huile allumée"
+      ],
+      "preventiveAction": "Contrôler la courroie avec le gabarit officiel lors de chaque révision et remplacer la pompe à vide en cas de résidus."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien 6 ans / 100 000 km 308 II",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires + purge liquide",
+        "Vidange moteur 0W-30 B71 2312",
+        "Contrôle crépine d’huile et pompe à vide"
+      ],
+      "individualEstimatedTotal": 1090,
+      "bundledEstimatedTotal": 830,
+      "savingsEur": 260,
+      "garageAdvice": "Profitez du changement de distribution pour exiger un contrôle de la pompe à vide sans surcoût de dépose."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie sur 308 II 1.2 PureTech 130 ?",
+      "answer": "La périodicité officielle est de 6 ans ou 100 000 km."
+    },
+    {
+      "question": "Quelle huile moteur pour la Peugeot 308 1.2 essence ?",
+      "answer": "Huile homologuée PSA B71 2312 en viscosité 0W-30."
+    },
+    {
+      "question": "Combien coûte la révision d'une 308 PureTech ?",
+      "answer": "Une vidange annuelle coûte entre 120 € et 160 €."
+    },
+    {
+      "question": "Comment éviter la casse de la courroie sur la 308 ?",
+      "answer": "Respectez impérativement la vidange tous les 15 000 km / 1 an avec l'huile 0W-30 B71 2312."
+    }
+  ]
+}

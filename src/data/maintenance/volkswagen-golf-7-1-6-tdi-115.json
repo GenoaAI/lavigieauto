@@ -1,0 +1,166 @@
+{
+  "brand": "Volkswagen",
+  "brandSlug": "volkswagen",
+  "model": "Golf VII",
+  "modelSlug": "golf-7",
+  "generation": "VII",
+  "engine": "1.6 TDI 115 ch",
+  "engineSlug": "1-6-tdi-115",
+  "engineCode": "EA288 / DDYA",
+  "fuelType": "Diesel",
+  "powerHp": 115,
+  "productionYears": "2016-2020",
+  "directAnswerSummary": "Le plan d'entretien constructeur de la Volkswagen Golf 7 1.6 TDI (115 ch) prévoit un programme d'entretien LongLife tous les 2 ans ou 30 000 km avec une huile homologuée VW 507.00 (5W-30). Le constructeur fixe l'échéance de la courroie de distribution à 210 000 km. Toutefois, en raison de la sensibilité de la pompe à eau à régulation pilotée sur le bloc EA288, un remplacement préventif complet (courroie + pompe à eau) est vivement conseillé dès 8 à 10 ans ou 150 000 km.",
+  "recommendedOilNorm": "VW 507.00 (5W-30 LongLife)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange moteur LongLife et remplacement du filtre à huile",
+      "description": "Utilisation exclusive d'huile homologuée VW 507.00 pour moteurs diesel avec filtre à particules.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 130,
+      "estimatedCostMax": 180,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement du filtre d'habitacle anti-allergènes (Climatronic)",
+      "description": "Protection de l'habitacle et préservation du bloc évaporateur de climatisation.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-carburant",
+      "operation": "Remplacement du filtre à gazole",
+      "description": "Indispensable pour préserver le système d'injection Common Rail Bosch haute pression (2000 bars).",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 70,
+      "estimatedCostMax": 105,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Garantit le débit massique d'air nécessaire au bon fonctionnement du turbocompresseur à géométrie variable.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein (DOT 4 Plus)",
+      "description": "Préconisé tous les 2 ans indépendamment du kilométrage pour garantir la réactivité du bloc ABS/ESP.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 60,
+      "estimatedCostMax": 85,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit de distribution complet avec pompe à eau débrayable",
+      "description": "Remplacement de la courroie de distribution crantée, galets et pompe à eau à tiroir de régulation piloté.",
+      "intervalKm": 210000,
+      "intervalMonths": 120,
+      "criticality": "securite",
+      "estimatedCostMin": 650,
+      "estimatedCostMax": 920,
+      "category": "moteur"
+    },
+    {
+      "id": "courroie-accessoires",
+      "operation": "Remplacement de la courroie d'accessoires et galet tendeur",
+      "description": "Remplacement conjoint avec la distribution pour éviter toute dépose ultérieure.",
+      "intervalKm": 210000,
+      "intervalMonths": 120,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 130,
+      "estimatedCostMax": 190,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement",
+      "operation": "Remplacement du liquide de refroidissement G12evo / G13",
+      "description": "Purge et remplacement du liquide de refroidissement officiel du groupe VAG lors du changement de pompe à eau.",
+      "intervalKm": 210000,
+      "intervalMonths": 120,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 80,
+      "estimatedCostMax": 130,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Grippage de la bague coulissante de pompe à eau pilotée (EA288)",
+      "component": "Pompe à eau débrayable à gestion électronique",
+      "severity": "haute",
+      "description": "Sur les moteurs 1.6 et 2.0 TDI EA288, la pompe à eau possède un tiroir coulissant piloté pour accélérer la montée en température. Ce tiroir a tendance à se bloquer en position fermée, provoquant une surchauffe instantanée du liquide de refroidissement.",
+      "symptoms": [
+        "Aiguille de température moteur montant rapidement au-dessus de 90°C",
+        "Alerte au tableau de bord 'Température liquide de refroidissement excessive'",
+        "Traces d'écoulement ou de suintement rose sous le carter de distribution"
+      ],
+      "preventiveAction": "Ne pas attendre l'échéance maximale de 210 000 km : faire remplacer préventivement le kit distribution + pompe à eau dès 120 000 à 150 000 km ou 8 ans.",
+      "legalContext": "Problème reconnu et référencé par les notes techniques du groupe Volkswagen."
+    },
+    {
+      "title": "Encrassement du radiateur EGR basse pression et du FAP",
+      "component": "Refroidisseur EGR & Filtre à Particules",
+      "severity": "moyenne",
+      "description": "En utilisation principalement urbaine, les suies s'accumulent dans le refroidisseur de gaz d'échappement (EGR basse pression), pouvant entraîner des dysfonctionnements du circuit d'admission.",
+      "symptoms": [
+        "Témoin de préchauffage qui clignote en roulant",
+        "Voyant moteur allumé avec code défaut débit EGR insuffisant"
+      ],
+      "preventiveAction": "Effectuer des cycles réguliers de décalaminage thermique sur autoroute et remplacer le filtre à gazole à chaque révision majeure."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Kit Grand Entretien : Distribution & Pompe à Eau Pilotée EA288",
+      "operationsIncluded": [
+        "Remplacement kit distribution complet (courroie + galets VAG)",
+        "Remplacement pompe à eau pilotée nouvelle référence",
+        "Courroie d'accessoires + galet tendeur",
+        "Vidange moteur LongLife avec huile homologuée VW 507.00",
+        "Purge intégrale du circuit de refroidissement G12evo"
+      ],
+      "individualEstimatedTotal": 1250,
+      "bundledEstimatedTotal": 960,
+      "savingsEur": 290,
+      "garageAdvice": "Demandez systématiquement la pose d'une pompe à eau de nouvelle génération avec clapet fiabilisé lors du changement de distribution pour écarter tout risque de surchauffe."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand faut-il faire la distribution sur une Volkswagen Golf 7 1.6 TDI 115 ?",
+      "answer": "La préconisation officielle Volkswagen est de 210 000 km sans limite stricte en années. Toutefois, en raison de la fragilité constatée de la pompe à eau d'origine, les experts recommandent un remplacement préventif tous les 8 à 10 ans ou dès 150 000 km."
+    },
+    {
+      "question": "Quelle huile moteur est homologuée pour la Golf 7 1.6 TDI ?",
+      "answer": "L'huile requise est obligatoirement certifiée selon la norme constructeur VW 507.00 en viscosité 5W-30 (profil LongLife et Low SAPS pour la protection du FAP)."
+    },
+    {
+      "question": "Combien coûte le remplacement de la courroie de distribution sur une Golf 7 diesel ?",
+      "answer": "Le remplacement complet avec la pompe à eau pilotée et la purge du liquide de refroidissement coûte entre 650 € et 920 € selon les ateliers et concessions."
+    },
+    {
+      "question": "Pourquoi la température monte-t-elle subitement sur ma Golf 7 TDI ?",
+      "answer": "C'est un symptôme caractéristique du blocage du clapet mobile de la pompe à eau pilotée du moteur EA288. Un remplacement immédiat du kit de distribution et de la pompe à eau s'impose pour éviter un joint de culasse."
+    }
+  ]
+}

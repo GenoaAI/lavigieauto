@@ -1,0 +1,130 @@
+{
+  "brand": "Dacia",
+  "brandSlug": "dacia",
+  "model": "Duster 2",
+  "modelSlug": "duster-2",
+  "generation": "II",
+  "engine": "1.5 Blue dCi 115 ch",
+  "engineSlug": "1-5-blue-dci-115",
+  "engineCode": "K9K 872",
+  "fuelType": "Diesel",
+  "powerHp": 115,
+  "productionYears": "2018-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel du Dacia Duster 2 1.5 Blue dCi (115 ch) impose une vidange annuelle ou tous les 30 000 km avec une huile certifiée Renault RN17 (5W-30). Le kit de courroie de distribution et la pompe à eau se remplacent tous les 6 ans ou 150 000 km. Sur les versions 4x4 (4WD), la vidange du pont arrière et de la boîte de transfert s'effectue tous les 60 000 km.",
+  "recommendedOilNorm": "Renault RN17 (5W-30) ou RN0720",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile RN17 protégeant le FAP et le système de post-traitement.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 115,
+      "estimatedCostMax": 155,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Qualité de l’air dans l’habitacle.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-carburant",
+      "operation": "Remplacement filtre à gazole",
+      "description": "Protection de la rampe commune haute pression.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 65,
+      "estimatedCostMax": 95,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Indispensable en environnement poussiéreux ou tout-chemin.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité du circuit de freinage.",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement de la courroie crantée, galets et pompe à eau.",
+      "intervalKm": 150000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 520,
+      "estimatedCostMax": 730,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Cristallisation d'AdBlue et transmission 4x4",
+      "component": "Circuit AdBlue & Pont arrière 4WD",
+      "severity": "haute",
+      "description": "L'AdBlue peut cristalliser sur l'injecteur SCR. Sur les versions 4x4, la vidange du pont arrière ne doit pas être négligée pour éviter l'usure prématurée du coupleur électromagnétique.",
+      "symptoms": [
+        "Alerte antipollution au tableau de bord",
+        "Bruit de grognement en virage serré sur version 4x4"
+      ],
+      "preventiveAction": "Utiliser un additif anti-cristallisant d'AdBlue et vidanger le pont 4x4 à 60 000 km."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien 6 ans / 150 000 km Duster",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires + purge liquide",
+        "Vidange moteur RN17 + filtre",
+        "Filtre à gazole"
+      ],
+      "individualEstimatedTotal": 970,
+      "bundledEstimatedTotal": 740,
+      "savingsEur": 230,
+      "garageAdvice": "Regroupez le remplacement du filtre à gazole et la distribution pour supprimer les frais de main-d'œuvre redondants."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand faire la distribution sur Dacia Duster 2 1.5 Blue dCi ?",
+      "answer": "La périodicité est de 6 ans ou 150 000 km."
+    },
+    {
+      "question": "Quelle huile moteur pour le Duster 2 diesel 115 ch ?",
+      "answer": "Huile de synthèse homologuée Renault RN17 en viscosité 5W-30."
+    },
+    {
+      "question": "Quel est le coût de la distribution d'un Duster 2 ?",
+      "answer": "Comptez entre 520 € et 730 € pour le kit complet avec pompe à eau."
+    },
+    {
+      "question": "Faut-il vidanger le pont arrière sur un Duster 4x4 ?",
+      "answer": "Oui, sur les versions 4WD, la vidange du pont arrière et de la boîte de transfert s'effectue tous les 60 000 km ou 4 ans."
+    }
+  ]
+}

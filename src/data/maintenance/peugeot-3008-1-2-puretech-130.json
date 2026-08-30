@@ -1,0 +1,155 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "3008",
+  "modelSlug": "3008",
+  "generation": "II",
+  "engine": "1.2 PureTech 130 ch",
+  "engineSlug": "1-2-puretech-130",
+  "engineCode": "EB2DTS / HNY",
+  "fuelType": "Essence",
+  "powerHp": 130,
+  "productionYears": "2016-2024",
+  "directAnswerSummary": "Le plan d'entretien constructeur du Peugeot 3008 II 1.2 PureTech (130 ch Turbo) impose une révision annuelle ou tous les 15 000 km avec une huile strictement certifiée PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20). Le remplacement du kit de distribution (courroie immergée en bain d'huile et pompe à eau) doit être réalisé impérativement tous les 6 ans ou 100 000 km. Un contrôle visuel de la largeur de la courroie au gabarit officiel est obligatoire à chaque entretien.",
+  "recommendedOilNorm": "PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20)",
+  "oilViscosity": "0W-30 / 0W-20",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange moteur et remplacement du filtre à huile",
+      "description": "Utilisation exclusive de l'huile synthétique certifiée PSA B71 2312 pour éviter l'attaque chimique du polymère de courroie.",
+      "intervalKm": 15000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 120,
+      "estimatedCostMax": 165,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement du filtre d'habitacle au charbon actif",
+      "description": "Filtration des particules fines, des allergènes et protection du circuit de climatisation bi-zone.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein (DOT 4+)",
+      "description": "Maintien du point d'ébullition et garantie du temps de réponse du système de freinage d'urgence autonome.",
+      "intervalKm": 45000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Préservation du mélange stœchiométrique et protection de la roue de compresseur du turbocompresseur.",
+      "intervalKm": 45000,
+      "intervalMonths": 36,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage haute performance",
+      "description": "Prévient les phénomènes de pré-allumage à bas régime (LSPI) et préserve l'intégrité des pistons.",
+      "intervalKm": 45000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 140,
+      "category": "moteur"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit de distribution complet avec pompe à eau",
+      "description": "Remplacement préventif de la courroie humide, des galets tendeurs et de la pompe à eau.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 620,
+      "estimatedCostMax": 850,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement",
+      "operation": "Remplacement et purge du liquide de refroidissement PSA",
+      "description": "Indispensable lors du remplacement de la pompe à eau pour maintenir la régulation thermique du bloc turbo.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 75,
+      "estimatedCostMax": 120,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Désagrégation de la courroie immergée et colmatage de la crépine d'huile",
+      "component": "Courroie de distribution humide & Circuit de lubrification",
+      "severity": "haute",
+      "description": "Sur le moteur 1.2 PureTech turbo (EB2DTS), la dégradation de la matière de la courroie dans l'huile crée des particules qui bouchent la crépine de pompe à huile ainsi que la pompe à vide du système d'assistance de freinage.",
+      "symptoms": [
+        "Alerte rouge 'Défaut pression d'huile moteur : arrêtez le véhicule'",
+        "Pédale de frein anormalement dure par manque d'assistance",
+        "Témoin moteur orange avec message 'Faites réparer le véhicule'"
+      ],
+      "preventiveAction": "Mesurer la largeur de la courroie via l'orifice de remplissage d'huile à chaque révision et faire déposer le carter pour nettoyer la crépine en cas de début d'effritement.",
+      "legalContext": "Grille de prise en charge Stellantis jusqu'à 10 ans ou 175 000 km sous réserve du respect scrupuleux des révisions dans le réseau ou avec factures conformes."
+    },
+    {
+      "title": "Phénomène d'auto-allumage à bas régime (LSPI)",
+      "component": "Chambres de combustion & Bougies d'allumage",
+      "severity": "moyenne",
+      "description": "L'injection directe essence et la suralimentation turbo peuvent créer des cliquetis destructeurs (LSPI) si l'huile moteur ou les bougies ne sont pas strictement conformes.",
+      "symptoms": [
+        "À-coups d'accélération violents sous forte charge entre 1 500 et 2 500 tr/min",
+        "Bruits métalliques d'auto-allumage"
+      ],
+      "preventiveAction": "Ne pas repousser le changement des 3 bougies d'allumage au-delà de 45 000 km et utiliser uniquement des huiles certifiées anti-LSPI."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Kit Prêt-à-Réserver : Grand Entretien des 6 ans / 100 000 km",
+      "operationsIncluded": [
+        "Kit de distribution complet + galets",
+        "Pompe à eau neuve + liquide de refroidissement",
+        "Courroie d'accessoires",
+        "Vidange moteur complète avec huile PSA B71 2312",
+        "Nettoyage et contrôle de la crépine de pompe à huile"
+      ],
+      "individualEstimatedTotal": 1150,
+      "bundledEstimatedTotal": 880,
+      "savingsEur": 270,
+      "garageAdvice": "Exigez systématiquement la vérification de la crépine d'huile lors de l'intervention sur la distribution : la vidange et la dépose étant conjointes, la main d'œuvre supplémentaire est minime."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand faut-il remplacer la courroie de distribution sur un Peugeot 3008 1.2 PureTech 130 ?",
+      "answer": "La recommandation officielle est de 6 ans ou 100 000 km (au premier des deux termes échus). L'ancienne périodicité de 10 ans / 180 000 km a été abandonnée par le constructeur."
+    },
+    {
+      "question": "Quelle huile moteur est agréée pour le Peugeot 3008 essence 130 ch ?",
+      "answer": "L'huile officielle homologuée est la PSA B71 2312 en viscosité 0W-30 (ou PSA B71 2010 en 0W-20 selon les millésimes récents). Respecter cette norme est capital pour éviter d'endommager la courroie."
+    },
+    {
+      "question": "Combien coûte le changement de courroie de distribution sur un 3008 PureTech ?",
+      "answer": "Le coût moyen varie entre 620 € et 850 € pour le kit complet avec pompe à eau. Si un nettoyage approfondi de la crépine et un rinçage moteur sont nécessaires, comptez entre 880 € et 1 100 €."
+    },
+    {
+      "question": "Comment vérifier l'état de la courroie de distribution de mon 3008 ?",
+      "answer": "Les ateliers utilisent un gabarit de contrôle qui s'insère par le bouchon d'huile moteur. Si le gabarit ne passe pas ou si la courroie présente des craquelures de surface, le changement doit être programmé sans attendre."
+    }
+  ]
+}

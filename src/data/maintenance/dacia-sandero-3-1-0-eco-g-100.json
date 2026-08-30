@@ -1,0 +1,142 @@
+{
+  "brand": "Dacia",
+  "brandSlug": "dacia",
+  "model": "Sandero 3",
+  "modelSlug": "sandero-3",
+  "generation": "III",
+  "engine": "1.0 ECO-G 100 ch",
+  "engineSlug": "1-0-eco-g-100",
+  "engineCode": "H4Dt 480 (Bicarburation GPL)",
+  "fuelType": "Essence",
+  "powerHp": 100,
+  "productionYears": "2020-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Dacia Sandero 3 1.0 ECO-G (100 ch Essence/GPL) impose une vidange annuelle ou tous les 30 000 km avec une huile certifiée Renault RN17 (5W-30). Équipée d'une chaîne de distribution, la spécificité GPL impose le remplacement du filtre GPL état gazeux tous les 30 000 km et du filtre phase liquide tous les 60 000 km.",
+  "recommendedOilNorm": "Renault RN17 (5W-30)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile RN17 résistant aux températures de combustion plus élevées du GPL.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 105,
+      "estimatedCostMax": 145,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-gpl-gazeux",
+      "operation": "Remplacement du filtre GPL état gazeux",
+      "description": "Protège les injecteurs GPL contre les gommes et résidus d'huile.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 40,
+      "estimatedCostMax": 65,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Qualité de l’air intérieur.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Indispensable pour le mélange stœchiométrique GPL/air.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-gpl-liquide",
+      "operation": "Remplacement du filtre GPL phase liquide",
+      "description": "Filtration à l’entrée du vapodétendeur GPL.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 45,
+      "estimatedCostMax": 70,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Allumage haute tension adapté au GPL.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 75,
+      "estimatedCostMax": 110,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité de freinage.",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 45,
+      "estimatedCostMax": 70,
+      "category": "freinage"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Encrassement des injecteurs GPL par saturation du filtre gazeux",
+      "component": "Rampe d'injection GPL & Filtre gazeux",
+      "severity": "haute",
+      "description": "Si le filtre GPL phase gazeuse n'est pas remplacé à temps, des dépôts huileux bouchent les injecteurs GPL, causant des ratés et le passage forcé en mode essence.",
+      "symptoms": [
+        "Bip sonore et basculement automatique en essence",
+        "Ralenti instable uniquement en mode GPL"
+      ],
+      "preventiveAction": "Remplacer impérativement le filtre GPL gazeux à chaque révision des 30 000 km sans retard."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision Complète Bicarburation GPL 60 000 km",
+      "operationsIncluded": [
+        "Vidange moteur RN17 + filtre",
+        "Filtre GPL phase gazeuse + phase liquide",
+        "Filtre à air + filtre habitacle",
+        "3 bougies d’allumage",
+        "Contrôle étanchéité circuit GPL"
+      ],
+      "individualEstimatedTotal": 410,
+      "bundledEstimatedTotal": 320,
+      "savingsEur": 90,
+      "garageAdvice": "Exigez un forfait révision GPL spécialisé comprenant les deux filtres GPL et le contrôle d'étanchéité."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer les filtres GPL sur Sandero 3 ECO-G ?",
+      "answer": "Le filtre gazeux se remplace tous les 30 000 km / 1 an, et le filtre phase liquide tous les 60 000 km / 2 ans."
+    },
+    {
+      "question": "La Sandero 3 ECO-G a-t-elle une chaîne de distribution ?",
+      "answer": "Oui, le moteur 1.0 ECO-G est équipé d'une chaîne de distribution sans entretien."
+    },
+    {
+      "question": "Quelle huile moteur pour la Sandero 3 GPL 100 ch ?",
+      "answer": "Huile de synthèse homologuée Renault RN17 en viscosité 5W-30."
+    },
+    {
+      "question": "Le contrôle technique est-il plus cher pour une Sandero GPL ?",
+      "answer": "Oui, comptez environ 20 € à 30 € de plus pour le contrôle d'étanchéité du réservoir et des canalisations GPL."
+    }
+  ]
+}

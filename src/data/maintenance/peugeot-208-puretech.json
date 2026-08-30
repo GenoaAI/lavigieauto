@@ -1,0 +1,144 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "208",
+  "modelSlug": "208",
+  "generation": "I & II",
+  "engine": "1.2 PureTech 82 ch",
+  "engineSlug": "1-2-puretech-82",
+  "engineCode": "EB2F / HMZ",
+  "fuelType": "Essence",
+  "powerHp": 82,
+  "productionYears": "2012-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Peugeot 208 1.2 PureTech (82 ch) impose une vidange annuelle ou tous les 15 000 km avec une huile normée PSA B71 2312 ou B71 2010. Le remplacement de la courroie de distribution immergée doit être effectué impérativement tous les 6 ans ou 100 000 km (au premier des deux termes échus), assorti d'un contrôle visuel de sa largeur à chaque passage en atelier.",
+  "recommendedOilNorm": "PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20)",
+  "oilViscosity": "0W-30 / 0W-20",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange moteur et remplacement du filtre à huile",
+      "description": "Utilisation exclusive de l'huile homologuée constructeur pour éviter la désagrégation de la courroie.",
+      "intervalKm": 15000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 150,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement du filtre d'habitacle (pollen/charbon)",
+      "description": "Maintien de la qualité de l'air intérieur et protection du système de climatisation.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein (DOT 4+)",
+      "description": "Évite l'absorption d'humidité et garantit l'efficacité du freinage d'urgence.",
+      "intervalKm": 45000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Préserve le mélange air/carburant et évite la surconsommation.",
+      "intervalKm": 45000,
+      "intervalMonths": 36,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Prévient les ratés d'allumage et préserve le pot catalytique.",
+      "intervalKm": 50000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 90,
+      "estimatedCostMax": 130,
+      "category": "moteur"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit de distribution complet avec pompe à eau",
+      "description": "Remplacement préventif de la courroie immergée dans l'huile et de la pompe à eau.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 580,
+      "estimatedCostMax": 780,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement",
+      "operation": "Contrôle et purge du liquide de refroidissement",
+      "description": "Effectué systématiquement lors du changement de la pompe à eau.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 70,
+      "estimatedCostMax": 110,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Usure et effilochage de la courroie de distribution humide",
+      "component": "Courroie de distribution (bain d'huile)",
+      "severity": "haute",
+      "description": "Sur le bloc 1.2 PureTech, la courroie baigne dans les vapeurs d'huile. Une huile inadaptée ou des vidanges trop espacées entraînent un effritement des résidus de caoutchouc qui viennent boucher la crépine de pompe à huile, causant une perte de pression d'huile et un risque de casse moteur.",
+      "symptoms": [
+        "Voyant « Pression d'huile insuffisante » allumé au tableau de bord",
+        "Perte d'assistance de freinage (pompe à vide encrassée)",
+        "Bruit de frottement métallique ou couinement au ralenti"
+      ],
+      "preventiveAction": "Contrôler la largeur de la courroie avec le gabarit officiel PSA lors de chaque révision annuelle et respecter strictement la périodicité de 6 ans / 100 000 km.",
+      "legalContext": "Stellantis applique une extension de prise en charge sous conditions strictes de respect du carnet d'entretien."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Kit Prêt-à-Réserver : Grand Entretien des 6 ans / 100 000 km",
+      "operationsIncluded": [
+        "Remplacement kit distribution complet",
+        "Remplacement pompe à eau + purge liquide",
+        "Courroie d'accessoires",
+        "Vidange moteur complète avec filtre à huile",
+        "Nettoyage de la crépine de pompe à huile"
+      ],
+      "individualEstimatedTotal": 1050,
+      "bundledEstimatedTotal": 790,
+      "savingsEur": 260,
+      "garageAdvice": "Faites valider le démontage du carter d'huile pour vérifier la crépine en même temps que la distribution. La main-d'œuvre étant mutualisée, vous économisez le coût d'une seconde dépose moteur."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand faut-il changer la courroie de distribution sur une Peugeot 208 1.2 PureTech ?",
+      "answer": "La préconisation actuelle du constructeur est de 6 ans ou 100 000 km (au premier des deux termes atteint). La préconisation initiale de 10 ans / 180 000 km a été officiellement révisée à la baisse pour éviter les ruptures prématurées dues au bain d'huile."
+    },
+    {
+      "question": "Quelle huile moteur utiliser pour la Peugeot 208 essence 82 ch ?",
+      "answer": "Il est impératif d'utiliser une huile répondant à la norme PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20). Toute huile non homologuée accélère immédiatement la dégradation chimique de la courroie de distribution."
+    },
+    {
+      "question": "Combien coûte la révision complète d'une Peugeot 208 1.2 PureTech ?",
+      "answer": "Une révision intermédiaire (vidange + contrôles) coûte entre 110 € et 150 €. La révision majeure incluant l'ensemble des filtres et bougies coûte entre 250 € et 340 €. Le remplacement du kit de distribution se situe entre 580 € et 780 € selon les ateliers."
+    },
+    {
+      "question": "Comment savoir si ma courroie de distribution est usée sur ma 208 ?",
+      "answer": "Un contrôle visuel s'effectue par le bouchon de remplissage d'huile à l'aide d'un gabarit de mesure. Si la courroie présente des craquelures, un gonflement ou si sa largeur dépasse la cote maximale, son remplacement immédiat s'impose."
+    }
+  ]
+}

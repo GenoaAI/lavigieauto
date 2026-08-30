@@ -1,0 +1,116 @@
+{
+  "brand": "Renault",
+  "brandSlug": "renault",
+  "model": "Clio 3",
+  "modelSlug": "clio-3",
+  "generation": "III (Phase 1 & 2)",
+  "engine": "1.2 16V 75 ch",
+  "engineSlug": "1-2-16v-75",
+  "engineCode": "D4F 740 / D4F",
+  "fuelType": "Essence",
+  "powerHp": 75,
+  "productionYears": "2005-2014",
+  "directAnswerSummary": "Le plan d'entretien de la Renault Clio 3 1.2 16V (moteur D4F) impose une vidange tous les 1 an ou 20 000 km avec une huile homologuée Renault RN0700 ou RN0710 (5W-40 ou 10W-40). Le remplacement du kit de distribution (courroie + galets) et de la pompe à eau doit être effectué impérativement tous les 5 ans ou 120 000 km (au premier des deux termes échus).",
+  "recommendedOilNorm": "Renault RN0700 / RN0710 (5W-40 ou 10W-40)",
+  "oilViscosity": "5W-40",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Préserve l'arbre à cames et le jeu aux soupapes.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 80,
+      "estimatedCostMax": 115,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-air-habitacle",
+      "operation": "Remplacement filtre à air et filtre d'habitacle",
+      "description": "Garantit le débit d'admission et la qualité d'air dans l'habitacle.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 4 bougies d'allumage",
+      "description": "Évite les ratés d'allumage et préserve la bobine monobloc.",
+      "intervalKm": 40000,
+      "intervalMonths": 36,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 60,
+      "estimatedCostMax": 90,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement liquide de frein (DOT 4)",
+      "description": "Sécurité freinage et protection du circuit hydraulique.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 70,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit de distribution complet + Pompe à eau + Courroie accessoires",
+      "description": "Remplacement impératif pour éviter la destruction des soupapes.",
+      "intervalKm": 120000,
+      "intervalMonths": 60,
+      "criticality": "securite",
+      "estimatedCostMin": 480,
+      "estimatedCostMax": 680,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Défaillance du commodo d'éclairage et bobine d'allumage jumostatique",
+      "component": "Commodo de phares & Faisceau d'allumage",
+      "severity": "moyenne",
+      "description": "Dysfonctionnement fréquent des feux de croisement et clignotants lié à l'usure interne du commodo de signalisation. Côté moteur, la bobine d'allumage monobloc peut provoquer des à-coups à l'accélération avec l'âge.",
+      "symptoms": [
+        "Extinction inopinée des feux ou faux contact clignotant",
+        "À-coups moteur à bas régime et démarrage difficile par temps humide"
+      ],
+      "preventiveAction": "Remplacement préventif des bougies d'allumage et contrôle du faisceau de commodo.",
+      "legalContext": "Historique de contrôle technique et factures d'entretien indispensables pour la revente."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Distribution + Pompe à eau + Révision annuelle",
+      "operationsIncluded": [
+        "Kit de distribution complet",
+        "Pompe à eau neuve et purge liquide de refroidissement",
+        "Courroie d'accessoires",
+        "Vidange moteur + filtre à huile + bougies d'allumage"
+      ],
+      "individualEstimatedTotal": 890,
+      "bundledEstimatedTotal": 680,
+      "savingsEur": 210,
+      "garageAdvice": "Mutualisez le changement de courroie avec la vidange et les bougies pour économiser le temps de main-d'œuvre de démontage."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie de distribution sur une Clio 3 1.2 16V ?",
+      "answer": "L'intervalle constructeur est strictement de 5 ans ou 120 000 km (au premier des deux termes atteint). Ne pas dépasser 5 ans même si le kilométrage est faible."
+    },
+    {
+      "question": "Quelle huile moteur pour la Clio 3 essence 1.2 75 ch ?",
+      "answer": "Une huile 5W-40 homologuée Renault RN0700 ou RN0710. La contenance du carter moteur avec filtre est de 4,0 litres."
+    },
+    {
+      "question": "Quel est le prix moyen d'une révision sur Clio 3 essence ?",
+      "answer": "Une vidange avec filtre coûte entre 80 € et 115 €. La révision complète incluant bougies et filtres d'habitacle/air s'élève à environ 190 € à 240 €."
+    }
+  ]
+}

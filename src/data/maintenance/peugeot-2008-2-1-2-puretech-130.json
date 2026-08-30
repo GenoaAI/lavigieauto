@@ -1,0 +1,130 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "2008 2",
+  "modelSlug": "2008-2",
+  "generation": "II",
+  "engine": "1.2 PureTech 130 ch",
+  "engineSlug": "1-2-puretech-130",
+  "engineCode": "EB2DTS / HNS",
+  "fuelType": "Essence",
+  "powerHp": 130,
+  "productionYears": "2019-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel du Peugeot 2008 II 1.2 PureTech (130 ch) impose un entretien annuel ou tous les 20 000 km avec de l'huile certifiée PSA B71 2010 (0W-20). Le remplacement de la courroie de distribution humide doit être effectué tous les 6 ans ou 100 000 km. L'encrassement des soupapes d'admission et l'état de la crépine d'huile doivent être contrôlés régulièrement.",
+  "recommendedOilNorm": "PSA B71 2010 (0W-20) ou PSA B71 2312 (0W-30)",
+  "oilViscosity": "0W-20 / 0W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile certifiée 0W-20 B71 2010 protégeant la courroie.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 120,
+      "estimatedCostMax": 165,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle charbon",
+      "description": "Filtration particules.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Protection turbo.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Combustion sans cliquetis.",
+      "intervalKm": 40000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 135,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité freinage.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Courroie humide et pompe à eau neuves.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 620,
+      "estimatedCostMax": 850,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Encrassement des soupapes d'admission par injection directe",
+      "component": "Soupapes d'admission & Conduits de culasse",
+      "severity": "moyenne",
+      "description": "L'injection directe ne lavant pas le dos des soupapes, des dépôts d'huile carbonisée peuvent s'accumuler et créer des pertes de puissance.",
+      "symptoms": [
+        "Légers trous à l’accélération",
+        "Ralenti légèrement instable à froid"
+      ],
+      "preventiveAction": "Utiliser un carburant de haute qualité et respecter les périodicités de vidange d'huile."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien 6 ans / 100 000 km 2008 II",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires",
+        "Vidange moteur 0W-20 + filtre",
+        "Contrôle crépine d’huile"
+      ],
+      "individualEstimatedTotal": 1100,
+      "bundledEstimatedTotal": 840,
+      "savingsEur": 260,
+      "garageAdvice": "Faites grouper la distribution et la vidange complète pour réduire les frais de main d'œuvre."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la distribution sur un 2008 II 1.2 PureTech 130 ?",
+      "answer": "Le remplacement est obligatoire tous les 6 ans ou 100 000 km."
+    },
+    {
+      "question": "Quelle huile homologuée pour le 2008 II essence 130 ch ?",
+      "answer": "Huile PSA B71 2010 en viscosité 0W-20."
+    },
+    {
+      "question": "Combien coûte le kit de distribution sur 2008 II ?",
+      "answer": "Entre 620 € et 850 € avec pompe à eau."
+    },
+    {
+      "question": "Quel est l'intervalle de vidange pour le 2008 II PureTech ?",
+      "answer": "Tous les 20 000 km ou tous les ans au premier terme échu."
+    }
+  ]
+}

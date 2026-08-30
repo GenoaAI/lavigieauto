@@ -1,0 +1,142 @@
+{
+  "brand": "Renault",
+  "brandSlug": "renault",
+  "model": "Mégane 4",
+  "modelSlug": "megane-4",
+  "generation": "IV",
+  "engine": "1.5 Blue dCi 115 ch",
+  "engineSlug": "1-5-bluehdi-115",
+  "engineCode": "K9K 872 / 874",
+  "fuelType": "Diesel",
+  "powerHp": 115,
+  "productionYears": "2018-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Renault Mégane 4 1.5 Blue dCi (115 ch) impose une vidange annuelle ou tous les 30 000 km avec une huile normée Renault RN17 FE (0W-20) ou RN17. Le remplacement du kit de distribution (courroie + pompe à eau) est obligatoire tous les 6 ans ou 150 000 km. Le système de dépollution SCR à injection d'AdBlue requiert un contrôle régulier des injecteurs et sondes NOx.",
+  "recommendedOilNorm": "Renault RN17 FE (0W-20) ou RN17 (5W-30)",
+  "oilViscosity": "0W-20 / 5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange moteur et filtre à huile",
+      "description": "Huile Low SAPS protégeant le FAP et le piège à NOx.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 125,
+      "estimatedCostMax": 170,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Purification de l'air intérieur.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-carburant",
+      "operation": "Remplacement du filtre à gazole",
+      "description": "Protection de l'injection haute pression à rampe commune.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 70,
+      "estimatedCostMax": 105,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Garantit le débit d'air nécessaire à la combustion diesel.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein",
+      "description": "Sécurité du freinage et du système ABS/ESP.",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement préventif de la courroie, des galets et de la pompe à eau.",
+      "intervalKm": 150000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 540,
+      "estimatedCostMax": 760,
+      "category": "moteur"
+    },
+    {
+      "id": "courroie-accessoires",
+      "operation": "Courroie d'accessoires et galet tendeur",
+      "description": "Remplacement conjoint avec la distribution.",
+      "intervalKm": 150000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 120,
+      "estimatedCostMax": 180,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Cristallisation d'AdBlue et encrassement de l'injecteur SCR",
+      "component": "Circuit d'AdBlue & Injecteur SCR",
+      "severity": "haute",
+      "description": "L'urée peut cristalliser au niveau de la tête d'injection dans l'échappement, provoquant un défaut antipollution et un compte à rebours de non-redémarrage.",
+      "symptoms": [
+        "Voyant « Antipollution à contrôler »",
+        "Compte à rebours « Démarrage impossible dans XXX km »"
+      ],
+      "preventiveAction": "Ajouter un additif anti-cristallisant lors de chaque plein d'AdBlue et ne pas laisser le niveau descendre au minimum."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien des 6 ans / 150 000 km",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires",
+        "Purge liquide de refroidissement",
+        "Vidange moteur RN17 + filtre",
+        "Remplacement filtre à gazole"
+      ],
+      "individualEstimatedTotal": 1020,
+      "bundledEstimatedTotal": 780,
+      "savingsEur": 240,
+      "garageAdvice": "Mutualisez le remplacement du filtre à gazole lors du changement de distribution pour économiser sur la main d'œuvre de dépose."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la distribution sur Mégane 4 1.5 Blue dCi ?",
+      "answer": "La périodicité est de 6 ans ou 150 000 km (au premier des deux termes atteint)."
+    },
+    {
+      "question": "Quelle huile pour la Mégane 4 diesel Blue dCi 115 ?",
+      "answer": "Norme Renault RN17 FE (0W-20) ou RN17 (5W-30)."
+    },
+    {
+      "question": "Quel prix pour la distribution d'une Mégane 4 1.5 dCi ?",
+      "answer": "Le kit distribution complet avec pompe à eau coûte entre 540 € et 760 €."
+    },
+    {
+      "question": "Comment éviter la panne du système AdBlue sur Mégane 4 ?",
+      "answer": "Utilisez un additif anti-cristallisant d'AdBlue et réalisez des trajets routiers réguliers pour faire monter la ligne d'échappement en température."
+    }
+  ]
+}

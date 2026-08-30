@@ -1,0 +1,120 @@
+{
+  "brand": "Volkswagen",
+  "brandSlug": "volkswagen",
+  "model": "Polo 6",
+  "modelSlug": "polo-6",
+  "generation": "VI",
+  "engine": "1.0 TSI 95 ch",
+  "engineSlug": "1-0-tsi-95",
+  "engineCode": "EA211evo / DKLA / DLAC",
+  "fuelType": "Essence",
+  "powerHp": 95,
+  "productionYears": "2017-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Volkswagen Polo 6 1.0 TSI (95 ch) impose un programme d'entretien LongLife tous les 2 ans ou 30 000 km avec une huile basse friction homologuée VW 508.00 (0W-20). La courroie de distribution haute endurance est conçue pour la durée de vie du moteur (contrôle visuel à 210 000 km). Le changement des 3 bougies d'allumage est fixé à 60 000 km ou 4 ans.",
+  "recommendedOilNorm": "VW 508.00 (0W-20 LongLife IV)",
+  "oilViscosity": "0W-20",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur LongLife IV et filtre à huile",
+      "description": "Huile 0W-20 VW 508.00 réduisant les frottements et la consommation.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 130,
+      "estimatedCostMax": 175,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle au charbon",
+      "description": "Filtration de l’habitacle.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Air propre pour le turbo.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Bougies haute température pour 3-cylindres turbo.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 90,
+      "estimatedCostMax": 130,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4 Plus",
+      "description": "Sécurité hydraulique.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Sensibilité de la batterie AGM et bougies d'allumage",
+      "component": "Batterie 12V AGM & Bougies haute température",
+      "severity": "moyenne",
+      "description": "Le système de récupération d'énergie au freinage et le Start & Stop sollicitent fortement la batterie. Ne pas dépasser 4 ans pour les bougies.",
+      "symptoms": [
+        "Désactivation du Start & Stop",
+        "Démarrage moins vif par grand froid"
+      ],
+      "preventiveAction": "Faire tester la batterie lors de la révision bisannuelle et utiliser exclusivement des bougies certifiées VW."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision 4 ans / 60 000 km Polo 6",
+      "operationsIncluded": [
+        "Vidange LongLife VW 508.00 + filtre",
+        "Filtre habitacle",
+        "Filtre à air",
+        "3 bougies d’allumage",
+        "Purge liquide de frein"
+      ],
+      "individualEstimatedTotal": 395,
+      "bundledEstimatedTotal": 305,
+      "savingsEur": 90,
+      "garageAdvice": "Demandez un forfait révision 60 000 km intégrant la purge de frein pour économiser sur la main d'œuvre."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie de distribution sur Polo 6 1.0 TSI ?",
+      "answer": "La courroie est conçue pour une très longue durée : contrôle visuel à 210 000 km."
+    },
+    {
+      "question": "Quelle huile moteur pour la Polo 6 1.0 TSI 95 ch ?",
+      "answer": "Huile obligatoire VW 508.00 (LongLife IV) en viscosité 0W-20."
+    },
+    {
+      "question": "Quel est le coût d'entretien d'une Polo 6 TSI ?",
+      "answer": "Entre 130 € et 175 € pour une vidange LongLife, et environ 305 € pour la révision des 60 000 km."
+    },
+    {
+      "question": "Quel est l'intervalle de vidange sur Polo 6 ?",
+      "answer": "Tous les 2 ans ou tous les 30 000 km (au premier des deux termes atteint)."
+    }
+  ]
+}

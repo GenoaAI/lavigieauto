@@ -1,0 +1,141 @@
+{
+  "brand": "Dacia",
+  "brandSlug": "dacia",
+  "model": "Sandero III",
+  "modelSlug": "sandero-3",
+  "generation": "III",
+  "engine": "1.0 TCe 90 ch",
+  "engineSlug": "1-0-tce-90",
+  "engineCode": "H4D 470",
+  "fuelType": "Essence",
+  "powerHp": 90,
+  "productionYears": "2020-2026",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Dacia Sandero 3 1.0 TCe (90 ch) prévoit une vidange annuelle ou tous les 30 000 km avec une huile homologuée Renault RN17 (5W-30). Le moteur H4D est équipé d'une distribution par chaîne ne nécessitant aucun remplacement périodique. L'entretien régulier repose sur le remplacement des filtres, la purge du liquide de frein tous les 3 ans, le changement des 3 bougies d'allumage à 60 000 km et la courroie d'accessoires à 6 ans / 120 000 km.",
+  "recommendedOilNorm": "Renault RN17 (5W-30)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange moteur et remplacement du filtre à huile",
+      "description": "Utilisation d'huile de synthèse homologuée RN17 garantissant la protection de la chaîne de distribution et du turbo.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 135,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement du filtre d'habitacle",
+      "description": "Protection de l'habitacle contre les poussières et maintien du débit d'air du pulseur.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Optimisation du flux d'admission d'air et protection de la turbine du turbocompresseur.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 40,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Indispensable pour garantir l'efficacité de la combustion sur le 3-cylindres turbo et protéger le catalyseur.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 70,
+      "estimatedCostMax": 110,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein (DOT 4+)",
+      "description": "Maintien de la performance du circuit de freinage et des modules de sécurité active.",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 45,
+      "estimatedCostMax": 70,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-accessoires",
+      "operation": "Remplacement de la courroie d'accessoires et tendeur",
+      "description": "Entraînement des auxiliaires moteur (alternateur, compresseur de climatisation).",
+      "intervalKm": 120000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 160,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement",
+      "operation": "Purge et remplacement du liquide de refroidissement",
+      "description": "Préservation de la culasse aluminium et du radiateur contre la corrosion et la surchauffe.",
+      "intervalKm": 120000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 65,
+      "estimatedCostMax": 95,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Fiabilité générale et chaîne de distribution robuste",
+      "component": "Chaîne de distribution sans entretien",
+      "severity": "moyenne",
+      "description": "Contrairement aux blocs à courroie humide, le 1.0 TCe bénéficie d'une chaîne métallique robuste. Une lubrification avec de l'huile certifiée RN17 garantit la longévité du tendeur hydraulique de chaîne.",
+      "symptoms": [
+        "Léger cliquetis métallique lors du premier démarrage à froid si l'huile est trop dégradée"
+      ],
+      "preventiveAction": "Respecter le pas de vidange de 30 000 km ou 1 an avec de l'huile homologuée RN17 5W-30 pour garantir la tension constante de la chaîne."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision Complète des 4 ans / 60 000 km",
+      "operationsIncluded": [
+        "Vidange moteur complète avec filtre à huile",
+        "Remplacement du filtre d'habitacle",
+        "Remplacement du filtre à air moteur",
+        "Remplacement des 3 bougies d'allumage",
+        "Purge intégrale du liquide de frein DOT 4+"
+      ],
+      "individualEstimatedTotal": 360,
+      "bundledEstimatedTotal": 280,
+      "savingsEur": 80,
+      "garageAdvice": "Faites remplacer les bougies et purger le liquide de frein en même temps que la vidange annuelle pour profiter d'un forfait révision intégrale avantageux."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "La Dacia Sandero 3 1.0 TCe a-t-elle une courroie ou une chaîne de distribution ?",
+      "answer": "La Dacia Sandero 3 1.0 TCe 90 ch est dotée d'une chaîne de distribution sans entretien périodique. Aucun remplacement programmé n'est nécessaire sur la durée de vie normale du véhicule."
+    },
+    {
+      "question": "Quelle huile moteur utiliser pour la Sandero 3 TCe 90 ?",
+      "answer": "L'huile préconisée par le groupe Renault-Dacia est la norme RN17 en viscosité 5W-30. Elle est spécifiquement formulée pour protéger la chaîne et le turbocompresseur."
+    },
+    {
+      "question": "Quel est le coût moyen de la révision sur une Dacia Sandero 3 ?",
+      "answer": "Une révision d'entretien annuel standard se situe entre 95 € et 135 €. La révision des 60 000 km (avec bougies et filtres) coûte environ 250 € à 320 € en atelier indépendant ou réseau."
+    },
+    {
+      "question": "Quand faut-il remplacer les bougies d'allumage sur la Sandero 3 90 ch ?",
+      "answer": "Les bougies d'allumage doivent être remplacées tous les 60 000 km ou tous les 4 ans au plus tard pour préserver le bon allumage et le catalyseur."
+    }
+  ]
+}

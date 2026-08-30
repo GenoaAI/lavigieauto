@@ -1,0 +1,142 @@
+{
+  "brand": "Toyota",
+  "brandSlug": "toyota",
+  "model": "Yaris 3",
+  "modelSlug": "yaris-3",
+  "generation": "III",
+  "engine": "1.5 HSD Hybride 100 ch",
+  "engineSlug": "1-5-hsd-100",
+  "engineCode": "1NZ-FXE (Cycle Atkinson)",
+  "fuelType": "Hybride",
+  "powerHp": 100,
+  "productionYears": "2012-2020",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Toyota Yaris 3 1.5 HSD (Hybride 100 ch) impose une révision annuelle ou tous les 15 000 km avec une huile synthétique Toyota 0W-20 API SN. Le moteur thermique est entraîné par une chaîne de distribution sans entretien. Les opérations clés incluent le nettoyage du filtre de ventilation de la batterie haute tension, les bougies Iridium à 90 000 km et la purge du liquide de frein tous les 2 ans.",
+  "recommendedOilNorm": "Toyota Genuine 0W-20 API SN / ILSAC GF-5",
+  "oilViscosity": "0W-20",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur 0W-20 et filtre à huile",
+      "description": "Huile 0W-20 ultra-fluide facilitant les démarrages répétés du moteur thermique hybride.",
+      "intervalKm": 15000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 135,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Qualité de l’air intérieur.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-batterie-hybride",
+      "operation": "Contrôle et nettoyage du filtre de refroidissement batterie hybride",
+      "description": "Situé sous la banquette arrière, vital pour éviter la surchauffe de la batterie de traction.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 20,
+      "estimatedCostMax": 40,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Alimentation du bloc thermique à cycle Atkinson.",
+      "intervalKm": 45000,
+      "intervalMonths": 36,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4 (Système régénératif)",
+      "description": "Sécurité et gestion de la transition freinage régénératif/friction.",
+      "intervalKm": 45000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "bougies-iridium",
+      "operation": "Remplacement des 4 bougies d'allumage Iridium longue durée",
+      "description": "Bougies Iridium haute longévité conçues pour 90 000 km.",
+      "intervalKm": 90000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 95,
+      "estimatedCostMax": 140,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement-inverter",
+      "operation": "Purge liquide de refroidissement moteur et inverter hybride (Toyota SLLC)",
+      "description": "Double circuit de refroidissement pour le moteur et l’électronique de puissance.",
+      "intervalKm": 150000,
+      "intervalMonths": 120,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 80,
+      "estimatedCostMax": 120,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Encrassement du filtre de ventilateur de la batterie hybride",
+      "component": "Ventilateur de refroidissement batterie haute tension (sous banquette)",
+      "severity": "haute",
+      "description": "L'accumulation de poussières et poils d'animaux sur la grille sous la banquette arrière réduit le débit d'air et provoque une surchauffe réduisant la durée de vie de la batterie hybride.",
+      "symptoms": [
+        "Bruit de soufflerie fort sous la banquette arrière",
+        "Consommation de carburant en hausse par bridage du moteur électrique"
+      ],
+      "preventiveAction": "Dépoussiérer la grille et remplacer le filtre de ventilateur tous les 30 000 km ou 2 ans."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Bilan Santé Hybride & Révision 30 000 km / 2 ans",
+      "operationsIncluded": [
+        "Vidange huile moteur 0W-20 + filtre",
+        "Filtre d’habitacle",
+        "Nettoyage filtre batterie hybride",
+        "Purge liquide de frein",
+        "Bilan de santé batterie de traction Toyota"
+      ],
+      "individualEstimatedTotal": 295,
+      "bundledEstimatedTotal": 220,
+      "savingsEur": 75,
+      "garageAdvice": "Exigez le nettoyage de la grille de batterie hybride lors de la purge de frein pour garantir la longévité de la batterie."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "La Toyota Yaris Hybride a-t-elle une courroie ou une chaîne de distribution ?",
+      "answer": "La Yaris Hybride est équipée d'une chaîne de distribution métallique sans entretien programmé."
+    },
+    {
+      "question": "Quelle huile moteur pour la Toyota Yaris 3 Hybride 100 ch ?",
+      "answer": "Huile d'origine Toyota 0W-20 API SN / ILSAC GF-5 ultra-fluide."
+    },
+    {
+      "question": "À quelle fréquence remplacer les bougies sur Yaris Hybride ?",
+      "answer": "Les 4 bougies Iridium se remplacent tous les 90 000 km ou 6 ans."
+    },
+    {
+      "question": "Pourquoi nettoyer le filtre de batterie sous la banquette ?",
+      "answer": "Ce filtre évite la surchauffe de la batterie hybride haute tension et préserve sa durée de vie."
+    }
+  ]
+}

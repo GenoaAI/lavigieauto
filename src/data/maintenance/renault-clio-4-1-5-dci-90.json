@@ -1,0 +1,167 @@
+{
+  "brand": "Renault",
+  "brandSlug": "renault",
+  "model": "Clio IV",
+  "modelSlug": "clio-4",
+  "generation": "IV",
+  "engine": "1.5 dCi 90 ch",
+  "engineSlug": "1-5-dci-90",
+  "engineCode": "K9K 608 / 628",
+  "fuelType": "Diesel",
+  "powerHp": 90,
+  "productionYears": "2012-2019",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Renault Clio 4 1.5 dCi (90 ch) impose une vidange moteur annuelle ou tous les 20 000 km avec une huile normée Renault RN0720 (5W-30 Low SAPS). Le remplacement de la courroie de distribution et de la pompe à eau doit être réalisé impérativement tous les 6 ans ou 150 000 km (au premier des deux termes échus). En usage urbain, le remplacement du filtre à gazole et le décrassage régulier du filtre à particules (FAP) sont essentiels.",
+  "recommendedOilNorm": "Renault RN0720 (5W-30 Low SAPS)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange moteur et remplacement du filtre à huile",
+      "description": "Utilisation obligatoire d'huile RN0720 à faible teneur en cendres pour préserver le filtre à particules (FAP).",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 155,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement du filtre d'habitacle (anti-allergènes)",
+      "description": "Maintien de la pureté de l'air dans l'habitacle et longévité du bloc de ventilation.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement du filtre à air moteur",
+      "description": "Garantit un débit d'air propre pour le turbocompresseur et prévient l'encrassement du débitmètre.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-carburant",
+      "operation": "Remplacement du filtre à gazole (avec purge d'eau)",
+      "description": "Protection vitale de la pompe d'injection haute pression à rampe commune contre l'eau et les micro-particules.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 65,
+      "estimatedCostMax": 95,
+      "category": "filtration"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge et remplacement du liquide de frein (DOT 4+)",
+      "description": "Préserve l'efficacité hydraulique du freinage d'urgence et du système ABS/ESP.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit de distribution complet avec pompe à eau",
+      "description": "Remplacement préventif de la courroie de distribution, des galets tendeurs/enrouleurs et de la pompe à eau.",
+      "intervalKm": 150000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 520,
+      "estimatedCostMax": 720,
+      "category": "moteur"
+    },
+    {
+      "id": "courroie-accessoires",
+      "operation": "Remplacement de la courroie d'accessoires et galet tendeur",
+      "description": "Entraîne l'alternateur et le compresseur de climatisation. À remplacer systématiquement avec la distribution.",
+      "intervalKm": 150000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 120,
+      "estimatedCostMax": 180,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-refroidissement",
+      "operation": "Remplacement et purge du liquide de refroidissement type D",
+      "description": "Liquide spécifique Renault Glaceol RX Type D, renouvelé lors du changement de pompe à eau.",
+      "intervalKm": 150000,
+      "intervalMonths": 72,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 70,
+      "estimatedCostMax": 110,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Encrassement de la vanne EGR et saturation du FAP en parcours urbain",
+      "component": "Système antipollution (Vanne EGR & Filtre à Particules)",
+      "severity": "haute",
+      "description": "Sur le moteur 1.5 dCi K9K, les trajets courts et la conduite en ville empêchent les cycles thermiques complets de régénération du filtre à particules, provoquant un colmatage rapide de la vanne EGR et du FAP.",
+      "symptoms": [
+        "Voyant 'Injection à contrôler' ou 'Antipollution à contrôler'",
+        "Perte de reprise et passage en mode dégradé (bridage moteur)",
+        "Surconsommation anormale de carburant"
+      ],
+      "preventiveAction": "Réaliser un trajet sur voie rapide ou autoroute (> 20 min à 2 500 tr/min) tous les 500 km pour lancer une régénération thermique complète du FAP.",
+      "legalContext": "Contrôle technique renforcé sur l'opacité des fumées diesel depuis 2019."
+    },
+    {
+      "title": "Sensibilité du circuit d'injection aux impuretés du gazole",
+      "component": "Pompe haute pression et injecteurs Common Rail",
+      "severity": "moyenne",
+      "description": "L'injection haute pression supporte mal la présence d'eau ou de sédiments dans le carburant, risquant d'endommager la pompe HP et de générer de la limaille.",
+      "symptoms": [
+        "Démarrage difficile à froid",
+        "Claquement métallique des injecteurs en accélération",
+        "Ralenti instable"
+      ],
+      "preventiveAction": "Remplacer impérativement le filtre à gazole tous les 40 000 km ou 2 ans sans négliger la purge du décanteur d'eau."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Kit Prêt-à-Réserver : Grand Entretien des 6 ans / 150 000 km",
+      "operationsIncluded": [
+        "Remplacement kit distribution complet (courroie + galets)",
+        "Remplacement pompe à eau + purge liquide Renault Glaceol Type D",
+        "Courroie d'accessoires + galet tendeur",
+        "Vidange moteur complète avec filtre à huile RN0720",
+        "Remplacement du filtre à gazole"
+      ],
+      "individualEstimatedTotal": 980,
+      "bundledEstimatedTotal": 740,
+      "savingsEur": 240,
+      "garageAdvice": "Faites remplacer le filtre à gazole et la courroie d'accessoires en même temps que la distribution. La façade moteur étant déjà démontée, vous évitez les frais de main-d'œuvre redondants."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand faut-il changer la courroie de distribution sur une Renault Clio 4 1.5 dCi 90 ?",
+      "answer": "La périodicité officielle préconisée par Renault est de 6 ans ou 150 000 km (au premier des deux termes atteint). Le kit complet (courroie, galets et pompe à eau) doit être remplacé simultanément."
+    },
+    {
+      "question": "Quelle huile moteur faut-il mettre dans une Clio 4 1.5 dCi 90 ch ?",
+      "answer": "Vous devez impérativement utiliser une huile répondant à la norme Renault RN0720 de viscosité 5W-30 (Low SAPS / C4). Cette spécification garantit la longévité du filtre à particules."
+    },
+    {
+      "question": "Combien coûte l'entretien régulier d'une Renault Clio 4 diesel ?",
+      "answer": "Une vidange d'entretien avec filtre à huile coûte entre 110 € et 155 €. La révision complète des 40 000 km avec filtre à air et filtre à gazole coûte entre 220 € et 310 €. Le remplacement du kit de distribution se chiffre entre 520 € et 720 €."
+    },
+    {
+      "question": "Comment éviter l'encrassement du FAP et de la vanne EGR sur le 1.5 dCi ?",
+      "answer": "Privilégiez des trajets réguliers sur autoroute à régime soutenu (au moins 20 minutes au-dessus de 2 500 tr/min) pour permettre la régénération automatique du filtre, et respectez la norme d'huile RN0720."
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "brand": "Citroën",
+  "brandSlug": "citroen",
+  "model": "C3 3",
+  "modelSlug": "c3-3",
+  "generation": "III",
+  "engine": "1.2 PureTech 83 ch",
+  "engineSlug": "1-2-puretech-83",
+  "engineCode": "EB2FA / HMZ",
+  "fuelType": "Essence",
+  "powerHp": 83,
+  "productionYears": "2016-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Citroën C3 III 1.2 PureTech (83 ch atmosphérique) impose une vidange tous les 1 an ou 15 000 km avec une huile normée PSA B71 2312 ou B71 2010. La courroie de distribution en bain d'huile doit impérativement être remplacée tous les 6 ans ou 100 000 km. La vérification visuelle au gabarit et l'état des bobines d'allumage sont indispensables.",
+  "recommendedOilNorm": "PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20)",
+  "oilViscosity": "0W-30 / 0W-20",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile homologuée évitant l’effritement du caoutchouc de la courroie.",
+      "intervalKm": 15000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 105,
+      "estimatedCostMax": 145,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Qualité de l’air intérieur.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Protection de l’admission moteur.",
+      "intervalKm": 45000,
+      "intervalMonths": 36,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Allumage régulier et protection catalyseur.",
+      "intervalKm": 50000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 85,
+      "estimatedCostMax": 120,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité de freinage.",
+      "intervalKm": 45000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement préventif de la courroie humide et pompe à eau.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 580,
+      "estimatedCostMax": 780,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Usure de la courroie immergée et bobines d'allumage",
+      "component": "Courroie humide & Système d'allumage",
+      "severity": "haute",
+      "description": "La courroie dans les vapeurs d'huile peut s'effriter et colmater la crépine. Les bobines peuvent provoquer des micro-coupures à l'allumage.",
+      "symptoms": [
+        "Voyant pression d’huile allumé",
+        "À-coups à l’accélération à bas régime"
+      ],
+      "preventiveAction": "Contrôler la largeur de la courroie avec le gabarit officiel lors de chaque révision annuelle."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien 6 ans / 100 000 km C3",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires",
+        "Vidange moteur 0W-30 B71 2312",
+        "Contrôle de crépine d’huile"
+      ],
+      "individualEstimatedTotal": 1020,
+      "bundledEstimatedTotal": 770,
+      "savingsEur": 250,
+      "garageAdvice": "Demandez au réparateur d'inspecter visuellement la crépine au fond du carter lors de la distribution."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la courroie sur Citroën C3 III 1.2 PureTech ?",
+      "answer": "Le remplacement est à faire impérativement tous les 6 ans ou 100 000 km."
+    },
+    {
+      "question": "Quelle huile pour la Citroën C3 1.2 essence 83 ch ?",
+      "answer": "Norme PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20)."
+    },
+    {
+      "question": "Combien coûte le kit de distribution sur Citroën C3 ?",
+      "answer": "Entre 580 € et 780 € avec la pompe à eau."
+    },
+    {
+      "question": "Comment vérifier la courroie de sa C3 ?",
+      "answer": "Par le bouchon d'huile avec le gabarit de contrôle officiel."
+    }
+  ]
+}

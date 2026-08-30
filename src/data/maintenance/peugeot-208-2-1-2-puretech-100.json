@@ -1,0 +1,131 @@
+{
+  "brand": "Peugeot",
+  "brandSlug": "peugeot",
+  "model": "208 2",
+  "modelSlug": "208-2",
+  "generation": "II",
+  "engine": "1.2 PureTech 100 ch",
+  "engineSlug": "1-2-puretech-100",
+  "engineCode": "EB2ADTD / HNK",
+  "fuelType": "Essence",
+  "powerHp": 100,
+  "productionYears": "2019-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Peugeot 208 II 1.2 PureTech (100 ch Turbo) impose une révision annuelle ou tous les 20 000 km avec une huile homologuée PSA B71 2010 (0W-20). Le remplacement de la courroie de distribution immergée en bain d'huile doit être réalisé impérativement tous les 6 ans ou 100 000 km, avec contrôle systématique de sa largeur à chaque passage en atelier.",
+  "recommendedOilNorm": "PSA B71 2010 (0W-20) ou PSA B71 2312 (0W-30)",
+  "oilViscosity": "0W-20 / 0W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile homologuée 0W-20 B71 2010 pour protéger la courroie immergée contre les solvants.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 115,
+      "estimatedCostMax": 160,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle charbon",
+      "description": "Qualité de l’air intérieur.",
+      "intervalKm": 20000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Protection de la suralimentation turbo.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Prévention de l’auto-allumage à bas régime (LSPI).",
+      "intervalKm": 40000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 90,
+      "estimatedCostMax": 130,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Temps de réponse du freinage d’urgence.",
+      "intervalKm": 40000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 55,
+      "estimatedCostMax": 80,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement impératif de la courroie humide et de la pompe à eau.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 600,
+      "estimatedCostMax": 820,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Désagrégation de la courroie en bain d'huile et bouchage crépine",
+      "component": "Courroie humide & Pompe à huile",
+      "severity": "haute",
+      "description": "L'effritement de la courroie dans les vapeurs d'huile peut obstruer la crépine de pompe à huile, causant une baisse fatale de pression de lubrification.",
+      "symptoms": [
+        "Alerte rouge « Pression huile moteur insuffisante »",
+        "Pédale de frein dure"
+      ],
+      "preventiveAction": "Mesurer la largeur de la courroie avec le gabarit officiel lors de chaque révision annuelle.",
+      "legalContext": "Extension de garantie Stellantis sous condition d'entretien conforme."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien des 6 ans / 100 000 km",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires + purge liquide",
+        "Vidange moteur 0W-20 + filtre",
+        "Contrôle visuel de la crépine"
+      ],
+      "individualEstimatedTotal": 1080,
+      "bundledEstimatedTotal": 820,
+      "savingsEur": 260,
+      "garageAdvice": "Demandez au garage de vérifier l'état de la crépine d'huile lors de la vidange groupée avec la distribution."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand remplacer la courroie sur Peugeot 208 II 1.2 PureTech 100 ?",
+      "answer": "La préconisation actuelle est de 6 ans ou 100 000 km (au premier des deux termes)."
+    },
+    {
+      "question": "Quelle huile moteur pour la 208 II essence 100 ch ?",
+      "answer": "L'huile préconisée est la norme PSA B71 2010 en viscosité 0W-20."
+    },
+    {
+      "question": "Combien coûte le changement de distribution sur 208 II ?",
+      "answer": "Comptez entre 600 € et 820 € pour le kit distribution complet."
+    },
+    {
+      "question": "Comment contrôler la courroie de sa 208 II ?",
+      "answer": "Un gabarit de mesure s'insère directement par le bouchon de remplissage d'huile."
+    }
+  ]
+}

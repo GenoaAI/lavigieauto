@@ -1,0 +1,130 @@
+{
+  "brand": "Citroën",
+  "brandSlug": "citroen",
+  "model": "C3 Aircross",
+  "modelSlug": "c3-aircross",
+  "generation": "I",
+  "engine": "1.2 PureTech 110 ch",
+  "engineSlug": "1-2-puretech-110",
+  "engineCode": "EB2DT / HNZ",
+  "fuelType": "Essence",
+  "powerHp": 110,
+  "productionYears": "2017-2024",
+  "directAnswerSummary": "Le plan d'entretien de la Citroën C3 Aircross 1.2 PureTech (110 ch Turbo) impose une vidange annuelle ou tous les 15 000 km avec de l'huile certifiée PSA B71 2312 (0W-30). Le kit de distribution à courroie humide se remplace à 6 ans ou 100 000 km. Le nettoyage préventif de la crépine de pompe à huile et le contrôle de l'échangeur air/eau évitent les pertes de pression d'huile.",
+  "recommendedOilNorm": "PSA B71 2312 (0W-30)",
+  "oilViscosity": "0W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile 0W-30 PSA B71 2312 protégeant la courroie immergée.",
+      "intervalKm": 15000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 115,
+      "estimatedCostMax": 155,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Protection de l’air intérieur.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Flux d’air pour le turbocompresseur.",
+      "intervalKm": 45000,
+      "intervalMonths": 36,
+      "criticality": "recommande",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 55,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Protection turbo et catalyseur.",
+      "intervalKm": 40000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 90,
+      "estimatedCostMax": 130,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité de freinage.",
+      "intervalKm": 45000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    },
+    {
+      "id": "courroie-distribution",
+      "operation": "Kit distribution complet + Pompe à eau",
+      "description": "Remplacement de la courroie en bain d’huile et de la pompe.",
+      "intervalKm": 100000,
+      "intervalMonths": 72,
+      "criticality": "securite",
+      "estimatedCostMin": 600,
+      "estimatedCostMax": 820,
+      "category": "moteur"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Crépine d'huile bouchée et échangeur turbo",
+      "component": "Crépine d'huile & Refroidisseur turbo",
+      "severity": "haute",
+      "description": "L'effritement de la courroie colmate la crépine et empêche la bonne lubrification de l'axe de turbo.",
+      "symptoms": [
+        "Voyant pression d’huile allumé au tableau de bord",
+        "Sifflement anormal du turbocompresseur"
+      ],
+      "preventiveAction": "Vérifier la courroie au gabarit et respecter l'échéance de 6 ans / 100 000 km."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Grand Entretien 6 ans / 100 000 km C3 Aircross",
+      "operationsIncluded": [
+        "Kit distribution complet + pompe à eau",
+        "Courroie d’accessoires + purge liquide",
+        "Vidange moteur 0W-30 B71 2312",
+        "Contrôle crépine d’huile"
+      ],
+      "individualEstimatedTotal": 1060,
+      "bundledEstimatedTotal": 800,
+      "savingsEur": 260,
+      "garageAdvice": "Mutualisez la distribution et la vidange complète pour économiser sur la main d'œuvre."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Quand changer la distribution sur C3 Aircross 1.2 PureTech 110 ?",
+      "answer": "Le remplacement est à effectuer tous les 6 ans ou 100 000 km."
+    },
+    {
+      "question": "Quelle huile pour le C3 Aircross essence 110 ch ?",
+      "answer": "Huile officielle PSA B71 2312 (0W-30)."
+    },
+    {
+      "question": "Quel est le coût de la distribution sur C3 Aircross ?",
+      "answer": "Entre 600 € et 820 € pour le kit complet."
+    },
+    {
+      "question": "Pourquoi changer les bougies tous les 40 000 km ?",
+      "answer": "Pour éviter les phénomènes de cliquetis destructeurs pour les pistons du 3-cylindres turbo."
+    }
+  ]
+}
