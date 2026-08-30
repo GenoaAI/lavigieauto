@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Upload,
@@ -14,6 +14,7 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
+import { trackMaintenanceEvent } from '@/lib/analytics/tracker';
 
 interface MaintenanceDropzoneProps {
   brand: string;
@@ -30,7 +31,26 @@ export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzon
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const startAnalysisSimulation = (file?: File) => {
+  // 1. Télémétrie d'affichage de la page
+  useEffect(() => {
+    trackMaintenanceEvent({
+      eventName: 'maintenance_page_view',
+      brand,
+      model,
+      engine,
+    });
+  }, [brand, model, engine]);
+
+  const startAnalysisSimulation = (source: 'camera' | 'upload' | 'drag_drop') => {
+    // 2. Télémétrie d'interaction
+    trackMaintenanceEvent({
+      eventName: 'maintenance_dropzone_interaction',
+      brand,
+      model,
+      engine,
+      source,
+    });
+
     setAnalysisState('analyzing');
     setProgressMessage('Lecture du document et extraction visuelle...');
 
@@ -44,6 +64,13 @@ export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzon
 
     setTimeout(() => {
       setAnalysisState('completed');
+      // 3. Télémétrie d'analyse terminée
+      trackMaintenanceEvent({
+        eventName: 'maintenance_dropzone_completed',
+        brand,
+        model,
+        engine,
+      });
     }, 2600);
   };
 
@@ -51,17 +78,38 @@ export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzon
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      startAnalysisSimulation(e.dataTransfer.files[0]);
+      startAnalysisSimulation('drag_drop');
     }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>, source: 'camera' | 'upload') => {
     if (e.target.files && e.target.files.length > 0) {
-      startAnalysisSimulation(e.target.files[0]);
+      startAnalysisSimulation(source);
     }
   };
 
   const handleConversionRedirect = () => {
+    // 4. Télémétrie de clic CTA conversion
+    trackMaintenanceEvent({
+      eventName: 'maintenance_conversion_cta_click',
+      brand,
+      model,
+      engine,
+      destination: '/dashboard',
+    });
+
+    // Mémorisation dans le sessionStorage pour pré-remplissage immédiat
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(
+          'lavigie_selected_vehicle',
+          JSON.stringify({ brand, model, engine, source: 'seo_landing', timestamp: Date.now() })
+        );
+      }
+    } catch {
+      // Silencieux
+    }
+
     // Redirection vers le flux d'onboarding / tableau de bord avec contexte véhicule pré-rempli
     router.push(
       `/dashboard?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(
@@ -82,14 +130,14 @@ export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzon
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileInput}
+        onChange={(e) => handleFileInput(e, 'upload')}
         accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
         className="hidden"
       />
       <input
         type="file"
         ref={cameraInputRef}
-        onChange={handleFileInput}
+        onChange={(e) => handleFileInput(e, 'camera')}
         accept="image/*"
         capture="environment"
         className="hidden"

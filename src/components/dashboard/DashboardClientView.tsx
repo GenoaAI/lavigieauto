@@ -67,6 +67,40 @@ export function DashboardClientView({
   const [actionMenuVehicleId, setActionMenuVehicleId] = useState<string | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<EnrichedVehicle | null>(null);
   const [statusLoadingId, setStatusLoadingId] = useState<string | null>(null);
+  const [seoWelcomeContext, setSeoWelcomeContext] = useState<{
+    brand: string;
+    model: string;
+    engine: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const src = params.get("src");
+      const brand = params.get("brand");
+      const model = params.get("model");
+      const engine = params.get("engine");
+      if (src === "seo_landing" && brand && model) {
+        setSeoWelcomeContext({ brand, model, engine: engine || "" });
+      } else {
+        const stored = sessionStorage.getItem("lavigie_selected_vehicle");
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed?.brand && parsed?.model) {
+              setSeoWelcomeContext({
+                brand: parsed.brand,
+                model: parsed.model,
+                engine: parsed.engine || "",
+              });
+            }
+          } catch {
+            // Silencieux
+          }
+        }
+      }
+    }
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -633,6 +667,31 @@ export function DashboardClientView({
           </div>
         )}
       </div>
+
+      {/* BANDEAU D'ONBOARDING CONTEXTUEL SEO / ENTRETEN */}
+      {seoWelcomeContext && (
+        <div className="rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-5 sm:p-6 text-white shadow-lg shadow-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in border border-blue-400/30">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 shadow-inner">
+              <Sparkles className="w-6 h-6 text-amber-300" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Carnet numérique prêt pour votre {seoWelcomeContext.brand} {seoWelcomeContext.model}
+              </h3>
+              <p className="text-xs text-blue-100 mt-0.5 leading-relaxed">
+                Déposez votre facture ou votre procès-verbal de CT ci-dessous : l'IA va automatiquement extraire votre immatriculation et rattacher le plan d'entretien officiel {seoWelcomeContext.engine ? `(${seoWelcomeContext.engine})` : ""}.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSeoWelcomeContext(null)}
+            className="self-end sm:self-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition shrink-0 cursor-pointer"
+          >
+            Masquer
+          </button>
+        </div>
+      )}
 
       {/* DROPZONE POUR NUMÉRISATION RAPIDE (GESTE 2) */}
       <div className="space-y-3">
