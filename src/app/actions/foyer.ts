@@ -54,12 +54,6 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     // Safe fallback
   }
 
-  // Par défaut, si aucun utilisateur connecté, on utilise le compte principal de démonstration
-  if (!userEmail) {
-    userEmail = "charlesdeforges@gmail.com";
-    userName = "Charles de Forges";
-  }
-
   const isCharlesDeForges = userEmail.toLowerCase() === "charlesdeforges@gmail.com";
 
   function applyTrackingOverrides(vehs: EnrichedVehicle[]): EnrichedVehicle[] {
@@ -144,6 +138,30 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       };
     }
     return f;
+  }
+
+  // Si aucun utilisateur n'est connecté : STRICTEMENT invité avec ZÉRO véhicule (Zéro Fake Data & Zéro fuite de données privées)
+  if (!userEmail) {
+    const guestFoyer: Foyer = {
+      id: "foyer-guest",
+      nom: "Mon Espace Foyer",
+      description: "Espace automobile personnel",
+      metadata: {
+        plan: "foyer_decouverte",
+        stripe_subscription_status: "none",
+        calendar_synced: false,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    return {
+      foyer: applyFoyerOverrides(guestFoyer),
+      role: "guest",
+      vehicles: [],
+      members: [],
+      garages: [],
+    };
   }
 
   // Vérifier si un cache récent existe pour cet utilisateur

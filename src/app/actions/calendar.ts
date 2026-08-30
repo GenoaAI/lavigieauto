@@ -64,7 +64,7 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
   let lastSyncedAt: string | null = null;
   let syncedEventsCount = 0;
   let calendarId = cookieCalendarId || null;
-  let userEmail = user?.email || cookieEmail || (isConnected ? "charlesdeforges@gmail.com" : undefined);
+  let userEmail = user?.email || cookieEmail || undefined;
   let syncedVehicleIds: string[] = cookieSyncedVehiclesRaw ? JSON.parse(cookieSyncedVehiclesRaw) : [];
 
   if (user) {

@@ -26,7 +26,7 @@ interface FoyerMembersManagerProps {
 export function FoyerMembersManager({
   members: initialMembers,
   vehicles,
-  householdId = "11111111-1111-1111-1111-111111111111",
+  householdId = "foyer-default",
 }: FoyerMembersManagerProps) {
   const [membersList, setMembersList] = useState<FoyerMember[]>(initialMembers || []);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -111,19 +111,17 @@ export function FoyerMembersManager({
         {membersList.map((m) => {
           const meta = (m as any).metadata || {};
           const displayName =
-            meta.name || (m.role === "owner" ? "Charles de Forges" : "Conducteur Invité");
-          const displayEmail = meta.email || "charlesdeforges@gmail.com";
+            meta.name || (m.role === "owner" ? "Gestionnaire principal" : "Conducteur Invité");
+          const displayEmail = meta.email || "";
           const isInvited = meta.status === "invited";
           const provider = getProviderBadge(displayEmail);
           const initials =
-            displayName === "Charles de Forges"
-              ? "CdF"
-              : displayName
-                  .split(" ")
-                  .map((n: string) => n[0])
-                  .join("")
-                  .slice(0, 3)
-                  .toUpperCase() || "CF";
+            displayName
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .slice(0, 3)
+              .toUpperCase() || "GP";
 
           return (
             <div key={m.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

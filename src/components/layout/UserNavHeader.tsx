@@ -33,12 +33,6 @@ export function UserNavHeader() {
   if (!user || !user.isAuthenticated) {
     return (
       <div className="flex items-center gap-2">
-        <FoyerNameEditor
-          initialName={foyerName}
-          householdId={foyerId}
-          variant="header"
-          className="hidden sm:inline-flex"
-        />
         <Link
           href="/login"
           prefetch={true}

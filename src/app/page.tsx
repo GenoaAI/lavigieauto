@@ -41,7 +41,7 @@ export default function LandingPage() {
   useEffect(() => {
     getFoyerOverviewAction()
       .then((res) => {
-        if (res?.foyer) {
+        if (res?.foyer && res.role !== "guest") {
           setFoyer(res.foyer);
         }
         if (res?.vehicles && res.vehicles.length > 0) {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { calculateMileagePace, recalculateMaintenanceForecast } from '../src/lib/engine/cycles';
 import { matchesVehicleId } from '../src/lib/types/database.types';
+import { getFoyerOverviewAction } from '../src/app/actions/foyer';
 
 export async function testStrictVehicleIsolation() {
   console.log('\n🛡️ [ISOLATION & CLOISONNEMENT] Test de Cloisonnement Strict Inter-Véhicules...');
@@ -99,4 +100,13 @@ export async function testStrictVehicleIsolation() {
     "La vidange doit être due dans +14 000 km et non " + drainOilMilestone?.remainingKm + " km"
   );
   console.log('  ✔ Échéancier prévisionnel du Vitara 100% au vert (aucune alerte indue).');
+
+  // 7. Test de confidentialité absolue en mode visiteur non connecté (Zéro Fuite du Foyer Principal)
+  const unauthenticatedOverview = await getFoyerOverviewAction();
+  assert.equal(unauthenticatedOverview.role, 'guest', 'Un visiteur non connecté doit avoir le rôle guest');
+  assert.equal(unauthenticatedOverview.vehicles.length, 0, 'Un visiteur non connecté doit recevoir strictement 0 véhicule');
+  assert.equal(unauthenticatedOverview.members.length, 0, 'Un visiteur non connecté doit recevoir 0 membre');
+  assert.notEqual(unauthenticatedOverview.foyer?.nom, 'Foyer Charles de Forges', 'Le nom du foyer principal ne doit jamais fuiter en mode déconnecté');
+  assert.notEqual(unauthenticatedOverview.foyer?.id, '11111111-1111-1111-1111-111111111111', "L'ID du foyer principal ne doit jamais fuiter en mode déconnecté");
+  console.log('  ✔ Confidentialité et isolation du foyer en mode non-authentifié 100% validées (Zéro fuite).');
 }
