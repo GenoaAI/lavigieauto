@@ -312,6 +312,29 @@ export default async function PublicResaleReportPage({
           </ul>
         </div>
 
+        {/* CTA PRODUCT-LED GROWTH : ACQUÉREUR OU CONDUCTEUR */}
+        <div className="print:hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 sm:p-8 text-white shadow-xl shadow-blue-500/25 flex flex-col sm:flex-row items-center justify-between gap-6 border border-blue-400/30 animate-fade-in">
+          <div className="space-y-1.5 text-center sm:text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-xs font-bold text-blue-100">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+              <span>Vous achetez ce véhicule ou souhaitez protéger le vôtre ?</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+              Activez votre carnet d'entretien numérique gratuit
+            </h3>
+            <p className="text-xs sm:text-sm text-blue-100 max-w-lg leading-relaxed">
+              Numérisez vos factures en 2 gestes simples, recevez vos alertes de révision à J-30 et valorisez votre véhicule lors de sa prochaine revente.
+            </p>
+          </div>
+          <Link
+            href={`/dashboard?src=report_public&ref=report_public&brand=${encodeURIComponent(vehicle.marque)}&model=${encodeURIComponent(vehicle.modele)}`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white hover:bg-slate-50 text-blue-900 rounded-2xl font-bold text-sm shadow-lg transition active:scale-95 shrink-0 group"
+          >
+            <span>Créer mon espace gratuit</span>
+            <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-0.5 transition" />
+          </Link>
+        </div>
+
         {/* FOOTER */}
         <div className="text-center pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
           <Link href="/dashboard" className="print:hidden hover:text-blue-600 font-semibold transition">

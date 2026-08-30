@@ -12,9 +12,16 @@ export function CertificateExportToolbar({
 }) {
   const [copied, setCopied] = useState(false);
 
+  const getShareableUrl = () => {
+    if (typeof window === "undefined") return "";
+    const url = new URL(window.location.href);
+    url.searchParams.set("ref", "report_public");
+    return url.toString();
+  };
+
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(getShareableUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     }
@@ -32,7 +39,7 @@ export function CertificateExportToolbar({
         await navigator.share({
           title: `Certificat de Conformité - ${vehicleName} (${licensePlate})`,
           text: `Consultez le certificat officiel d'entretien et de santé mécanique pour ${vehicleName} :`,
-          url: window.location.href,
+          url: getShareableUrl(),
         });
       } catch (err) {
         handleCopyLink();
