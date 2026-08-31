@@ -459,6 +459,7 @@ export function DashboardClientView({
               const regDate = v.date_premiere_immatriculation || (v.annee_mise_en_circulation ? `${v.annee_mise_en_circulation}-01-01` : undefined);
               const pace = calculateTelemetryPace(readings, regDate);
 
+              const hasMileage = v.kilometrage_actuel && v.kilometrage_actuel > 0;
               const displayAnnualKm = pace.annualMileageKm > 0
                 ? pace.annualMileageKm
                 : v.km_annuel_moyen && v.km_annuel_moyen > 0
