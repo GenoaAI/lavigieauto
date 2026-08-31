@@ -113,7 +113,7 @@ export function ReservationKitModal({
           <div className="pr-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold mb-1.5">
               <Sparkles className="w-3 h-3 text-blue-600" />
-              <span>Geste 1 : Kit Prêt-à-Réserver</span>
+              <span>Geste 1 : Script garage</span>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
               Réservation — {kit.vehicleSummary.makeModel}

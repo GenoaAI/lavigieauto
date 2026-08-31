@@ -177,7 +177,7 @@ export function SubscriptionModal({ isOpen, onClose, billingStatus }: Subscripti
                 "Plans officiels constructeurs (selon moteur, énergie et usage)",
                 "Regroupement intelligent d'atelier (Smart Bundling anti-surcoût)",
                 "Synchronisation Google Calendar partagée (rappels J-30 & J-7)",
-                "Kit Prêt-à-Réserver avec script d'appel garage mot à mot",
+                "Script garage avec guide d'appel mot à mot",
                 "Coffre-fort illimité pour toutes les factures et contrôles techniques",
                 "Certificat officiel de revente horodaté avec score de santé A+",
               ].map((feat, idx) => (

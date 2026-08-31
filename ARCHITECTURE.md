@@ -24,7 +24,7 @@ graph TD
     EngineCycles -->|Extrapole Rythme KM & Délais| DB_Echeances[(Table echeances_previsionnelles)]
     
     DB_Vehicules --> Dashboard[Tableau de bord Foyer]
-    DB_Echeances --> KitRDV[Geste 1: Kit Prêt-à-Réserver]
+    DB_Echeances --> KitRDV[Geste 1: Script garage]
     DB_Interventions --> PublicCert[Certificat Public Revente]
 ```
 

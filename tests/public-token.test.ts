@@ -1,4 +1,4 @@
-﻿import { getVehicleDetailsAction } from "@/app/actions/vehicles";
+import { getVehicleDetailsAction } from "@/app/actions/vehicles";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -30,6 +30,15 @@ export async function testPublicTokenAndZeroFakeData() {
 
   console.log("  ✔ Absence totale d'objet véhicule fictif de secours confirmée dans /v/[public_token]/page.tsx.");
   console.log("  ✔ Invalidation 404 propre via notFound() confirmée.");
+
+  // 3. Test de résolution du certificat démo
+  const demoResult = await getVehicleDetailsAction("cert-demo-8492");
+  if (demoResult && demoResult.vehicle) {
+    if (!demoResult.vehicle.marque || !demoResult.vehicle.modele) {
+      throw new Error("Le certificat démo doit charger les propriétés du véhicule modèle.");
+    }
+    console.log(`  ✔ Résolution du certificat démo /v/cert-demo-8492 validée (${demoResult.vehicle.marque} ${demoResult.vehicle.modele}).`);
+  }
 }
 
 if (process.argv[1]?.includes("public-token.test")) {

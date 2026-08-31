@@ -393,7 +393,7 @@ export function DashboardClientView({
               </div>
               <div>
                 <p className="text-[10px] uppercase font-extrabold tracking-wider text-blue-200">Geste 1 Conducteur</p>
-                <p className="text-sm font-bold text-white">Ouvrir le Kit Prêt-à-Réserver</p>
+                <p className="text-sm font-bold text-white">Ouvrir le Script garage</p>
                 <p className="text-[11px] text-blue-100">Script garagiste & export agenda universel (.ics, Google, Yahoo...)</p>
               </div>
             </button>
@@ -640,7 +640,7 @@ export function DashboardClientView({
                         onClick={() => handleOpenKit(v)}
                         disabled={loadingKitId === v.id}
                         className="inline-flex items-center justify-center p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-                        title="Ouvrir le Kit Prêt-à-Réserver"
+                        title="Ouvrir le Script garage"
                       >
                         {loadingKitId === v.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -705,7 +705,7 @@ export function DashboardClientView({
         <GoogleCalendarSyncCard />
       </div>
 
-      {/* MODAL DU KIT PRÊT-À-RÉSERVER */}
+      {/* MODAL DU SCRIPT GARAGE */}
       {selectedVehicleKit && (
         <ReservationKitModal
           isOpen={isKitOpen}

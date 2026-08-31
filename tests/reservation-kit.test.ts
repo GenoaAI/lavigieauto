@@ -1,7 +1,7 @@
 import { generateReservationKit } from "../src/lib/engine/reservation-kit";
 
 export function testReservationKit() {
-  console.log("▶ [TEST] Engine : Générateur du Kit Prêt-à-Réserver...");
+  console.log("▶ [TEST] Engine : Générateur du Script garage...");
 
   const kit = generateReservationKit({
     vehicle: {
@@ -37,5 +37,5 @@ export function testReservationKit() {
     throw new Error("Échec interventions demandées : la liste est vide.");
   }
 
-  console.log("  ✔ Kit Prêt-à-Réserver généré avec succès avec le script téléphonique exact.");
+  console.log("  ✔ Script garage généré avec succès avec le script téléphonique exact.");
 }

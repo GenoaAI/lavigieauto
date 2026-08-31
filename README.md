@@ -9,7 +9,7 @@
 
 LaVigieAuto repose sur un principe d'ergonomie **zéro charge mentale** :
 
-1. **Geste 1 — Avant l'atelier : Le Kit Prêt-à-Réserver**
+1. **Geste 1 — Avant l'atelier : Le Script garage**
    * L'IA analyse les échéances officielles constructeur et la télémétrie kilométrique.
    * Génère instantanément un script téléphonique et un modèle d'email pré-rempli avec les références exactes (norme d'huile, pièces, défaillances de CT à corriger).
 2. **Geste 2 — Après l'atelier : Le Scan Reconciliateur (Carte Grise / Facture / CT)**

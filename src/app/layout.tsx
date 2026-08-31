@@ -42,7 +42,7 @@ export default function RootLayout({
                 Scan Instantané
               </Link>
               <Link href="/#methode-2-gestes" className="hover:text-blue-600 transition">
-                La Méthode 2 Gestes
+                Deux gestes clefs
               </Link>
               <Link href="/v/cert-demo-8492" className="hover:text-blue-600 transition flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -102,7 +102,7 @@ export default function RootLayout({
                   </li>
                   <li>
                     <Link href="/#methode-2-gestes" className="hover:text-white transition">
-                      Geste 1 : Kit Prêt-à-Réserver
+                      Geste 1 : Script garage
                     </Link>
                   </li>
                   <li>

@@ -57,7 +57,7 @@ async function runAllTests() {
     { name: "Moteur de Suivi Prédictif des Pneumatiques (Train AV/AR)", fn: testTireEngine },
     { name: "Comparateur de Pneumatiques & Agrégation Pose / Équilibrage", fn: testTireSearchService },
     { name: "Sélection Intelligente & Pondération du Garagiste Recommandé", fn: testGarageResolver },
-    { name: "Générateur du Kit Prêt-à-Réserver (Geste 1)", fn: testReservationKit },
+    { name: "Générateur du Script garage (Geste 1)", fn: testReservationKit },
     { name: "Calculateur du Score de Conformité & Revente", fn: testConformityScore },
     { name: "Facturation Dégressive Stripe (Foyer Multi-Véhicules)", fn: testStripePricing },
     { name: "Normalisation Multi-Documents (Cartes Grises, Factures, PV CT)", fn: runDocumentExtractionTests },

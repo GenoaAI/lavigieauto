@@ -60,7 +60,7 @@ Calcule l'indice de conformité constructeur sur 100% et la note globale (`A+`, 
 
 ---
 
-## 4. Générateur du Kit Prêt-à-Réserver — Geste 1 (`reservation-kit.ts`)
+## 4. Générateur du Script garage — Geste 1 (`reservation-kit.ts`)
 
 ### Rôle
 Produit les éléments de communication et de négociation avant d'amener le véhicule chez le réparateur :

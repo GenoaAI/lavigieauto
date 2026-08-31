@@ -453,7 +453,7 @@ export function VehicleDetailClientView({
               className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition active:scale-95"
             >
               <PhoneCall className="w-3.5 h-3.5" />
-              Geste 1 : Kit RDV
+              Geste 1 : Script garage
             </button>
 
             {/* EXPORT AGENDA UNIVERSEL (.ICS, GOOGLE, OUTLOOK, YAHOO) */}
@@ -710,7 +710,7 @@ export function VehicleDetailClientView({
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition active:scale-95"
                   >
                     <PhoneCall className="w-4 h-4" />
-                    <span>Ouvrir Kit RDV</span>
+                    <span>Ouvrir Script garage</span>
                   </button>
                   <div className="px-4 py-2 bg-white/10 rounded-2xl border border-white/10 text-center min-w-[70px]">
                     <p className="text-2xl font-black text-emerald-400">{conformity.grade || "A+"}</p>
@@ -1689,7 +1689,7 @@ export function VehicleDetailClientView({
         </div>
       )}
 
-      {/* MODAL DU KIT PRÊT-À-RÉSERVER */}
+      {/* MODAL DU SCRIPT GARAGE */}
       <ReservationKitModal
         isOpen={isKitOpen}
         onClose={() => setIsKitOpen(false)}

@@ -1,4 +1,4 @@
-﻿export interface StripePlanTier {
+export interface StripePlanTier {
   minVehicles: number;
   maxVehicles: number;
   monthlyPerVehicleEur: number;
@@ -39,7 +39,7 @@ export const STRIPE_FEATURES = {
     "Plans officiels constructeurs (selon motorisation, boîte, énergie et usage)",
     "Regroupement intelligent d'atelier (Smart Bundling anti-surcoût)",
     "Synchronisation Google Calendar partagée (Rappels anticipés J-30 & J-7)",
-    "Kit Prêt-à-Réserver avec script d'appel garagiste mot à mot",
+    "Script garage avec guide d'appel mot à mot",
     "Passeport d'Entretien Certifié pour revente (Grade A+ valorisé)",
   ],
 };

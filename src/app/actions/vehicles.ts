@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
-import { recalculateMaintenanceForecast, MaintenanceForecast, LastServiceRecord } from "@/lib/engine/cycles";
+import { recalculateMaintenanceForecast, MaintenanceForecast, LastServiceRecord, calculateTelemetryPace } from "@/lib/engine/cycles";
 import { calculateConformityScore, ConformityAuditResult, TechnicalInspectionHistoryItem } from "@/lib/engine/conformity-score";
 import { MaintenanceCategory } from "@/lib/ai";
 import { generateReservationKit, ReservationKit } from "@/lib/engine/reservation-kit";
@@ -23,6 +23,7 @@ import {
   normalizeTypeEcheance,
   isVehicleTrackingSuspended,
   resolveVehicleFromList,
+  matchesVehicleId,
   snapToBusinessDay,
 } from "@/lib/types/database.types";
 import { revalidatePath } from "next/cache";
@@ -57,8 +58,111 @@ export interface VehicleDetailsActionResult {
 }
 
 export async function getVehicleDetailsAction(identifier: string): Promise<VehicleDetailsActionResult | null> {
+  if (!identifier || !identifier.trim()) {
+    return null;
+  }
+
   const foyerData = await getFoyerOverviewAction();
-  const matched = resolveVehicleFromList(foyerData.vehicles, identifier);
+  let matched = resolveVehicleFromList(foyerData.vehicles, identifier);
+  let availableGarages = foyerData.garages || [];
+
+  if (!matched) {
+    try {
+      const adminSupabase = createAdminClient();
+      const rawQuery = decodeURIComponent(identifier || "").trim();
+      const cleanId = rawQuery.replace(/[^a-zA-Z0-9-]/g, "");
+      const isDemo = rawQuery === "cert-demo-8492" || rawQuery.toLowerCase() === "cert-demo-8492" || rawQuery.toLowerCase() === "cert-demo";
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawQuery);
+
+      let rawVeh: any = null;
+
+      if (isDemo) {
+        // Résolution du véhicule modèle pour le certificat de démonstration public (Suzuki Vitara ou premier véhicule en base)
+        const { data: demoVeh } = await (adminSupabase as any)
+          .from("vehicules")
+          .select("*")
+          .or("id.eq.22222222-2222-2222-2222-222222222222,immatriculation.ilike.%EC301JX%,immatriculation.ilike.%EC-301-JX%")
+          .maybeSingle();
+
+        if (demoVeh) {
+          rawVeh = demoVeh;
+        } else {
+          const { data: firstVeh } = await (adminSupabase as any)
+            .from("vehicules")
+            .select("*")
+            .limit(1)
+            .maybeSingle();
+          rawVeh = firstVeh;
+        }
+      } else if (isUuid) {
+        const { data } = await (adminSupabase as any)
+          .from("vehicules")
+          .select("*")
+          .eq("id", rawQuery)
+          .maybeSingle();
+        rawVeh = data;
+      } else if (cleanId && cleanId.length >= 2) {
+        const { data } = await (adminSupabase as any)
+          .from("vehicules")
+          .select("*")
+          .or(`immatriculation.ilike.%${cleanId}%,vin.ilike.%${cleanId}%`)
+          .maybeSingle();
+        rawVeh = data;
+      }
+
+      if (rawVeh) {
+        const [docsRes, linesRes, defsRes, echsRes, auditsRes, garagesRes] = await Promise.all([
+          (adminSupabase as any).from("documents_sources").select("*").order("date_document", { ascending: false }),
+          (adminSupabase as any).from("lignes_interventions").select("*").order("date_intervention", { ascending: false }),
+          (adminSupabase as any).from("defaillances_ct").select("*"),
+          (adminSupabase as any).from("echeances_previsionnelles").select("*"),
+          (adminSupabase as any).from("audits_conformite").select("*"),
+          (adminSupabase as any).from("garages").select("*").order("nom", { ascending: true }),
+        ]);
+
+        const allDocs = (docsRes?.data || []) as any[];
+        const allLines = (linesRes?.data || []) as any[];
+        const allDefs = (defsRes?.data || []) as any[];
+        const allEchs = (echsRes?.data || []) as any[];
+        const allAudits = (auditsRes?.data || []) as any[];
+        availableGarages = (garagesRes?.data || []) as any[];
+
+        const docs = allDocs.filter((d) => matchesVehicleId(d.vehicule_id, rawVeh));
+        const lines = allLines.filter((l) => matchesVehicleId(l.vehicule_id, rawVeh));
+        const defs = allDefs.filter((d) => matchesVehicleId(d.vehicule_id, rawVeh));
+        const echs = allEchs.filter((e) => matchesVehicleId(e.vehicule_id, rawVeh));
+        const audits = allAudits.filter((a) => matchesVehicleId(a.vehicule_id, rawVeh));
+
+        const docMaxKm = Math.max(
+          0,
+          ...docs.map((d) => Number(d.kilometrage_document) || 0),
+          ...lines.map((l) => Number(l.kilometrage_intervention) || 0)
+        );
+        const effectiveKm = docMaxKm > 0 && (rawVeh.kilometrage_actuel || 0) > docMaxKm ? docMaxKm : rawVeh.kilometrage_actuel;
+
+        const readings = [
+          ...docs.map((d) => ({ date: d.date_document, mileage: Number(d.kilometrage_document) || 0 })),
+          ...lines.map((l) => ({ date: l.date_intervention, mileage: Number(l.kilometrage_intervention) || 0 })),
+        ].filter((r) => r.date && r.mileage > 0);
+
+        const regDate = rawVeh.date_premiere_immatriculation || (rawVeh.annee_mise_en_circulation ? `${rawVeh.annee_mise_en_circulation}-01-01` : undefined);
+        const pace = calculateTelemetryPace(readings, regDate);
+
+        matched = {
+          ...rawVeh,
+          kilometrage_actuel: effectiveKm,
+          km_annuel_moyen: pace.annualMileageKm > 0 ? pace.annualMileageKm : (rawVeh.km_annuel_moyen || 12000),
+          documents_sources: docs,
+          lignes_interventions: lines,
+          defaillances_ct: defs,
+          echeances_previsionnelles: echs,
+          audits_conformite: audits,
+        } as EnrichedVehicle;
+      }
+    } catch {
+      // Safe fallback en cas d'erreur de base
+    }
+  }
 
   if (!matched) {
     return null;
@@ -418,7 +522,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
 
   const garageRecommendation = resolveRecommendedGarage({
     vehicle,
-    garages: foyerData.garages || [],
+    garages: availableGarages && availableGarages.length > 0 ? availableGarages : (foyerData.garages || []),
     documents: vehicle.documents_sources || [],
     interventions: vehicle.lignes_interventions || [],
   });
