@@ -1,6 +1,7 @@
 import { STORAGE_CONFIG } from '../src/config/storage.config';
+import { VaultStorageService, vaultStorageService } from '../src/lib/storage/vault-service';
 
-export function testVaultStorageConfiguration() {
+export async function testVaultStorageConfiguration() {
   console.log('\n▶ [TEST] Coffre-fort : Validation de la Configuration Découplée (Zéro Hardcoding)...');
 
   // 1. Validation de la taille maximale (15 Mo)
@@ -71,14 +72,35 @@ export function testVaultStorageConfiguration() {
     throw new Error(`Nomenclature avec facture incorrecte.\nObtenu  : "${nameWithInvoice}"\nAttendu : "${expectedInvoiceName}"`);
   }
   console.log(`  ✔ Isolation physique multi-factures même garage validée : "${nameWithInvoice}".`);
+
+  // 7. Test de résilience et sécurité d'exception du VaultStorageService
+  console.log('\n▶ [TEST] Coffre-fort : Résilience du Service & Gestion Concurrente...');
+  const service = VaultStorageService.getInstance();
+  if (!service || service !== vaultStorageService) {
+    throw new Error('Singleton VaultStorageService non conforme.');
+  }
+
+  const nullUrl = await service.getDocumentSignedUrl('');
+  if (nullUrl !== null) {
+    throw new Error('getDocumentSignedUrl doit renvoyer null pour un chemin vide.');
+  }
+
+  const deleteEmpty = await service.deleteFromVault('');
+  if (deleteEmpty !== false) {
+    throw new Error('deleteFromVault doit renvoyer false pour un chemin vide.');
+  }
+  console.log('  ✔ Résilience aux chemins vides et sécurité d\'exception validées.');
 }
 
 if (require.main === module) {
-  try {
-    testVaultStorageConfiguration();
-    console.log('\n🎉 TOUS LES TESTS DU COFFRE-FORT SONT AU VERT !');
-  } catch (err: any) {
-    console.error(err);
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      await testVaultStorageConfiguration();
+      console.log('\n🎉 TOUS LES TESTS DU COFFRE-FORT SONT AU VERT !');
+    } catch (err: any) {
+      console.error(err);
+      process.exit(1);
+    }
+  })();
 }
+

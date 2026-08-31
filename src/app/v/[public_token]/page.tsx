@@ -1,6 +1,7 @@
 import React from "react";
 import { ShieldCheck, CheckCircle2, Award, Calendar, Wrench, ArrowRight, Car, FileCheck, Info, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getVehicleDetailsAction, EnrichedVehicle } from "@/app/actions/vehicles";
 import { CertificateExportToolbar } from "@/components/certificate/CertificateExportToolbar";
 
@@ -13,41 +14,18 @@ export default async function PublicResaleReportPage({
 
   // Load real vehicle data from database
   const result = await getVehicleDetailsAction(public_token);
-  const vehicle: EnrichedVehicle = result?.vehicle || {
-    id: "22222222-2222-2222-2222-222222222222",
-    foyer_id: "11111111-1111-1111-1111-111111111111",
-    immatriculation: "EC301JX",
-    vin: "TSMLYD21S00162450",
-    marque: "Suzuki",
-    modele: "Vitara",
-    version: "1.6 VVT 120ch",
-    annee_mise_en_circulation: 2016,
-    date_premiere_immatriculation: "2016-05-24",
-    kilometrage_actuel: 125789,
-    date_releve_kilometrage: "2026-08-21",
-    energie: "essence",
-    puissance_fiscale: 6,
-    puissance_din: null,
-    critair: null,
-    boite_vitesse: "automatique",
-    usage_type: "quotidien",
-    km_annuel_moyen: 14200,
-    statut: "actif",
-    image_url: null,
-    metadata: {},
-    created_at: "2026-08-24T09:50:03Z",
-    updated_at: "2026-08-24T09:50:03Z",
-    documents_sources: [],
-    lignes_interventions: [],
-  };
+  if (!result || !result.vehicle) {
+    notFound();
+  }
 
-  const conformity = result?.conformity;
-  const overallScore = conformity?.overallScore ?? 94;
-  const grade = conformity?.grade ?? "A+";
-  const resaleBonusPercent = conformity?.resaleImpact?.estimatedValueBonusPercent ?? 8;
-  const brakes = result?.brakes;
-  const tires = result?.tires;
-  const hasOverdueMilestones = (result?.forecast?.projectedMilestones || []).some(
+  const vehicle: EnrichedVehicle = result.vehicle;
+  const conformity = result.conformity;
+  const overallScore = conformity?.overallScore ?? 0;
+  const grade = conformity?.grade ?? "N/A";
+  const resaleBonusPercent = conformity?.resaleImpact?.estimatedValueBonusPercent ?? 0;
+  const brakes = result.brakes;
+  const tires = result.tires;
+  const hasOverdueMilestones = (result.forecast?.projectedMilestones || []).some(
     (m) => m.urgency === "OVERDUE" || m.urgency === "CRITICAL"
   );
 
@@ -57,7 +35,7 @@ export default async function PublicResaleReportPage({
     const key = `${l.date_intervention}_${l.emetteur || "Garage"}`;
     if (!groupedMap.has(key)) {
       groupedMap.set(key, {
-        date: l.date_intervention || "2026-08-21",
+        date: l.date_intervention || "",
         km: l.kilometrage_intervention || vehicle.kilometrage_actuel,
         title: l.operation || l.description || "Entretien périodique",
         garage: l.emetteur || "Atelier Agréé",
@@ -127,6 +105,7 @@ export default async function PublicResaleReportPage({
         <CertificateExportToolbar
           vehicleName={`${vehicle.marque} ${vehicle.modele}`}
           licensePlate={vehicle.immatriculation}
+          vehicleId={vehicle.id}
         />
 
         {/* EXPLICATION DU DOCUMENT (Masqué à l'impression PDF) */}
@@ -162,7 +141,7 @@ export default async function PublicResaleReportPage({
               {vehicle.marque} {vehicle.modele}
             </h1>
             <p className="text-sm text-slate-500 font-medium mt-1">
-              Immatriculation : <strong className="text-slate-800">{vehicle.immatriculation}</strong> • {vehicle.version || vehicle.energie || "Essence"} • Mise en circulation : {vehicle.annee_mise_en_circulation || vehicle.date_premiere_immatriculation || "2021"}
+              Immatriculation : <strong className="text-slate-800">{vehicle.immatriculation}</strong> • {vehicle.version || vehicle.energie || "Essence"} • Mise en circulation : {vehicle.annee_mise_en_circulation || vehicle.date_premiere_immatriculation || "Non renseignée"}
             </p>
           </div>
 

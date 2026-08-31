@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
 import { DeleteVehicleModal } from "@/components/vehicles/DeleteVehicleModal";
+import { CarnetExportModal } from "@/components/vehicles/CarnetExportModal";
 import { TireWearTracker } from "@/components/vehicles/TireWearTracker";
 import { BrakeWearTracker } from "@/components/vehicles/BrakeWearTracker";
 import { VehicleVaultList } from "@/components/vault/VehicleVaultList";
@@ -69,6 +70,7 @@ export function VehicleDetailClientView({
   const [syncSuccessMessage, setSyncSuccessMessage] = useState<string | null>(null);
   const [vehicleData, setVehicleData] = useState<any>(initialVehicleData);
   const [isKitOpen, setIsKitOpen] = useState(false);
+  const [isCarnetModalOpen, setIsCarnetModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusToggling, setIsStatusToggling] = useState(false);
 
@@ -425,6 +427,17 @@ export function VehicleDetailClientView({
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
               )}
               <span>{syncingPlan ? "Recherche du plan officiel..." : "Chercher Plan Constructeur en Ligne (IA)"}</span>
+            </button>
+
+            {/* BOUTON EXPORT CARNET D'ENTRETIEN & JUSTIFICATIFS */}
+            <button
+              type="button"
+              onClick={() => setIsCarnetModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition active:scale-95"
+              title="Exporter le carnet d'entretien officiel et télécharger tous les justificatifs"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Exporter Carnet & Factures</span>
             </button>
 
             <Link
@@ -1058,7 +1071,33 @@ export function VehicleDetailClientView({
 
                 const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
                 const centerName = ctDoc?.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
-                const resultStatus = ctData.resultat_global ? `FAVORABLE (${ctData.resultat_global})` : "FAVORABLE (A)";
+                const rawCtRes = (ctData.inspectionResult?.status || ctData.resultat_global || "").toUpperCase();
+                const isCtCritical = rawCtRes === "R" || rawCtRes.includes("CRITIQUE") || rawCtRes === "UNFAVORABLE_CRITICAL" || defects.some((d: any) => d.niveau_gravite === "critique");
+                const isCtMajor = !isCtCritical && (rawCtRes === "S" || rawCtRes.includes("MAJEURE") || rawCtRes.includes("DEFAVORABLE") || rawCtRes === "UNFAVORABLE_MAJOR" || defects.some((d: any) => d.niveau_gravite === "majeure"));
+
+                const resultStatus = isCtCritical
+                  ? "DÉFAVORABLE (R)"
+                  : isCtMajor
+                  ? "DÉFAVORABLE (S)"
+                  : ctData.resultat_global
+                  ? `FAVORABLE (${ctData.resultat_global})`
+                  : "FAVORABLE (A)";
+
+                const ctBadgeClass = !hasCt
+                  ? "bg-slate-100 text-slate-700 border border-slate-200"
+                  : isCtCritical
+                  ? "bg-rose-100 text-rose-800 border border-rose-200"
+                  : isCtMajor
+                  ? "bg-amber-100 text-amber-800 border border-amber-200"
+                  : "bg-emerald-100 text-emerald-800 border border-emerald-200";
+
+                const ctIconBg = !hasCt
+                  ? "bg-slate-100 text-slate-500"
+                  : isCtCritical
+                  ? "bg-rose-50 text-rose-600"
+                  : isCtMajor
+                  ? "bg-amber-50 text-amber-600"
+                  : "bg-emerald-50 text-emerald-600";
 
                 return (
                   <CollapsibleModuleCard
@@ -1066,14 +1105,12 @@ export function VehicleDetailClientView({
                     vehicleId={v.id}
                     defaultOpen={true}
                     icon={<ShieldCheck className="w-5 h-5" />}
-                    iconBgColor={hasCt ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}
+                    iconBgColor={ctIconBg}
                     title="Dernier Contrôle Technique Officiel"
                     subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}` : "Aucun procès-verbal enregistré pour ce véhicule"}
                     badge={
                       <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                          hasCt ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"
-                        }`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${ctBadgeClass}`}>
                           {hasCt ? resultStatus : "En attente de scan"}
                         </span>
                         {hasCt && (
@@ -1499,7 +1536,33 @@ export function VehicleDetailClientView({
             const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
             const centerName = ctDoc?.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
             const centerDetail = ctData.centre_controle?.agrement ? `Agrément ${ctData.centre_controle.agrement}` : "Centre agréé UTAC / OTC";
-            const resultStatus = ctData.resultat_global ? `FAVORABLE (${ctData.resultat_global})` : "FAVORABLE (A)";
+            const rawCtRes = (ctData.inspectionResult?.status || ctData.resultat_global || "").toUpperCase();
+            const isCtCritical = rawCtRes === "R" || rawCtRes.includes("CRITIQUE") || rawCtRes === "UNFAVORABLE_CRITICAL" || defects.some((d: any) => d.niveau_gravite === "critique");
+            const isCtMajor = !isCtCritical && (rawCtRes === "S" || rawCtRes.includes("MAJEURE") || rawCtRes.includes("DEFAVORABLE") || rawCtRes === "UNFAVORABLE_MAJOR" || defects.some((d: any) => d.niveau_gravite === "majeure"));
+
+            const resultStatus = isCtCritical
+              ? "DÉFAVORABLE (R)"
+              : isCtMajor
+              ? "DÉFAVORABLE (S)"
+              : ctData.resultat_global
+              ? `FAVORABLE (${ctData.resultat_global})`
+              : "FAVORABLE (A)";
+
+            const ctBadgeClass = !hasCt
+              ? "bg-slate-100 text-slate-700 border border-slate-200"
+              : isCtCritical
+              ? "bg-rose-100 text-rose-800 border border-rose-200"
+              : isCtMajor
+              ? "bg-amber-100 text-amber-800 border border-amber-200"
+              : "bg-emerald-100 text-emerald-800 border border-emerald-200";
+
+            const ctIconBg = !hasCt
+              ? "bg-slate-100 text-slate-500"
+              : isCtCritical
+              ? "bg-rose-50 text-rose-600"
+              : isCtMajor
+              ? "bg-amber-50 text-amber-600"
+              : "bg-emerald-50 text-emerald-600";
 
             return (
               <CollapsibleModuleCard
@@ -1507,14 +1570,12 @@ export function VehicleDetailClientView({
                 vehicleId={v.id}
                 defaultOpen={true}
                 icon={<ShieldCheck className="w-5 h-5" />}
-                iconBgColor={hasCt ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}
+                iconBgColor={ctIconBg}
                 title="Dernier Contrôle Technique Officiel"
                 subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}` : "Aucun procès-verbal réglementaire enregistré pour ce véhicule"}
                 badge={
                   <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                      hasCt ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"
-                    }`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${ctBadgeClass}`}>
                       {hasCt ? resultStatus : "En attente de scan"}
                     </span>
                     {hasCt && (
@@ -1639,6 +1700,21 @@ export function VehicleDetailClientView({
         garageName={vehicleData?.garageRecommendation?.recommendedGarage?.nom || undefined}
         garageAddress={vehicleData?.garageRecommendation?.recommendedGarage?.adresse || undefined}
         garageEmail={vehicleData?.garageRecommendation?.recommendedGarage?.email || undefined}
+      />
+
+      {/* MODALE D'EXPORT DU CARNET D'ENTRETIEN & JUSTIFICATIFS */}
+      <CarnetExportModal
+        isOpen={isCarnetModalOpen}
+        onClose={() => setIsCarnetModalOpen(false)}
+        vehicleId={v?.id || vehicleId}
+        make={v?.marque || "Véhicule"}
+        model={v?.modele || ""}
+        licensePlate={v?.immatriculation || ""}
+        currentMileage={v?.kilometrage_actuel || 0}
+        documentsCount={(v?.documents_sources || []).length}
+        healthScore={conformity?.overallScore ?? 95}
+        grade={conformity?.grade ?? "A+"}
+        isPublic={false}
       />
 
       {/* MODALE DE CONFIRMATION DE SUPPRESSION */}

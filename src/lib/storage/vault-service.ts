@@ -162,18 +162,23 @@ export class VaultStorageService {
     expiresInSeconds: number = STORAGE_CONFIG.signedUrlDurationSeconds
   ): Promise<string | null> {
     if (!storagePath) return null;
-    const supabase = createAdminClient();
+    try {
+      const supabase = createAdminClient();
 
-    const { data, error } = await supabase.storage
-      .from(STORAGE_CONFIG.bucketName)
-      .createSignedUrl(storagePath, expiresInSeconds);
+      const { data, error } = await supabase.storage
+        .from(STORAGE_CONFIG.bucketName)
+        .createSignedUrl(storagePath, expiresInSeconds);
 
-    if (error || !data?.signedUrl) {
-      console.warn(`Impossible de générer l'URL signée pour ${storagePath}:`, error?.message);
+      if (error || !data?.signedUrl) {
+        console.warn(`Impossible de générer l'URL signée pour ${storagePath}:`, error?.message);
+        return null;
+      }
+
+      return data.signedUrl;
+    } catch (err: any) {
+      console.warn(`Exception lors de la génération de l'URL signée pour ${storagePath}:`, err?.message);
       return null;
     }
-
-    return data.signedUrl;
   }
 
   /**
@@ -219,17 +224,27 @@ export class VaultStorageService {
       };
     }
 
-    const items: VaultDocumentItem[] = [];
+    // 1. Parallel generation of all signed URLs with safe null fallback
+    const signedUrls = await Promise.all(
+      documents.map(async (doc: any) => {
+        if (!doc.storage_path) return null;
+        try {
+          return await this.getDocumentSignedUrl(doc.storage_path);
+        } catch (err) {
+          console.warn(`Impossible de générer l'URL signée pour ${doc.storage_path}:`, err);
+          return null;
+        }
+      })
+    );
+
+    // 2. Synchronous mapping of document items and aggregations
     let totalExpenses = 0;
     let invoices = 0;
     let inspections = 0;
     let registrations = 0;
 
-    for (const doc of documents) {
-      const signedUrl = doc.storage_path
-        ? await this.getDocumentSignedUrl(doc.storage_path)
-        : null;
-
+    const items: VaultDocumentItem[] = documents.map((doc: any, index: number) => {
+      const signedUrl = signedUrls[index];
       const ttc = Number(doc.montant_ttc) || 0;
       totalExpenses += ttc;
 
@@ -237,7 +252,7 @@ export class VaultStorageService {
       else if (doc.file_type === 'controle_technique') inspections++;
       else if (doc.file_type === 'carte_grise') registrations++;
 
-      items.push({
+      return {
         id: doc.id,
         vehicleId: doc.vehicule_id,
         fileName: doc.nom_fichier,
@@ -252,8 +267,8 @@ export class VaultStorageService {
         confidenceScore: doc.confidence_score,
         signedUrl,
         createdAt: doc.created_at,
-      });
-    }
+      };
+    });
 
     return {
       vehicleId,

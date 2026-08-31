@@ -32,30 +32,31 @@ export async function POST(req: NextRequest) {
         if (foyerId) {
           const { data: foyer } = await (supabase as any)
             .from("foyers")
-            .select("metadata")
+            .select("id, metadata")
             .eq("id", foyerId)
-            .single();
+            .maybeSingle();
 
-          const existingMeta = foyer?.metadata || {};
+          if (foyer && foyer.id) {
+            const existingMeta = foyer.metadata || {};
+            const vehicleCount = parseInt(session.metadata?.vehicle_count || "1", 10);
 
-          const vehicleCount = parseInt(session.metadata?.vehicle_count || "1", 10);
-
-          await (supabase as any)
-            .from("foyers")
-            .update({
-              metadata: {
-                ...existingMeta,
-                stripe_customer_id: session.customer,
-                stripe_subscription_id: session.subscription,
-                stripe_subscription_status: "active",
-                max_vehicles: vehicleCount,
-                vehicle_quota: vehicleCount,
-                plan: `foyer_${vehicleCount}_vehicules`,
-                activated_at: new Date().toISOString(),
-                plan_interval: session.metadata?.interval || "month",
-              },
-            })
-            .eq("id", foyerId);
+            await (supabase as any)
+              .from("foyers")
+              .update({
+                metadata: {
+                  ...existingMeta,
+                  stripe_customer_id: session.customer,
+                  stripe_subscription_id: session.subscription,
+                  stripe_subscription_status: "active",
+                  max_vehicles: vehicleCount,
+                  vehicle_quota: vehicleCount,
+                  plan: `foyer_${vehicleCount}_vehicules`,
+                  activated_at: new Date().toISOString(),
+                  plan_interval: session.metadata?.interval || "month",
+                },
+              })
+              .eq("id", foyer.id);
+          }
         }
         break;
       }
@@ -67,11 +68,11 @@ export async function POST(req: NextRequest) {
         if (customerId) {
           const { data: foyer } = await (supabase as any)
             .from("foyers")
-            .select("metadata")
+            .select("id, metadata")
             .eq("metadata->>stripe_customer_id", customerId)
-            .single();
+            .maybeSingle();
 
-          if (foyer) {
+          if (foyer && foyer.id) {
             await (supabase as any)
               .from("foyers")
               .update({
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
                   last_payment_date: new Date().toISOString(),
                 },
               })
-              .eq("metadata->>stripe_customer_id", customerId);
+              .eq("id", foyer.id);
           }
         }
         break;
@@ -94,11 +95,11 @@ export async function POST(req: NextRequest) {
         if (customerId) {
           const { data: foyer } = await (supabase as any)
             .from("foyers")
-            .select("metadata")
+            .select("id, metadata")
             .eq("metadata->>stripe_customer_id", customerId)
-            .single();
+            .maybeSingle();
 
-          if (foyer) {
+          if (foyer && foyer.id) {
             await (supabase as any)
               .from("foyers")
               .update({
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
                   last_payment_error: invoice.last_finalization_error?.message || "Échec du prélèvement",
                 },
               })
-              .eq("metadata->>stripe_customer_id", customerId);
+              .eq("id", foyer.id);
           }
         }
         break;
@@ -122,11 +123,11 @@ export async function POST(req: NextRequest) {
 
         const { data: foyer } = await (supabase as any)
           .from("foyers")
-          .select("metadata")
+          .select("id, metadata")
           .eq("metadata->>stripe_customer_id", customerId)
-          .single();
+          .maybeSingle();
 
-        if (foyer) {
+        if (foyer && foyer.id) {
           const existingMeta = foyer.metadata || {};
           const metaVehicleCount = subscription.metadata?.vehicle_count
             ? parseInt(subscription.metadata.vehicle_count, 10)
@@ -143,7 +144,7 @@ export async function POST(req: NextRequest) {
                 stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
               },
             })
-            .eq("metadata->>stripe_customer_id", customerId);
+            .eq("id", foyer.id);
         }
         break;
       }
@@ -154,11 +155,11 @@ export async function POST(req: NextRequest) {
 
         const { data: foyer } = await (supabase as any)
           .from("foyers")
-          .select("metadata")
+          .select("id, metadata")
           .eq("metadata->>stripe_customer_id", customerId)
-          .single();
+          .maybeSingle();
 
-        if (foyer) {
+        if (foyer && foyer.id) {
           await (supabase as any)
             .from("foyers")
             .update({
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
                 canceled_at: new Date().toISOString(),
               },
             })
-            .eq("metadata->>stripe_customer_id", customerId);
+            .eq("id", foyer.id);
         }
         break;
       }

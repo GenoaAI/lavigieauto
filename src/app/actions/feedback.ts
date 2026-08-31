@@ -94,8 +94,7 @@ ${text}`;
     "https://jira-like.vercel.app/api/webhooks/external-feedback";
   const apiSecret =
     process.env.MICROKANBAN_API_SECRET ||
-    process.env.EXTERNAL_API_SECRET ||
-    "edfgjKhK6izYheVDz8RtGTNuoAJWFdr6";
+    process.env.EXTERNAL_API_SECRET;
 
   if (!apiSecret) {
     console.error("[FEEDBACK] MICROKANBAN_API_SECRET non défini.");

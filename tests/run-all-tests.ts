@@ -27,6 +27,8 @@ import { testVitaraFullStackNonRegression } from "./vitara-non-regression.test";
 import { testVehicleCatalogResolution } from "./vehicle-catalog.test";
 import { testBrakePredictiveEngine } from "./brakes.test";
 import { testStrictVehicleIsolation } from "./vehicle-isolation.test";
+import { runChallengerR1R2EmpiricalTests } from "./adversarial-challenger-r1-r2.test";
+import { testMaintenanceBookletAndExportArchive } from "./maintenance-booklet-export.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -67,6 +69,8 @@ async function runAllTests() {
     { name: "Référentiel Catalogue Véhicules & Découplage Zéro Hardcoding", fn: testVehicleCatalogResolution },
     { name: "Moteur Prédictif du Freinage (Plaquettes, Disques & Usure Atelier)", fn: testBrakePredictiveEngine },
     { name: "Cloisonnement Strict Inter-Véhicules & Isolation des Échéanciers", fn: testStrictVehicleIsolation },
+    { name: "Tests de Stress & Adversariaux R1 & R2 (Challenger 1 - CT Scoring, Secrets, Pace)", fn: runChallengerR1R2EmpiricalTests },
+    { name: "Export du Carnet d'Entretien Numérique & Pack Justificatifs Scellés (.ZIP)", fn: testMaintenanceBookletAndExportArchive },
   ];
 
 
