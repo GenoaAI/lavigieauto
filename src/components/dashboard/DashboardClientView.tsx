@@ -460,14 +460,10 @@ export function DashboardClientView({
               const pace = calculateTelemetryPace(readings, regDate);
 
               const hasMileage = v.kilometrage_actuel && v.kilometrage_actuel > 0;
-              const displayAnnualKm = pace.annualMileageKm > 0
-                ? pace.annualMileageKm
-                : v.km_annuel_moyen && v.km_annuel_moyen > 0
-                ? v.km_annuel_moyen
-                : 12000;
-
-              const annualPace = hasMileage
-                ? `${Math.round(displayAnnualKm).toLocaleString("fr-FR")} km/an`
+              const annualPace = (v.km_annuel_moyen && v.km_annuel_moyen > 0)
+                ? `${Math.round(v.km_annuel_moyen).toLocaleString("fr-FR")} km/an`
+                : hasMileage
+                ? "12 000 km/an"
                 : "En attente";
 
               const isSuspended = isVehicleTrackingSuspended(v);
