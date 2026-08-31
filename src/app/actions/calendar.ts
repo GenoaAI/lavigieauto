@@ -98,7 +98,11 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
     image_url: (v.metadata as any)?.image_url || v.image_url || null,
   }));
 
-  // Par défaut, si aucune sélection n'a encore été enregistrée, tous les véhicules sont sélectionnés
+  // Filtrer les IDs pour ne conserver que les véhicules réellement présents dans le foyer
+  const validVehicleIds = new Set(allVehicles.map((v) => v.id));
+  syncedVehicleIds = syncedVehicleIds.filter((id) => validVehicleIds.has(id));
+
+  // Par défaut, si aucune sélection valide n'a encore été enregistrée, tous les véhicules du foyer sont sélectionnés
   if (syncedVehicleIds.length === 0 && allVehicles.length > 0) {
     syncedVehicleIds = allVehicles.map((v) => v.id);
   }
@@ -120,8 +124,12 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
  * Met à jour la liste des véhicules que cet utilisateur souhaite synchroniser
  */
 export async function updateUserSyncedVehiclesAction(vehicleIds: string[]): Promise<{ success: boolean; vehicleIds: string[] }> {
+  const foyerRes = await getFoyerOverviewAction();
+  const validVehicleIds = new Set((foyerRes.vehicles || []).map((v) => v.id));
+  const sanitizedVehicleIds = vehicleIds.filter((id) => validVehicleIds.has(id));
+
   const cookieStore = await cookies();
-  cookieStore.set("gcal_synced_vehicles", JSON.stringify(vehicleIds), {
+  cookieStore.set("gcal_synced_vehicles", JSON.stringify(sanitizedVehicleIds), {
     maxAge: 30 * 24 * 3600,
     path: "/",
   });
@@ -143,14 +151,14 @@ export async function updateUserSyncedVehiclesAction(vehicleIds: string[]): Prom
       .update({
         metadata: {
           ...existingMeta,
-          synced_vehicle_ids: vehicleIds,
+          synced_vehicle_ids: sanitizedVehicleIds,
         },
       })
       .eq("user_id", user.id);
   }
 
   revalidatePath("/dashboard");
-  return { success: true, vehicleIds };
+  return { success: true, vehicleIds: sanitizedVehicleIds };
 }
 
 import { refreshGoogleAccessToken } from "@/lib/integrations/google-calendar/client";

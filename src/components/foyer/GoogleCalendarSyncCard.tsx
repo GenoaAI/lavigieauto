@@ -52,10 +52,12 @@ export function GoogleCalendarSyncCard() {
   }, []);
 
   const handleToggleVehicle = async (vehicleId: string) => {
-    const isCurrentlySelected = selectedVehicleIds.includes(vehicleId);
+    const validIds = new Set(allVehicles.map((v) => v.id));
+    const cleanCurrent = selectedVehicleIds.filter((id) => validIds.has(id));
+    const isCurrentlySelected = cleanCurrent.includes(vehicleId);
     const newSelection = isCurrentlySelected
-      ? selectedVehicleIds.filter((id) => id !== vehicleId)
-      : [...selectedVehicleIds, vehicleId];
+      ? cleanCurrent.filter((id) => id !== vehicleId)
+      : [...cleanCurrent, vehicleId];
 
     setSelectedVehicleIds(newSelection);
     try {
