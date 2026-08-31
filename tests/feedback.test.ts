@@ -46,33 +46,48 @@ export async function testFeedbackIntegration() {
 
   // 4. Test d'exécution de la Server Action avec simulation réseau
   const originalFetch = global.fetch;
+  const originalSecret = process.env.MICROKANBAN_API_SECRET;
+  const originalExternalSecret = process.env.EXTERNAL_API_SECRET;
   let interceptedUrl = "";
   let interceptedHeaders: any = {};
   let interceptedBody: any = {};
 
-  global.fetch = async (url: any, init?: any) => {
-    interceptedUrl = url.toString();
-    interceptedHeaders = init?.headers || {};
-    interceptedBody = JSON.parse(init?.body || "{}");
-
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({
-        success: true,
-        ticketsCreated: [
-          {
-            id: "ticket-mock-123",
-            title: "[BUG] Correction bouton de scan iPhone Safari",
-            type: "BUG",
-          },
-        ],
-      }),
-      text: async () => "OK",
-    } as any;
-  };
-
   try {
+    // 4a. Vérification du rejet sécurisé si aucune clé secrète n'est configurée
+    delete process.env.MICROKANBAN_API_SECRET;
+    delete process.env.EXTERNAL_API_SECRET;
+
+    const missingSecretResult = await sendFeedbackAction("Test message sans configuration de clé API");
+    if (missingSecretResult.success || !missingSecretResult.error?.includes("manquante")) {
+      throw new Error("FAILLE : La Server Action aurait dû échouer lorsque la clé d'API MicroKanban est absente !");
+    }
+    console.log("  ✔ Rejet sécurisé confirmé lorsque MICROKANBAN_API_SECRET est absent.");
+
+    // 4b. Configuration d'une clé de test pour valider l'appel webhook
+    process.env.MICROKANBAN_API_SECRET = "test-microkanban-secret-key-mock";
+
+    global.fetch = async (url: any, init?: any) => {
+      interceptedUrl = url.toString();
+      interceptedHeaders = init?.headers || {};
+      interceptedBody = JSON.parse(init?.body || "{}");
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          ticketsCreated: [
+            {
+              id: "ticket-mock-123",
+              title: "[BUG] Correction bouton de scan iPhone Safari",
+              type: "BUG",
+            },
+          ],
+        }),
+        text: async () => "OK",
+      } as any;
+    };
+
     const actionResult = await sendFeedbackAction(
       "Le bouton de scan de facture ne répond pas sur iPhone Safari.",
       {
@@ -111,5 +126,15 @@ export async function testFeedbackIntegration() {
     console.log("  ✔ Server Action sendFeedbackAction validée avec headers d'authentification et payload conforme (sourceApp: LaVigieAuto, githubRepo: GenoaAI/lavigieauto).");
   } finally {
     global.fetch = originalFetch;
+    if (originalSecret !== undefined) {
+      process.env.MICROKANBAN_API_SECRET = originalSecret;
+    } else {
+      delete process.env.MICROKANBAN_API_SECRET;
+    }
+    if (originalExternalSecret !== undefined) {
+      process.env.EXTERNAL_API_SECRET = originalExternalSecret;
+    } else {
+      delete process.env.EXTERNAL_API_SECRET;
+    }
   }
 }

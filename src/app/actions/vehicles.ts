@@ -246,17 +246,45 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     .filter((d) => d.file_type === "controle_technique")
     .map((d) => {
       const ocr = (d.ocr_structured_data || {}) as any;
-      const defs = vehicle.defaillances_ct || [];
+      const defs = (vehicle.defaillances_ct || []).filter(
+        (def) => !def.document_source_id || def.document_source_id === d.id
+      );
+
+      const rawStatus = (
+        ocr.inspectionResult?.status ||
+        ocr.resultat_global ||
+        ""
+      ).toUpperCase();
+
+      let result: "FAVORABLE" | "UNFAVORABLE_MAJOR" | "UNFAVORABLE_CRITICAL" = "FAVORABLE";
+      if (
+        rawStatus === "R" ||
+        rawStatus === "UNFAVORABLE_CRITICAL" ||
+        rawStatus.includes("CRITIQUE") ||
+        defs.some((def) => def.niveau_gravite === "critique")
+      ) {
+        result = "UNFAVORABLE_CRITICAL";
+      } else if (
+        rawStatus === "S" ||
+        rawStatus === "UNFAVORABLE_MAJOR" ||
+        rawStatus.includes("MAJEURE") ||
+        rawStatus.includes("DEFAVORABLE") ||
+        defs.some((def) => def.niveau_gravite === "majeure")
+      ) {
+        result = "UNFAVORABLE_MAJOR";
+      }
+
       return {
         id: d.id || "doc-ct",
         inspectionDate: d.date_document || new Date().toISOString().split("T")[0],
         mileage: d.kilometrage_document || vehicle.kilometrage_actuel || 0,
-        result: (ocr.resultat_global === "A" || ocr.inspectionResult?.status === "FAVORABLE") ? "FAVORABLE" : "FAVORABLE",
+        result,
         minorDefectsCount: defs.filter((def) => def.niveau_gravite === "mineure").length,
         majorDefectsCount: defs.filter((def) => def.niveau_gravite === "majeure").length,
         criticalDefectsCount: defs.filter((def) => def.niveau_gravite === "critique").length,
       };
-    });
+    })
+    .sort((a, b) => new Date(b.inspectionDate).getTime() - new Date(a.inspectionDate).getTime());
 
   const allTireOperations: Array<{
     date: string;
@@ -316,12 +344,15 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     .filter((d) => d.file_type === "controle_technique")
     .map((d) => {
       const ocr = (d.ocr_structured_data || {}) as any;
+      const defs = (vehicle.defaillances_ct || []).filter(
+        (def) => !def.document_source_id || def.document_source_id === d.id
+      );
       return {
         date: d.date_document || "2026-08-20",
         mileage: d.kilometrage_document || vehicle.kilometrage_actuel || 0,
         observations: ocr.observations ? JSON.stringify(ocr.observations) : undefined,
         isFavorable: ocr.inspectionResult?.isFavorable ?? true,
-        defects: (vehicle.defaillances_ct || []).map((df) => ({
+        defects: defs.map((df) => ({
           code: df.code_defaillance || undefined,
           description: df.libelle,
         })),

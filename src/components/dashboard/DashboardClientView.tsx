@@ -245,12 +245,7 @@ export function DashboardClientView({
   const primaryVehicle = topPriority ? topPriority.vehicle : vehicles.find((v) => !isVehicleTrackingSuspended(v)) || vehicles[0];
   const primaryMilestone = topPriority
     ? topPriority.milestone
-    : primaryVehicle?.echeances_previsionnelles?.[0] || {
-        libelle: "Révision constructeur",
-        date_preconisee: "2027-03-15",
-        km_preconise: 60000,
-        cout_estime_max: 200,
-      };
+    : primaryVehicle?.echeances_previsionnelles?.[0] || null;
   const isPrimaryOverdue = topPriority ? topPriority.isOverdue : false;
 
   return (
@@ -329,18 +324,20 @@ export function DashboardClientView({
                 {isPrimaryOverdue ? "🚨 Entretien Urgent Requis (Échu)" : "Prochaine Échéance Majeure"}
               </div>
               <h2 className="text-xl sm:text-2xl font-black">
-                {primaryVehicle.marque} {primaryVehicle.modele} — {primaryMilestone.libelle || primaryMilestone.titre || "Entretien Constructeur"}
+                {primaryVehicle.marque} {primaryVehicle.modele} {primaryMilestone ? `— ${primaryMilestone.libelle || primaryMilestone.titre || "Entretien Constructeur"}` : "— Calendrier à jour"}
               </h2>
               <p className={`text-xs ${isPrimaryOverdue ? "text-rose-100" : "text-blue-100"}`}>
                 {isPrimaryOverdue
-                  ? `Échéance dépassée (Échu le : ${primaryMilestone.date_preconisee || "2024-05-24"} • Compteur actuel : ${(primaryVehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km)`
-                  : `À planifier le ${primaryMilestone.date_preconisee || "2027-03-15"} (Compteur actuel : ${(primaryVehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km)`}
+                  ? `Échéance dépassée (Échu le : ${primaryMilestone?.date_preconisee || "À planifier"} • Compteur actuel : ${(primaryVehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km)`
+                  : primaryMilestone?.date_preconisee
+                  ? `À planifier le ${primaryMilestone.date_preconisee} (Compteur actuel : ${(primaryVehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km)`
+                  : `Aucune intervention en retard (Compteur actuel : ${(primaryVehicle.kilometrage_actuel || 0).toLocaleString("fr-FR")} km)`}
               </p>
             </div>
 
             <div className="text-left md:text-right">
               <p className={`text-xs ${isPrimaryOverdue ? "text-rose-200" : "text-blue-200"}`}>Budget moyen estimé</p>
-              <p className="text-2xl font-black">~{primaryMilestone.cout_estime_max || 180} €</p>
+              <p className="text-2xl font-black">{primaryMilestone?.cout_estime_max ? `~${primaryMilestone.cout_estime_max} €` : "—"}</p>
             </div>
           </div>
 
@@ -411,19 +408,13 @@ export function DashboardClientView({
               );
 
               const hasOverdue = overdueList.length > 0;
-              const nextEcheance = overdueList[0] || vehicleMilestones[0] || {
-                libelle: "Entretien périodique constructeur",
-                date_preconisee: "À planifier",
-                cout_estime_max: 200,
-              };
+              const nextEcheance = overdueList[0] || vehicleMilestones[0] || null;
 
               const hasMileage = v.kilometrage_actuel && v.kilometrage_actuel > 0;
-              const annualPace = v.immatriculation?.includes("301")
-                ? "11 926 km/an"
-                : v.immatriculation?.includes("563")
-                ? "13 500 km/an"
+              const annualPace = (v.km_annuel_moyen && v.km_annuel_moyen > 0)
+                ? `${Math.round(v.km_annuel_moyen).toLocaleString("fr-FR")} km/an`
                 : hasMileage
-                ? `${(v.km_annuel_moyen || 12000).toLocaleString("fr-FR")} km/an`
+                ? "12 000 km/an"
                 : "En attente";
 
               const isSuspended = isVehicleTrackingSuspended(v);
@@ -573,11 +564,11 @@ export function DashboardClientView({
                             {hasOverdue ? "Intervention en retard" : "Prochaine visite"}
                           </span>
                           <span className="text-[11px] font-mono">
-                            {nextEcheance.date_preconisee ? nextEcheance.date_preconisee : "À planifier"}
+                            {nextEcheance?.date_preconisee ? nextEcheance.date_preconisee : "À planifier"}
                           </span>
                         </div>
                         <p className="text-[11.5px] font-medium leading-tight">
-                          {nextEcheance.libelle || "Révision générale constructeur"}
+                          {nextEcheance?.libelle || "Aucune échéance en attente"}
                         </p>
                       </div>
                     )}
