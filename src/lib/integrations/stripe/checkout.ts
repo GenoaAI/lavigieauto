@@ -35,6 +35,7 @@ export async function createHouseholdSubscriptionCheckout(params: {
     ],
     metadata: {
       foyer_id: foyerId,
+      user_email: userEmail,
       vehicle_count: vehicleCount.toString(),
       interval,
     },

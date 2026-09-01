@@ -1,4 +1,4 @@
-﻿import { test, describe } from "node:test";
+import { test, describe } from "node:test";
 import assert from "node:assert";
 import { calculateHouseholdSubscriptionPrice } from "../src/lib/integrations/stripe/pricing";
 import { checkVehicleQuota } from "../src/lib/integrations/stripe/quota";
@@ -79,5 +79,32 @@ describe("Sprint Stripe Billing & Quota Integrity", () => {
     // 4 actifs -> bloqué pour le 5e
     const check4 = checkVehicleQuota(4, premiumMeta);
     assert.strictEqual(check4.allowed, false);
+  });
+
+  test("7. Maintien des Droits en cours de Résiliation (cancel_at_period_end)", () => {
+    const cancelingMeta = {
+      stripe_subscription_status: "canceling",
+      cancel_at_period_end: true,
+      max_vehicles: 3,
+      vehicle_quota: 3,
+    };
+
+    // 2 actifs sur 3 souscrits -> toujours autorisé tant que la période payée n'est pas échue
+    const check2 = checkVehicleQuota(2, cancelingMeta);
+    assert.strictEqual(check2.allowed, true);
+    assert.strictEqual(check2.maxAllowed, 3);
+  });
+
+  test("8. Retour Découverte après Résiliation Effective (canceled)", () => {
+    const canceledMeta = {
+      stripe_subscription_status: "canceled",
+      max_vehicles: 1,
+      vehicle_quota: 1,
+    };
+
+    // 1 actif -> bloqué pour un 2e
+    const check1 = checkVehicleQuota(1, canceledMeta);
+    assert.strictEqual(check1.allowed, false);
+    assert.strictEqual(check1.maxAllowed, 1);
   });
 });

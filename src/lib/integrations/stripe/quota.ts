@@ -39,7 +39,11 @@ export async function checkDocumentQuota(userId: string): Promise<QuotaCheckResu
 
   const total = count || 0;
   const foyerMetadata = (member.foyers as any)?.metadata || {};
-  const hasSubscription = Boolean(foyerMetadata.stripe_subscription_status === "active");
+  const hasSubscription = Boolean(
+    foyerMetadata.stripe_subscription_status === "active" ||
+    foyerMetadata.stripe_subscription_status === "canceling" ||
+    foyerMetadata.cancel_at_period_end === true
+  );
 
   if (total === 0) {
     return {
@@ -84,7 +88,10 @@ export function checkVehicleQuota(
   foyerMetadata?: any
 ): VehicleQuotaCheckResult {
   const metadata = foyerMetadata || {};
-  const isSubscribed = metadata.stripe_subscription_status === "active";
+  const isSubscribed =
+    metadata.stripe_subscription_status === "active" ||
+    metadata.stripe_subscription_status === "canceling" ||
+    metadata.cancel_at_period_end === true;
 
   // Formule Découverte : 1 véhicule max
   // Formule Premium : quota souscrit (ex: 1, 2, 3, 4+ véhicules)

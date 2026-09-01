@@ -1,9 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Check, ShieldCheck, CreditCard, ArrowRight, X, Loader2, ExternalLink } from "lucide-react";
+import {
+  Sparkles,
+  Check,
+  ShieldCheck,
+  CreditCard,
+  ArrowRight,
+  X,
+  Loader2,
+  ExternalLink,
+  AlertTriangle,
+  RefreshCw,
+  Undo2,
+  Calendar,
+  ShieldAlert,
+} from "lucide-react";
 import { calculateHouseholdSubscriptionPrice } from "@/lib/integrations/stripe/pricing";
-import { createCheckoutSessionAction, createCustomerPortalAction, BillingStatusResult } from "@/app/actions/billing";
+import {
+  createCheckoutSessionAction,
+  createCustomerPortalAction,
+  cancelHouseholdSubscriptionAction,
+  resumeHouseholdSubscriptionAction,
+  BillingStatusResult,
+} from "@/app/actions/billing";
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -12,28 +32,47 @@ interface SubscriptionModalProps {
   onSubscriptionSuccess?: () => void;
 }
 
-export function SubscriptionModal({ isOpen, onClose, billingStatus }: SubscriptionModalProps) {
-  const [interval, setInterval] = useState<"month" | "year">("year");
+export function SubscriptionModal({
+  isOpen,
+  onClose,
+  billingStatus,
+  onSubscriptionSuccess,
+}: SubscriptionModalProps) {
+  const [interval, setInterval] = useState<"month" | "year">("month");
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleCount, setVehicleCount] = useState(billingStatus.vehicleCount || 1);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   if (!isOpen) return null;
 
   const pricing = calculateHouseholdSubscriptionPrice(vehicleCount);
   const displayedPrice = interval === "year" ? pricing.annualTotalEur : pricing.monthlyTotalEur;
-  const equivalentMonthly = interval === "year" ? (pricing.annualTotalEur / 12).toFixed(2) : pricing.monthlyTotalEur.toFixed(2);
+  const equivalentMonthly =
+    interval === "year"
+      ? (pricing.annualTotalEur / 12).toFixed(2)
+      : pricing.monthlyTotalEur.toFixed(2);
+
+  const formattedPeriodEnd = billingStatus.currentPeriodEnd
+    ? new Date(billingStatus.currentPeriodEnd).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "la prochaine échéance";
 
   const handleCheckout = async () => {
     setIsLoading(true);
+    setActionMessage(null);
     try {
       const res = await createCheckoutSessionAction({ interval, vehicleCount });
       if (res.success && res.url) {
         window.location.href = res.url;
       } else {
-        alert(res.error || "Une erreur est survenue lors de l'ouverture du paiement.");
+        setActionMessage({ type: "error", text: res.error || "Une erreur est survenue lors de l'ouverture du paiement." });
       }
     } catch {
-      alert("Impossible de contacter Stripe.");
+      setActionMessage({ type: "error", text: "Impossible de contacter Stripe." });
     } finally {
       setIsLoading(false);
     }
@@ -41,15 +80,53 @@ export function SubscriptionModal({ isOpen, onClose, billingStatus }: Subscripti
 
   const handleOpenPortal = async () => {
     setIsLoading(true);
+    setActionMessage(null);
     try {
       const res = await createCustomerPortalAction();
       if (res.success && res.url) {
         window.location.href = res.url;
       } else {
-        alert(res.error || "Aucun portail client disponible.");
+        setActionMessage({ type: "error", text: res.error || "Aucun portail client Stripe disponible." });
       }
     } catch {
-      alert("Erreur portail de facturation.");
+      setActionMessage({ type: "error", text: "Erreur lors de l'ouverture du portail de facturation." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async (immediate: boolean = false) => {
+    setIsLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await cancelHouseholdSubscriptionAction({ immediate });
+      if (res.success) {
+        setActionMessage({ type: "success", text: res.message });
+        setShowCancelConfirm(false);
+        if (onSubscriptionSuccess) onSubscriptionSuccess();
+      } else {
+        setActionMessage({ type: "error", text: res.message || "Impossible de résilier l'abonnement." });
+      }
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.message || "Erreur inattendue." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResumeSubscription = async () => {
+    setIsLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await resumeHouseholdSubscriptionAction();
+      if (res.success) {
+        setActionMessage({ type: "success", text: res.message });
+        if (onSubscriptionSuccess) onSubscriptionSuccess();
+      } else {
+        setActionMessage({ type: "error", text: res.message || "Impossible de réactiver l'abonnement." });
+      }
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.message || "Erreur inattendue." });
     } finally {
       setIsLoading(false);
     }
@@ -73,37 +150,182 @@ export function SubscriptionModal({ isOpen, onClose, billingStatus }: Subscripti
             <ShieldCheck className="w-7 h-7" />
           </div>
           <h3 className="text-2xl font-black text-slate-950 tracking-tight">
-            Formule Foyer Premium
+            {billingStatus.isSubscribed ? "Gestion de votre Abonnement" : "Formule Foyer Premium"}
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 max-w-xs mx-auto">
-            Pilotez toute la flotte familiale en toute sérénité au meilleur tarif.
+            {billingStatus.isSubscribed
+              ? "Pilotez votre formule, vos factures et vos préférences en toute transparence."
+              : "Pilotez toute la flotte familiale en toute sérénité au meilleur tarif."}
           </p>
         </div>
 
-        {/* IF ALREADY SUBSCRIBED */}
+        {/* Notification feedback */}
+        {actionMessage && (
+          <div
+            className={`p-3.5 rounded-2xl text-xs font-medium flex items-start gap-2.5 ${
+              actionMessage.type === "success"
+                ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
+                : "bg-rose-50 text-rose-900 border border-rose-200"
+            }`}
+          >
+            {actionMessage.type === "success" ? (
+              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            )}
+            <p className="flex-1 leading-relaxed">{actionMessage.text}</p>
+          </div>
+        )}
+
+        {/* CAS 1 : UTILISATEUR DÉJÀ ABONNÉ */}
         {billingStatus.isSubscribed ? (
-          <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
-              <Check className="w-4 h-4" />
-              Abonnement Foyer Actif
+          <div className="space-y-4">
+            {/* RÉCAPITULATIF DE LA FORMULE ACTIVE */}
+            <div className="p-5 bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-500 font-semibold block">Formule en cours</span>
+                  <span className="text-base font-black text-slate-900">
+                    {billingStatus.planName}
+                  </span>
+                </div>
+                <span
+                  className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    billingStatus.cancelAtPeriodEnd
+                      ? "bg-amber-100 text-amber-900 border border-amber-300"
+                      : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                  }`}
+                >
+                  {billingStatus.cancelAtPeriodEnd ? "Fin programmée" : "Actif"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-xs">
+                <div>
+                  <span className="text-[11px] text-slate-400 block">Tarif souscrit</span>
+                  <span className="font-bold text-slate-800">
+                    {billingStatus.monthlyPriceEur.toFixed(2)} € / mois
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-400 block">
+                    {billingStatus.cancelAtPeriodEnd ? "Date de fin d'accès" : "Prochain renouvellement"}
+                  </span>
+                  <span className="font-bold text-slate-800">{formattedPeriodEnd}</span>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-emerald-900 leading-relaxed">
-              Votre foyer bénéficie de toutes les fonctionnalités illimitées (carnet constructeur, Google Calendar et scripts de négociation).
-            </p>
-            {billingStatus.portalAvailable && (
-              <button
-                type="button"
-                onClick={handleOpenPortal}
-                disabled={isLoading}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-emerald-300 text-emerald-800 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-100/60 transition"
-              >
-                <CreditCard className="w-4 h-4 text-emerald-600" />
-                <span>Gérer ma carte et mes factures</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
+
+            {/* ÉTAT RÉSILIATION PROGRAMMÉE */}
+            {billingStatus.cancelAtPeriodEnd ? (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-900 space-y-1">
+                    <p className="font-bold">Résiliation programmée au {formattedPeriodEnd}</p>
+                    <p className="text-amber-800 leading-relaxed">
+                      Votre abonnement ne sera pas renouvelé. Vous conservez l'accès complet à tous vos véhicules et fonctionnalités jusqu'à cette date.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResumeSubscription}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-sm active:scale-95 disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Undo2 className="w-4 h-4" />
+                      <span>Reprendre l'abonnement (Annuler la résiliation)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : null}
+
+            {/* ÉCRAN DE CONFIRMATION DE RÉSILIATION */}
+            {showCancelConfirm ? (
+              <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl space-y-4 animate-in fade-in">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-950">
+                      Confirmer l'arrêt de l'abonnement
+                    </h4>
+                    <p className="text-xs text-rose-800 mt-1 leading-relaxed">
+                      La résiliation arrêtera tout prélèvement futur. Votre compte restera Premium jusqu'au <strong>{formattedPeriodEnd}</strong>, puis repassera automatiquement en formule Découverte (1 véhicule gratuit).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCancelSubscription(false)}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm active:scale-95 disabled:opacity-60"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span>Confirmer la résiliation (Fin le {formattedPeriodEnd})</span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelConfirm(false)}
+                    disabled={isLoading}
+                    className="w-full py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition border border-slate-200"
+                  >
+                    Conserver mon abonnement
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* BOUTONS D'ACTIONS DE GESTION */
+              <div className="space-y-2.5 pt-1">
+                {billingStatus.portalAvailable && (
+                  <button
+                    type="button"
+                    onClick={handleOpenPortal}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-between p-3.5 bg-white hover:bg-blue-50/50 border border-slate-200 hover:border-blue-300 rounded-2xl text-xs font-bold text-slate-800 transition group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="block font-bold text-slate-900">Moyen de paiement & Factures</span>
+                        <span className="text-[11px] text-slate-500 font-normal">Portail Stripe sécurisé (CB, factures PDF)</span>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
+                  </button>
+                )}
+
+                {!billingStatus.cancelAtPeriodEnd && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelConfirm(true)}
+                    disabled={isLoading}
+                    className="w-full py-2.5 text-center text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition"
+                  >
+                    Stopper / Résilier mon abonnement
+                  </button>
+                )}
+              </div>
             )}
           </div>
         ) : (
+          /* CAS 2 : SOUSCRIPTION PREMIUM */
           <>
             {/* BILLING TOGGLE (MONTHLY VS ANNUAL) */}
             <div className="flex items-center justify-center p-1 bg-slate-100 rounded-2xl max-w-xs mx-auto text-xs font-bold">
