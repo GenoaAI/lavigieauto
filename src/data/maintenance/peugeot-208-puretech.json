@@ -10,7 +10,7 @@
   "fuelType": "Essence",
   "powerHp": 82,
   "productionYears": "2012-2024",
-  "directAnswerSummary": "Le plan d'entretien officiel de la Peugeot 208 1.2 PureTech (82 ch) impose une vidange annuelle ou tous les 15 000 km avec une huile normée PSA B71 2312 ou B71 2010. Le remplacement de la courroie de distribution immergée doit être effectué impérativement tous les 6 ans ou 100 000 km (au premier des deux termes échus), assorti d'un contrôle visuel de sa largeur à chaque passage en atelier.",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Peugeot 208 et de sa motorisation 1.2 PureTech 82 ch (EB2F / HMZ) impose une vidange annuelle ou tous les 15 000 km avec une huile homologuée PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20). Pour préserver la fiabilité mécanique, le remplacement de la courroie de distribution immergée en bain d'huile doit impérativement être réalisé tous les 6 ans ou 100 000 km (au premier des deux termes échus), complété par un contrôle systématique de sa largeur au gabarit officiel à chaque révision.",
   "recommendedOilNorm": "PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20)",
   "oilViscosity": "0W-30 / 0W-20",
   "intervals": [
@@ -125,20 +125,24 @@
   ],
   "faqs": [
     {
+      "question": "À quelle fréquence faire la vidange et l'entretien d'une Peugeot 208 ?",
+      "answer": "L'entretien d'une Peugeot 208 doit être réalisé tous les 1 an ou 15 000 à 25 000 km selon la motorisation (15 000 km ou 1 an sur le 1.2 PureTech 82 ch). La révision annuelle standard comprend la vidange de l'huile moteur, le remplacement du filtre à huile et les contrôles de sécurité indispensables."
+    },
+    {
       "question": "Quand faut-il changer la courroie de distribution sur une Peugeot 208 1.2 PureTech ?",
-      "answer": "La préconisation actuelle du constructeur est de 6 ans ou 100 000 km (au premier des deux termes atteint). La préconisation initiale de 10 ans / 180 000 km a été officiellement révisée à la baisse pour éviter les ruptures prématurées dues au bain d'huile."
+      "answer": "Sur la Peugeot 208 1.2 PureTech, le remplacement de la courroie de distribution immergée (bain d'huile) doit impérativement être effectué tous les 6 ans ou 100 000 km (au premier des deux termes échus). La préconisation initiale de 10 ans / 180 000 km a été officiellement révisée à la baisse par le constructeur pour éliminer les risques de colmatage de la crépine d'huile."
     },
     {
       "question": "Quelle huile moteur utiliser pour la Peugeot 208 essence 82 ch ?",
-      "answer": "Il est impératif d'utiliser une huile répondant à la norme PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20). Toute huile non homologuée accélère immédiatement la dégradation chimique de la courroie de distribution."
+      "answer": "Il est impératif d'utiliser une huile répondant strictement à la norme constructeur PSA B71 2312 (0W-30) ou PSA B71 2010 (0W-20). Toute huile non homologuée accélère immédiatement la dégradation chimique de la courroie de distribution en bain d'huile."
     },
     {
       "question": "Combien coûte la révision complète d'une Peugeot 208 1.2 PureTech ?",
-      "answer": "Une révision intermédiaire (vidange + contrôles) coûte entre 110 € et 150 €. La révision majeure incluant l'ensemble des filtres et bougies coûte entre 250 € et 340 €. Le remplacement du kit de distribution se situe entre 580 € et 780 € selon les ateliers."
+      "answer": "Une révision intermédiaire (vidange + filtre + contrôles) coûte entre 110 € et 150 €. La révision majeure incluant l'ensemble des filtres et les bougies d'allumage coûte entre 250 € et 340 €. Le remplacement du kit de distribution avec pompe à eau se situe entre 580 € et 780 €."
     },
     {
-      "question": "Comment savoir si ma courroie de distribution est usée sur ma 208 ?",
-      "answer": "Un contrôle visuel s'effectue par le bouchon de remplissage d'huile à l'aide d'un gabarit de mesure. Si la courroie présente des craquelures, un gonflement ou si sa largeur dépasse la cote maximale, son remplacement immédiat s'impose."
+      "question": "Comment contrôler l'état de la courroie humide sur une Peugeot 208 PureTech ?",
+      "answer": "Le contrôle s'effectue par l'orifice du bouchon de remplissage d'huile à l'aide d'un gabarit de mesure d'épaisseur officiel. Si la courroie présente un gonflement, des craquelures ou si sa largeur dépasse le gabarit maximal, son remplacement immédiat et le nettoyage de la crépine d'aspiration s'imposent pour éviter la casse moteur."
     }
   ]
 }

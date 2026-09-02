@@ -30,6 +30,8 @@ import { testStrictVehicleIsolation } from "./vehicle-isolation.test";
 import { runChallengerR1R2EmpiricalTests } from "./adversarial-challenger-r1-r2.test";
 import { testMaintenanceBookletAndExportArchive } from "./maintenance-booklet-export.test";
 import { testMilestoneAlertStatusManagement } from "./milestone-alert-status.test";
+import { testSeoMaintenanceCatalog } from "./seo-maintenance-catalog.test";
+import { runAdversarialRoutingBoundaryTests } from "./adversarial-routing-boundary.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -73,6 +75,8 @@ async function runAllTests() {
     { name: "Tests de Stress & Adversariaux R1 & R2 (Challenger 1 - CT Scoring, Secrets, Pace)", fn: runChallengerR1R2EmpiricalTests },
     { name: "Export du Carnet d'Entretien Numérique & Pack Justificatifs Scellés (.ZIP)", fn: testMaintenanceBookletAndExportArchive },
     { name: "Gestion de la Suspension / Snooze des Échéances d'Entretien (Zod, Server Actions, RLS & UI)", fn: testMilestoneAlertStatusManagement },
+    { name: "Référentiel SEO & Catalogue Maintenance Constructeur (30 JSON, Hubs Marques, Position 0 & Sitemap)", fn: testSeoMaintenanceCatalog },
+    { name: "Tests Adversariaux Routing, Cas Limites & Fil d'Ariane (Challenger 1 - 38 URLs, Slugs & Boundaries)", fn: runAdversarialRoutingBoundaryTests },
   ];
 
 

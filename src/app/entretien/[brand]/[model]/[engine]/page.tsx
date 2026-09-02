@@ -1,5 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getAllMaintenanceParams, getMaintenanceData } from '@/lib/maintenance/maintenance-data';
 import { MaintenanceDropzone } from '@/components/maintenance/MaintenanceDropzone';
@@ -30,8 +31,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const title = `Plan d'entretien ${data.brand} ${data.model} ${data.engine} : Intervalles, Courroie et Coûts`;
-  const description = `Calendrier d'entretien officiel pour ${data.brand} ${data.model} ${data.engine}. Périodicité vidange (${data.recommendedOilNorm}), changement de courroie de distribution, points de contrôle et estimation des devis.`;
+  const isBelt = Boolean(
+    (data as any).distribution?.type === 'belt' ||
+    data.intervals.some(
+      (i) =>
+        i.id.includes('courroie-distribution') ||
+        i.operation.toLowerCase().includes('courroie de distribution') ||
+        (i.category === 'moteur' &&
+          i.operation.toLowerCase().includes('distribution') &&
+          !i.operation.toLowerCase().includes('chaîne') &&
+          !i.operation.toLowerCase().includes('chaine'))
+    )
+  );
+
+  const distributionTitle = isBelt ? 'Courroie' : 'Chaîne';
+  const distributionDesc = isBelt
+    ? 'changement de courroie de distribution'
+    : 'contrôle de distribution par chaîne';
+
+  const title = `Plan d'entretien & Révision ${data.brand} ${data.model} ${data.engine} : Vidange, ${distributionTitle} et Coûts | LaVigieAuto`;
+  const description = `Calendrier d'entretien officiel & révision pour ${data.brand} ${data.model} ${data.engine}. Périodicité vidange (${data.recommendedOilNorm}), ${distributionDesc}, carnet numérique et estimation des devis.`;
 
   return {
     title,
@@ -45,6 +64,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: 'article',
       url: `https://www.lavigieauto.com/entretien/${data.brandSlug}/${data.modelSlug}/${data.engineSlug}`,
       siteName: 'LaVigieAuto',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
     },
   };
 }
@@ -76,11 +100,19 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
     '@context': 'https://schema.org',
     '@type': 'Car',
     name: `${data.brand} ${data.model} ${data.engine}`,
+    description: `Calendrier d'entretien officiel & révision pour ${data.brand} ${data.model} ${data.engine}.`,
+    url: `https://www.lavigieauto.com/entretien/${data.brandSlug}/${data.modelSlug}/${data.engineSlug}`,
+    image: `https://www.lavigieauto.com/images/vehicles/${data.brandSlug}-${data.modelSlug}.jpg`,
     brand: {
       '@type': 'Brand',
       name: data.brand,
     },
+    manufacturer: {
+      '@type': 'Organization',
+      name: data.brand,
+    },
     model: data.model,
+    fuelType: data.fuelType,
     vehicleEngine: {
       '@type': 'EngineSpecification',
       name: data.engine,
@@ -93,6 +125,38 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
     },
   };
 
+  // 3. Schéma JSON-LD : BreadcrumbList
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Accueil',
+        item: 'https://www.lavigieauto.com',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: "Plan d'entretien",
+        item: 'https://www.lavigieauto.com/entretien',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: data.brand,
+        item: `https://www.lavigieauto.com/entretien/${data.brandSlug}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 4,
+        name: `${data.model} (${data.engine})`,
+        item: `https://www.lavigieauto.com/entretien/${data.brandSlug}/${data.modelSlug}/${data.engineSlug}`,
+      },
+    ],
+  };
+
   return (
     <>
       <script
@@ -103,6 +167,10 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
 
       <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
         <article className="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-2xl border border-slate-200 shadow-sm">
@@ -110,11 +178,23 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
           {/* Fil d'Ariane Sémantique */}
           <nav aria-label="Fil d'Ariane" className="text-xs text-slate-500 mb-6">
             <ol className="flex items-center gap-1.5 flex-wrap">
-              <li><a href="/" className="hover:underline">Accueil</a></li>
+              <li>
+                <Link href="/" className="hover:underline">
+                  Accueil
+                </Link>
+              </li>
               <li>/</li>
-              <li><a href="/entretien" className="hover:underline">Entretien</a></li>
+              <li>
+                <Link href="/entretien" className="hover:underline">
+                  Plan d'entretien
+                </Link>
+              </li>
               <li>/</li>
-              <li><a href={`/entretien/${data.brandSlug}`} className="hover:underline">{data.brand}</a></li>
+              <li>
+                <Link href={`/entretien/${data.brandSlug}`} className="hover:underline">
+                  {data.brand}
+                </Link>
+              </li>
               <li>/</li>
               <li className="font-semibold text-slate-800">{data.model} ({data.engine})</li>
             </ol>
@@ -123,7 +203,7 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
           {/* En-tête H1 */}
           <header className="border-b border-slate-100 pb-6">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Plan d'entretien {data.brand} {data.model} {data.engine}
+              Plan d'entretien & Révision {data.brand} {data.model} ({data.engine})
             </h1>
             <p className="mt-2 text-sm text-slate-500 font-medium">
               Motorisation {data.engineCode} • {data.fuelType} ({data.powerHp} ch) • Années {data.productionYears}
@@ -133,7 +213,7 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
           {/* Direct Answer GEO & Position 0 */}
           <section aria-labelledby="geo-summary-title" className="my-6 rounded-xl bg-slate-50 p-5 border-l-4 border-blue-600">
             <h2 id="geo-summary-title" className="text-xs font-bold uppercase tracking-wider text-blue-900 mb-1">
-              Synthèse des préconisations officielles
+              Synthèse des préconisations constructeur
             </h2>
             <p className="text-sm sm:text-base font-medium text-slate-800 leading-relaxed">
               {data.directAnswerSummary}
@@ -150,7 +230,7 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
           {/* Tableau des échéances d'entretien */}
           <section className="my-10">
             <h2 className="text-xl font-bold text-slate-900">
-              Calendrier des révisions et périodicité des opérations
+              Périodicité des vidanges & révisions constructeur
             </h2>
             <p className="text-sm text-slate-600 mt-1">
               Intervalles kilométriques et temporels préconisés pour garantir la longévité mécanique de votre véhicule.
@@ -158,34 +238,52 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
             <MaintenanceTable intervals={data.intervals} />
           </section>
 
-          {/* Points de vigilance & Optimisation Atelier */}
-          <section className="my-10">
-            <h2 className="text-xl font-bold text-slate-900">
-              Alertes fiabilité & Optimisation de vos devis de garage
-            </h2>
-            <ReliabilityAlert bundles={data.costOptimizationBundles} vulnerabilities={data.vulnerabilities} />
-          </section>
+          {/* Points de vigilance & Vulnérabilités connues */}
+          {data.vulnerabilities && data.vulnerabilities.length > 0 && (
+            <section className="my-10">
+              <h2 className="text-xl font-bold text-slate-900">
+                Points de contrôle critiques & vulnérabilités connues
+              </h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Points de vigilance et éléments mécaniques à surveiller pour éviter les pannes prématurées.
+              </p>
+              <ReliabilityAlert bundles={[]} vulnerabilities={data.vulnerabilities} />
+            </section>
+          )}
+
+          {/* Estimation du budget d'entretien annuel */}
+          {data.costOptimizationBundles && data.costOptimizationBundles.length > 0 && (
+            <section className="my-10">
+              <h2 className="text-xl font-bold text-slate-900">
+                Estimation du budget d'entretien annuel
+              </h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Optimisez vos devis de garage et découvrez les économies réalisables en regroupant les interventions.
+              </p>
+              <ReliabilityAlert bundles={data.costOptimizationBundles} vulnerabilities={[]} />
+            </section>
+          )}
 
           {/* Questions Fréquentes (FAQ) */}
           <section className="my-10">
             <h2 className="text-xl font-bold text-slate-900">
-              Questions fréquentes sur l'entretien de la {data.brand} {data.model}
+              Questions fréquentes sur l'entretien {data.brand} {data.model}
             </h2>
             <MaintenanceFAQ faqs={data.faqs} />
           </section>
 
           {/* CTA Pied de page */}
           <footer className="mt-12 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 p-8 text-center text-white">
-            <h3 className="text-xl font-bold">Automatisez le suivi d'entretien de votre foyer</h3>
+            <h2 className="text-xl font-bold">Carnet d'entretien numérique & suivi en temps réel</h2>
             <p className="mt-2 text-sm text-slate-300 max-w-lg mx-auto">
               Centralisez vos véhicules, recevez vos alertes révision à J-30 et générez votre carnet numérique certifié pour la revente.
             </p>
-            <a
-              href="/app/onboarding"
+            <Link
+              href="/dashboard"
               className="mt-6 inline-block rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-500 active:scale-95"
             >
               Créer mon espace Vigie gratuit
-            </a>
+            </Link>
           </footer>
 
         </article>

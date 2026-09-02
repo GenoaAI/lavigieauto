@@ -82,11 +82,26 @@ export default function MaintenanceHubPage() {
                 id={`marque-${brand.toLowerCase()}`}
                 className="scroll-mt-6"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900">{brand}</h2>
-                  <span className="rounded-full bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-0.5">
-                    {vehicles.length} modèle{vehicles.length > 1 ? 's' : ''}
-                  </span>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/entretien/${vehicles[0]?.brandSlug}`}
+                      className="text-2xl font-bold text-slate-900 hover:text-blue-600 transition-colors"
+                    >
+                      {brand}
+                    </Link>
+                    <span className="rounded-full bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-0.5">
+                      {vehicles.length} modèle{vehicles.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {vehicles[0]?.brandSlug && (
+                    <Link
+                      href={`/entretien/${vehicles[0]?.brandSlug}`}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                    >
+                      Voir le hub {brand} &rarr;
+                    </Link>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -142,7 +157,7 @@ export default function MaintenanceHubPage() {
             </p>
             <div className="pt-2">
               <Link
-                href="/app/onboarding"
+                href="/dashboard"
                 className="inline-block rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-blue-500 active:scale-95 transition"
               >
                 Créer mon carnet d'entretien personnalisé

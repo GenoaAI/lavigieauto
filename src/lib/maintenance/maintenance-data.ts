@@ -80,3 +80,55 @@ export function getMaintenanceDataByBrand(): Record<string, VehicleMaintenanceDa
 
   return grouped;
 }
+
+export function getAllBrandSlugs(): string[] {
+  const all = getAllMaintenanceData();
+  const slugs = Array.from(new Set(all.map((item) => item.brandSlug.toLowerCase())));
+  return slugs.sort();
+}
+
+export function getAllBrandParams(): { brand: string }[] {
+  return getAllBrandSlugs().map((slug) => ({ brand: slug }));
+}
+
+export function getMaintenanceDataForBrand(brandSlug: string): {
+  brand: string;
+  brandSlug: string;
+  models: VehicleMaintenanceData[];
+} | null {
+  const all = getAllMaintenanceData();
+  const targetSlug = brandSlug.toLowerCase();
+  const matching = all.filter((item) => item.brandSlug.toLowerCase() === targetSlug);
+
+  if (matching.length === 0) {
+    return null;
+  }
+
+  return {
+    brand: matching[0].brand,
+    brandSlug: matching[0].brandSlug.toLowerCase(),
+    models: matching,
+  };
+}
+
+export function getAllBrandsSummary(): {
+  brand: string;
+  brandSlug: string;
+  count: number;
+  models: VehicleMaintenanceData[];
+}[] {
+  const brandSlugs = getAllBrandSlugs();
+  return brandSlugs
+    .map((slug) => {
+      const data = getMaintenanceDataForBrand(slug);
+      if (!data) return null;
+      return {
+        brand: data.brand,
+        brandSlug: data.brandSlug,
+        count: data.models.length,
+        models: data.models,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+

@@ -1,7 +1,7 @@
 {
   "brand": "Dacia",
   "brandSlug": "dacia",
-  "model": "Sandero 2",
+  "model": "Sandero 2 / Stepway",
   "modelSlug": "sandero-2",
   "generation": "II",
   "engine": "0.9 TCe 90 ch",
@@ -10,7 +10,7 @@
   "fuelType": "Essence",
   "powerHp": 90,
   "productionYears": "2012-2020",
-  "directAnswerSummary": "Le plan d'entretien officiel de la Dacia Sandero 2 0.9 TCe (90 ch) impose une vidange tous les 1 an ou 20 000 km avec une huile normée Renault RN0710 (5W-40) ou RN17. La distribution par chaîne ne requiert pas de remplacement programmé. L'entretien régulier se focalise sur le boîtier papillon, les bougies d'allumage à 60 000 km et la purge du liquide de refroidissement à 4 ans.",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Dacia Sandero 2 et Sandero 2 Stepway 0.9 TCe (90 ch) impose une vidange tous les 1 an ou 20 000 km avec une huile normée Renault RN0710 (5W-40) ou RN17 (5W-30). La distribution par chaîne ne requiert pas de remplacement programmé. L'entretien régulier se focalise sur le boîtier papillon, les bougies d'allumage à 60 000 km et la purge du liquide de refroidissement à 4 ans.",
   "recommendedOilNorm": "Renault RN0710 (5W-40) ou RN17 (5W-30)",
   "oilViscosity": "5W-40 / 5W-30",
   "intervals": [
@@ -111,6 +111,14 @@
     }
   ],
   "faqs": [
+    {
+      "question": "À combien de kilomètres faire la vidange d'une Dacia Sandero ?",
+      "answer": "La vidange d'une Dacia Sandero 2 0.9 TCe (y compris version Stepway) doit être effectuée tous les 20 000 km ou 1 an (au premier des deux termes échu), avec une huile homologuée Renault RN0710 (5W-40) ou RN17 (5W-30)."
+    },
+    {
+      "question": "Quelle est la périodicité de vidange sur Sandero GPL ?",
+      "answer": "Sur les motorisations bicarburation ECO-G (GPL), la vidange moteur s'effectue tous les 30 000 km ou 1 an avec de l'huile RN17 5W-30, accompagnée du remplacement du filtre GPL phase gazeuse à chaque révision annuelle (30 000 km) et du filtre phase liquide tous les 60 000 km (2 ans)."
+    },
     {
       "question": "La Sandero 2 0.9 TCe a-t-elle une courroie ou une chaîne ?",
       "answer": "La Sandero 2 0.9 TCe est équipée d'une chaîne de distribution sans entretien périodique."

@@ -1,16 +1,16 @@
 {
   "brand": "Dacia",
   "brandSlug": "dacia",
-  "model": "Sandero 3",
+  "model": "Sandero 3 / Stepway",
   "modelSlug": "sandero-3",
   "generation": "III",
-  "engine": "1.0 ECO-G 100 ch",
+  "engine": "1.0 ECO-G 100 ch (GPL)",
   "engineSlug": "1-0-eco-g-100",
   "engineCode": "H4Dt 480 (Bicarburation GPL)",
   "fuelType": "Essence",
   "powerHp": 100,
   "productionYears": "2020-2024",
-  "directAnswerSummary": "Le plan d'entretien officiel de la Dacia Sandero 3 1.0 ECO-G (100 ch Essence/GPL) impose une vidange annuelle ou tous les 30 000 km avec une huile certifiée Renault RN17 (5W-30). Équipée d'une chaîne de distribution, la spécificité GPL impose le remplacement du filtre GPL état gazeux tous les 30 000 km et du filtre phase liquide tous les 60 000 km.",
+  "directAnswerSummary": "Le plan d'entretien officiel de la Dacia Sandero 3 / Stepway 1.0 ECO-G (100 ch Essence/GPL) bicarburation impose une vidange annuelle ou tous les 30 000 km avec une huile certifiée Renault RN17 (5W-30). Équipée d'une chaîne de distribution sans entretien, la spécificité GPL impose le remplacement du filtre GPL état gazeux tous les 30 000 km et du filtre phase liquide tous les 60 000 km.",
   "recommendedOilNorm": "Renault RN17 (5W-30)",
   "oilViscosity": "5W-30",
   "intervals": [
@@ -122,6 +122,14 @@
     }
   ],
   "faqs": [
+    {
+      "question": "À combien de kilomètres faire la vidange d'une Dacia Sandero ?",
+      "answer": "La vidange d'une Dacia Sandero 3 (y compris version Stepway) s'effectue tous les 30 000 km ou 1 an (au premier des deux termes échu) avec de l'huile RN17 5W-30 sur motorisations 1.0 TCe et ECO-G (contre 20 000 km ou 1 an sur Sandero 2 0.9 TCe)."
+    },
+    {
+      "question": "Quelle est la périodicité de vidange sur Sandero GPL ?",
+      "answer": "Sur la Dacia Sandero 3 1.0 ECO-G 100 ch (GPL), la vidange moteur et le filtre à huile se font tous les 30 000 km ou 1 an (huile Renault RN17 5W-30). Le cycle d'entretien GPL spécifique comprend le remplacement du filtre GPL phase gazeuse tous les 30 000 km (1 an), du filtre GPL phase liquide tous les 60 000 km (2 ans), et des 3 bougies d'allumage adaptées au GPL tous les 60 000 km (4 ans)."
+    },
     {
       "question": "Quand changer les filtres GPL sur Sandero 3 ECO-G ?",
       "answer": "Le filtre gazeux se remplace tous les 30 000 km / 1 an, et le filtre phase liquide tous les 60 000 km / 2 ans."
