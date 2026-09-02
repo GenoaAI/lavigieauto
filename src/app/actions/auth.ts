@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -77,6 +77,79 @@ export async function signInWithEmailAction(
       return { success: false, error: error.message || "Impossible d'envoyer l'email de connexion." };
     }
 
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erreur de connexion" };
+  }
+}
+
+/**
+ * Connexion par Mot de passe
+ */
+export async function signInWithPasswordAction(
+  email: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!email || !password) {
+      return { success: false, error: "Veuillez saisir votre email et mot de passe." };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const supabase = await createClient();
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    if (error) {
+      return { success: false, error: error.message || "Identifiants invalides." };
+    }
+
+    // Auto-liaison au foyer si premier passage
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.id && user.email) {
+        const adminSupabase = createAdminClient();
+        const { data: existingMember } = await (adminSupabase as any)
+          .from("foyer_members")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!existingMember) {
+          const { data: foyers } = await (adminSupabase as any)
+            .from("foyers")
+            .select("id, metadata");
+
+          const matchedFoyer = (foyers || []).find(
+            (f: any) =>
+              (f.metadata as any)?.user_email?.toLowerCase() === user.email!.toLowerCase()
+          );
+
+          if (matchedFoyer) {
+            await (adminSupabase as any)
+              .from("foyer_members")
+              .upsert(
+                {
+                  user_id: user.id,
+                  foyer_id: matchedFoyer.id,
+                  role: "owner",
+                },
+                { onConflict: "foyer_id,user_id" }
+              );
+          }
+        }
+      }
+    } catch (linkErr) {
+      console.warn("Auto-link foyer error:", linkErr);
+    }
+
+    revalidatePath("/");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Erreur de connexion" };

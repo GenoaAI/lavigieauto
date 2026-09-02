@@ -2,11 +2,15 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Mail, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { signInWithEmailAction, signInWithGoogleAction } from "@/app/actions/auth";
+import { ShieldCheck, Mail, Lock, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { signInWithEmailAction, signInWithPasswordAction, signInWithGoogleAction } from "@/app/actions/auth";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [usePassword, setUsePassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -20,7 +24,11 @@ export default function LoginPage() {
       if (res.url) {
         window.location.href = res.url;
       } else {
-        setErrorMessage(res.error || "Impossible d'initialiser la connexion avec Google.");
+        setErrorMessage(
+          res.error?.includes("provider is not enabled")
+            ? "Le fournisseur Google doit être activé dans la console Supabase (Auth > Providers). Utilisez votre mot de passe ci-dessous pour vous connecter immédiatement."
+            : res.error || "Impossible d'initialiser la connexion avec Google."
+        );
         setIsGoogleLoading(false);
       }
     } catch {
@@ -29,7 +37,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) {
       setErrorMessage("Veuillez saisir une adresse email valide.");
@@ -40,11 +48,27 @@ export default function LoginPage() {
     setErrorMessage(null);
 
     try {
-      const res = await signInWithEmailAction(email);
-      if (res.success) {
-        setMagicLinkSent(true);
+      if (usePassword) {
+        if (!password) {
+          setErrorMessage("Veuillez saisir votre mot de passe.");
+          setIsLoading(false);
+          return;
+        }
+        const res = await signInWithPasswordAction(email, password);
+        if (res.success) {
+          router.push("/dashboard");
+          router.refresh();
+          return;
+        } else {
+          setErrorMessage(res.error || "Identifiants incorrects.");
+        }
       } else {
-        setErrorMessage(res.error || "Une erreur est survenue lors de l'envoi du lien.");
+        const res = await signInWithEmailAction(email);
+        if (res.success) {
+          setMagicLinkSent(true);
+        } else {
+          setErrorMessage(res.error || "Une erreur est survenue lors de l'envoi du lien.");
+        }
       }
     } catch {
       setErrorMessage("Impossible de contacter le serveur d'authentification.");
@@ -107,12 +131,12 @@ export default function LoginPage() {
           <div className="relative flex items-center justify-center">
             <div className="border-t border-slate-200 w-full" />
             <span className="bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
-              ou par email
+              ou avec vos identifiants
             </span>
             <div className="border-t border-slate-200 w-full" />
           </div>
 
-          {/* MAGIC LINK FORM */}
+          {/* AUTH FORM */}
           {magicLinkSent ? (
             <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-2">
               <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
@@ -122,9 +146,16 @@ export default function LoginPage() {
               <p className="text-xs text-emerald-800">
                 Consultez votre boîte de réception à <strong>{email}</strong> et cliquez sur le lien magique pour vous connecter.
               </p>
+              <button
+                type="button"
+                onClick={() => setMagicLinkSent(false)}
+                className="mt-2 text-xs font-semibold text-emerald-700 hover:underline"
+              >
+                ← Utiliser le mot de passe
+              </button>
             </div>
           ) : (
-            <form onSubmit={handleEmailSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               <div>
                 <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Adresse email
@@ -143,9 +174,31 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {usePassword && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="password" className="block text-xs font-bold text-slate-700">
+                      Mot de passe
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      id="password"
+                      type="password"
+                      required={usePassword}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+              )}
+
               {errorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700 font-medium">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs text-rose-700 font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
@@ -153,17 +206,32 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition active:scale-95 disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition active:scale-95 disabled:opacity-60 cursor-pointer"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <span>Recevoir mon lien de connexion</span>
+                    <span>{usePassword ? "Se connecter" : "Recevoir mon lien de connexion"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsePassword(!usePassword);
+                    setErrorMessage(null);
+                  }}
+                  className="text-xs text-slate-500 hover:text-blue-600 font-medium transition"
+                >
+                  {usePassword
+                    ? "Connexion sans mot de passe (Lien magique)"
+                    : "Connexion directe avec mot de passe"}
+                </button>
+              </div>
             </form>
           )}
         </div>
