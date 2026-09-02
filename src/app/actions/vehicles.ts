@@ -31,6 +31,7 @@ import { cookies } from "next/headers";
 import { getFoyerOverviewAction, invalidateFoyerCache } from "@/app/actions/foyer";
 import { checkVehicleQuota } from "@/lib/integrations/stripe/quota";
 import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
+import { requireUserHouseholdContext, assertVehicleOwnership } from "@/lib/security/auth-context";
 
 export interface EnrichedVehicle extends Partial<Vehicule> {
   id: string;
@@ -112,26 +113,22 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
 
       if (rawVeh) {
         const [docsRes, linesRes, defsRes, echsRes, auditsRes, garagesRes] = await Promise.all([
-          (adminSupabase as any).from("documents_sources").select("*").order("date_document", { ascending: false }),
-          (adminSupabase as any).from("lignes_interventions").select("*").order("date_intervention", { ascending: false }),
-          (adminSupabase as any).from("defaillances_ct").select("*"),
-          (adminSupabase as any).from("echeances_previsionnelles").select("*"),
-          (adminSupabase as any).from("audits_conformite").select("*"),
-          (adminSupabase as any).from("garages").select("*").order("nom", { ascending: true }),
+          (adminSupabase as any).from("documents_sources").select("*").eq("vehicule_id", rawVeh.id).order("date_document", { ascending: false }),
+          (adminSupabase as any).from("lignes_interventions").select("*").eq("vehicule_id", rawVeh.id).order("date_intervention", { ascending: false }),
+          (adminSupabase as any).from("defaillances_ct").select("*").eq("vehicule_id", rawVeh.id),
+          (adminSupabase as any).from("echeances_previsionnelles").select("*").eq("vehicule_id", rawVeh.id),
+          (adminSupabase as any).from("audits_conformite").select("*").eq("vehicule_id", rawVeh.id),
+          rawVeh.foyer_id
+            ? (adminSupabase as any).from("garages").select("*").eq("foyer_id", rawVeh.foyer_id).order("nom", { ascending: true })
+            : Promise.resolve({ data: [] }),
         ]);
 
-        const allDocs = (docsRes?.data || []) as any[];
-        const allLines = (linesRes?.data || []) as any[];
-        const allDefs = (defsRes?.data || []) as any[];
-        const allEchs = (echsRes?.data || []) as any[];
-        const allAudits = (auditsRes?.data || []) as any[];
+        const docs = (docsRes?.data || []) as any[];
+        const lines = (linesRes?.data || []) as any[];
+        const defs = (defsRes?.data || []) as any[];
+        const echs = (echsRes?.data || []) as any[];
+        const audits = (auditsRes?.data || []) as any[];
         availableGarages = (garagesRes?.data || []) as any[];
-
-        const docs = allDocs.filter((d) => matchesVehicleId(d.vehicule_id, rawVeh));
-        const lines = allLines.filter((l) => matchesVehicleId(l.vehicule_id, rawVeh));
-        const defs = allDefs.filter((d) => matchesVehicleId(d.vehicule_id, rawVeh));
-        const echs = allEchs.filter((e) => matchesVehicleId(e.vehicule_id, rawVeh));
-        const audits = allAudits.filter((a) => matchesVehicleId(a.vehicule_id, rawVeh));
 
         const docMaxKm = Math.max(
           0,
@@ -965,26 +962,17 @@ export async function toggleVehicleTrackingStatusAction(
   newStatus: "actif" | "suspendu"
 ): Promise<{ success: boolean; status: "actif" | "suspendu"; error?: string }> {
   try {
-    const rawQuery = decodeURIComponent(vehicleId || "").trim();
-    const cleanQuery = rawQuery.toUpperCase().replace(/[\s-]/g, "");
+    const context = await requireUserHouseholdContext();
+    const realVehicleId = await assertVehicleOwnership(vehicleId, context.foyerId);
 
-    // 0. Résolution du véhicule ciblé pour obtenir tous ses identifiants
     const foyerData = await getFoyerOverviewAction();
     const allVehs = foyerData.vehicles || [];
-    const matchedVehicle = allVehs.find((v) => {
-      if (v.id === vehicleId || v.id === rawQuery) return true;
-      if (v.immatriculation) {
-        const vImm = v.immatriculation.trim().toUpperCase();
-        const vClean = vImm.replace(/[\s-]/g, "");
-        return vImm === rawQuery.toUpperCase() || vClean === cleanQuery;
-      }
-      return false;
-    });
+    const matchedVehicle = allVehs.find((v) => v.id === realVehicleId);
 
-    const vId = matchedVehicle?.id || rawQuery;
+    const vId = realVehicleId;
     const cleanId = (vId || "").toUpperCase().replace(/[\s-]/g, "");
-    const rawPlate = matchedVehicle?.immatriculation || (rawQuery.includes("-") || rawQuery.length <= 10 ? rawQuery : "");
-    const cleanPlate = rawPlate ? rawPlate.toUpperCase().replace(/[\s-]/g, "") : cleanQuery;
+    const rawPlate = matchedVehicle?.immatriculation || "";
+    const cleanPlate = rawPlate ? rawPlate.toUpperCase().replace(/[\s-]/g, "") : "";
 
     // 1. Vérification du quota d'abonnement en cas de reprise de suivi (activation)
     if (newStatus === "actif") {
@@ -992,7 +980,6 @@ export async function toggleVehicleTrackingStatusAction(
         (v) =>
           !isVehicleTrackingSuspended(v) &&
           v.id !== vId &&
-          v.id !== rawQuery &&
           v.immatriculation?.replace(/[\s-]/g, "").toUpperCase() !== cleanPlate
       ).length;
 
@@ -1006,7 +993,7 @@ export async function toggleVehicleTrackingStatusAction(
       }
     }
 
-    // 2. Sauvegarde exhaustive et instantanée dans les cookies sécurisés (persistance 1 an)
+    // 2. Sauvegarde dans les cookies sécurisés
     try {
       const cookieStore = await cookies();
       const cookieKeys = Array.from(
@@ -1016,8 +1003,6 @@ export async function toggleVehicleTrackingStatusAction(
             cleanId ? `tracking_status_${cleanId}` : null,
             rawPlate ? `tracking_status_${rawPlate}` : null,
             cleanPlate ? `tracking_status_${cleanPlate}` : null,
-            rawQuery ? `tracking_status_${rawQuery}` : null,
-            cleanQuery ? `tracking_status_${cleanQuery}` : null,
           ].filter(Boolean) as string[]
         )
       );
@@ -1032,21 +1017,17 @@ export async function toggleVehicleTrackingStatusAction(
     // 3. Invalidation du cache mémoire foyer
     await invalidateFoyerCache();
 
-    // 4. Mise à jour Supabase si accessible
+    // 4. Mise à jour Supabase avec vérification d'appartenance
     try {
       const supabase = createAdminClient();
       const dbStatut = newStatus === "suspendu" ? "archive" : "actif";
 
-      const { data: vehList } = await (supabase as any)
+      const { data: target } = await (supabase as any)
         .from("vehicules")
-        .select("id, metadata, statut, immatriculation");
-
-      const target = (vehList || []).find((v: any) =>
-        v.id === vId ||
-        v.id === rawQuery ||
-        (v.immatriculation && v.immatriculation.replace(/[\s-]/g, "").toUpperCase() === cleanPlate) ||
-        (v.immatriculation && v.immatriculation.trim().toUpperCase() === rawQuery.toUpperCase())
-      );
+        .select("id, metadata, statut")
+        .eq("id", realVehicleId)
+        .eq("foyer_id", context.foyerId)
+        .maybeSingle();
 
       if (target) {
         const currentMeta = (target.metadata && typeof target.metadata === "object") ? target.metadata : {};
@@ -1079,7 +1060,6 @@ export async function toggleVehicleTrackingStatusAction(
       revalidatePath("/dashboard");
       if (vId) revalidatePath(`/dashboard/vehicles/${vId}`);
       if (rawPlate) revalidatePath(`/dashboard/vehicles/${rawPlate}`);
-      if (cleanPlate) revalidatePath(`/dashboard/vehicles/${cleanPlate}`);
     } catch {
       // Ignore
     }
@@ -1092,21 +1072,16 @@ export async function toggleVehicleTrackingStatusAction(
 }
 
 /**
- * Supprimer définitivement un véhicule du foyer
+ * Supprimer définitivement un véhicule du foyer (Sécurisé)
  */
 export async function deleteVehicleAction(
   vehicleId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const context = await requireUserHouseholdContext();
+    const realVehicleId = await assertVehicleOwnership(vehicleId, context.foyerId);
+
     const supabase = createAdminClient();
-
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
-    const cleanId = (vehicleId || "").replace(/[^a-zA-Z0-9-]/g, "");
-    const { data: targetVeh } = isUuid
-      ? await (supabase as any).from("vehicules").select("id").eq("id", vehicleId).maybeSingle()
-      : await (supabase as any).from("vehicules").select("id").or(`immatriculation.ilike.%${cleanId}%,vin.ilike.%${cleanId}%`).maybeSingle();
-
-    const realVehicleId = targetVeh?.id || vehicleId;
 
     // 1. Supprimer les tables dépendantes
     await (supabase as any).from("echeances_previsionnelles").delete().eq("vehicule_id", realVehicleId);
@@ -1115,8 +1090,12 @@ export async function deleteVehicleAction(
     await (supabase as any).from("audits_conformite").delete().eq("vehicule_id", realVehicleId);
     await (supabase as any).from("documents_sources").delete().eq("vehicule_id", realVehicleId);
 
-    // 2. Supprimer la ligne du véhicule
-    const { error } = await (supabase as any).from("vehicules").delete().eq("id", realVehicleId);
+    // 2. Supprimer la ligne du véhicule appartenant au foyer
+    const { error } = await (supabase as any)
+      .from("vehicules")
+      .delete()
+      .eq("id", realVehicleId)
+      .eq("foyer_id", context.foyerId);
 
     if (error) {
       throw new Error(`Erreur lors de la suppression du véhicule: ${error.message}`);
@@ -1129,6 +1108,8 @@ export async function deleteVehicleAction(
     } catch (calErr) {
       console.warn("Avertissement mise à jour Google Calendar suite à la suppression:", calErr);
     }
+
+    await invalidateFoyerCache();
 
     try {
       revalidatePath("/dashboard");
@@ -1143,7 +1124,7 @@ export async function deleteVehicleAction(
 }
 
 /**
- * Mettre à jour les informations du véhicule (version, modèle, finition, usage, etc.)
+ * Mettre à jour les informations du véhicule (version, modèle, finition, usage, etc.) — Sécurisé
  */
 export async function updateVehicleDetailsAction(
   vehicleId: string,
@@ -1161,15 +1142,10 @@ export async function updateVehicleDetailsAction(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const context = await requireUserHouseholdContext();
+    const realVehicleId = await assertVehicleOwnership(vehicleId, context.foyerId);
+
     const supabase = createAdminClient();
-
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
-    const cleanId = (vehicleId || "").replace(/[^a-zA-Z0-9-]/g, "");
-    const { data: targetVeh } = isUuid
-      ? await (supabase as any).from("vehicules").select("id").eq("id", vehicleId).maybeSingle()
-      : await (supabase as any).from("vehicules").select("id").or(`immatriculation.ilike.%${cleanId}%,vin.ilike.%${cleanId}%`).maybeSingle();
-
-    const realVehicleId = targetVeh?.id || vehicleId;
 
     const { error } = await (supabase as any)
       .from("vehicules")
@@ -1177,9 +1153,12 @@ export async function updateVehicleDetailsAction(
         ...payload,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", realVehicleId);
+      .eq("id", realVehicleId)
+      .eq("foyer_id", context.foyerId);
 
     if (error) throw new Error(error.message);
+
+    await invalidateFoyerCache();
 
     try {
       revalidatePath("/dashboard");

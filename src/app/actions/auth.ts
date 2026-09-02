@@ -20,29 +20,23 @@ export interface CurrentUserSummary {
 export async function getCurrentUserAction(): Promise<CurrentUserSummary> {
   try {
     const cookieStore = await cookies();
-    const gcalEmail = cookieStore.get("gcal_user_email")?.value;
-    const gcalName = cookieStore.get("gcal_user_name")?.value;
     const gcalToken = cookieStore.get("gcal_access_token")?.value;
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (user) {
       return {
         isAuthenticated: true,
         userId: user.id,
-        email: user.email || gcalEmail || "utilisateur@lavigieauto.com",
-        name: user.user_metadata?.full_name || gcalName || user.email?.split("@")[0] || "Conducteur",
+        email: user.email || "utilisateur@lavigieauto.com",
+        name:
+          user.user_metadata?.full_name ||
+          user.email?.split("@")[0] ||
+          "Conducteur",
         picture: user.user_metadata?.avatar_url,
-        googleConnected: Boolean(gcalToken),
-      };
-    }
-
-    if (gcalEmail) {
-      return {
-        isAuthenticated: true,
-        email: gcalEmail,
-        name: gcalName || gcalEmail.split("@")[0],
         googleConnected: Boolean(gcalToken),
       };
     }
@@ -60,23 +54,27 @@ export async function getCurrentUserAction(): Promise<CurrentUserSummary> {
 /**
  * Connexion par Email (Magic Link / OTP)
  */
-export async function signInWithEmailAction(email: string): Promise<{ success: boolean; error?: string }> {
+export async function signInWithEmailAction(
+  email: string
+): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!email || !email.includes("@")) {
+      return { success: false, error: "Adresse email invalide." };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
     const supabase = await createClient();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: cleanEmail,
       options: {
         emailRedirectTo: `${appUrl}/dashboard`,
       },
     });
 
     if (error) {
-      // Fallback démo si SMTP non configuré
-      const cookieStore = await cookies();
-      cookieStore.set("gcal_user_email", email, { maxAge: 30 * 24 * 3600, path: "/" });
-      cookieStore.set("gcal_user_name", email.split("@")[0], { maxAge: 30 * 24 * 3600, path: "/" });
+      return { success: false, error: error.message || "Impossible d'envoyer l'email de connexion." };
     }
 
     return { success: true };

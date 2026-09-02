@@ -2,12 +2,21 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export async function GET() {
+  // Sécurisation stricte : désactivation totale en environnement de production
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Endpoint de seed désactivé en environnement de production." },
+      { status: 404 }
+    );
+  }
+
   try {
     const supabase = createAdminClient();
 
     const { data: foyer, error: foyerErr } = await (supabase as any)
       .from("foyers")
       .upsert({
+        id: "11111111-1111-1111-1111-111111111111",
         nom: "Foyer Charles Deforges",
         description: "Compte principal LaVigieAuto Foyer Multi-Véhicules",
         metadata: {
@@ -22,31 +31,20 @@ export async function GET() {
 
     if (foyerErr) {
       return NextResponse.json({
-        message: "Mode actif pour charlesdeforges@gmail.com",
-        account: "charlesdeforges@gmail.com",
-        foyer: "Foyer Charles Deforges",
-        vehicles: [
-          "Suzuki Vitara 1.6 VVT (EC-301-JX - 125 789 km)",
-          "Renault Espace V Initiale Paris (FX-563-KZ - 272 448 km)",
-          "Jeep Cherokee Chief SJ 1981 (1981-SJ-59 - Suspendu)",
-          "Jeep CJ-7 Classic 1982 (CJ-1982-US - 89 000 km)",
-        ],
-        nextMilestone: "Pack Urgence Suzuki Vitara (Vidange + Bougies + Courroie)",
-        scoreConformity: "Suivi Foyer Multivéhicules",
-        status: "ready",
-      });
+        success: false,
+        error: foyerErr.message,
+      }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Données initialisées avec succès pour charlesdeforges@gmail.com",
+      message: "Données de développement initialisées avec succès.",
       foyer,
     });
   } catch (err: any) {
     return NextResponse.json({
-      message: "Environnement prêt pour charlesdeforges@gmail.com",
-      status: "ready",
+      success: false,
       error: err.message,
-    });
+    }, { status: 500 });
   }
 }

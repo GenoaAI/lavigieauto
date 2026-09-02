@@ -10,6 +10,7 @@ import { Vehicule, DocumentType } from "@/lib/types/database.types";
 import { invalidateFoyerCache } from "@/app/actions/foyer";
 import { revalidatePath } from "next/cache";
 import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
+import { requireUserHouseholdContext, assertVehicleOwnership } from "@/lib/security/auth-context";
 
 export interface NormalizedDocumentExtraction {
   documentType: string;
@@ -1108,14 +1109,15 @@ export async function deleteDocumentAndRecalculateAction(
   params: DeleteDocumentParams
 ): Promise<DeleteDocumentResult> {
   const { documentId, storagePath: initialStoragePath, vehicleId: initialVehicleId, interventionIds } = params;
-  const supabase = createAdminClient();
 
   try {
+    const context = await requireUserHouseholdContext();
+    const supabase = createAdminClient();
+
     let resolvedVehicleId: string | null = initialVehicleId || null;
     let resolvedStoragePath: string | null = initialStoragePath || null;
-    let resolvedFoyerId: string | null = null;
 
-    // 1. Récupérer les informations du document source s'il existe
+    // 1. Récupérer les informations du document source et vérifier l'appartenance au foyer
     if (documentId) {
       const { data: docRecord } = await (supabase as any)
         .from("documents_sources")
@@ -1123,11 +1125,20 @@ export async function deleteDocumentAndRecalculateAction(
         .eq("id", documentId)
         .maybeSingle();
 
-      if (docRecord) {
-        if (!resolvedVehicleId && docRecord.vehicule_id) resolvedVehicleId = docRecord.vehicule_id;
-        if (!resolvedStoragePath && docRecord.storage_path) resolvedStoragePath = docRecord.storage_path;
-        if (!resolvedFoyerId && docRecord.foyer_id) resolvedFoyerId = docRecord.foyer_id;
+      if (!docRecord) {
+        return { success: false, error: "Document introuvable." };
       }
+
+      if (docRecord.foyer_id && docRecord.foyer_id !== context.foyerId) {
+        return { success: false, error: "Action non autorisée sur ce document." };
+      }
+
+      if (!resolvedVehicleId && docRecord.vehicule_id) resolvedVehicleId = docRecord.vehicule_id;
+      if (!resolvedStoragePath && docRecord.storage_path) resolvedStoragePath = docRecord.storage_path;
+    }
+
+    if (resolvedVehicleId) {
+      await assertVehicleOwnership(resolvedVehicleId, context.foyerId);
     }
 
     // 2. Si non trouvé via documentId mais des interventionIds sont fournis

@@ -4,7 +4,12 @@ import { cookies } from "next/headers";
 import type { Database } from "@/lib/types/database.types";
 
 export async function createClient() {
-  const cookieStore = await cookies();
+  let cookieStore: any = null;
+  try {
+    cookieStore = await cookies();
+  } catch {
+    // Hors contexte de requête HTTP (ex: tests automatisés Node.js, CLI)
+  }
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "https://mock.supabase.co",
@@ -12,15 +17,21 @@ export async function createClient() {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          try {
+            return cookieStore ? cookieStore.getAll() : [];
+          } catch {
+            return [];
+          }
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            if (cookieStore) {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            }
           } catch {
-            // Appelé depuis un Server Component, l'écriture de cookie est ignorée
+            // Appelé depuis un Server Component ou test, l'écriture de cookie est ignorée
           }
         },
       },

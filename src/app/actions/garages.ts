@@ -4,14 +4,21 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Garage } from "@/lib/types/database.types";
 import { resolveRecommendedGarage, ResolveGarageResult } from "@/lib/engine/garage-resolver";
 import { revalidatePath } from "next/cache";
+import { requireUserHouseholdContext, getOptionalUserHouseholdContext } from "@/lib/security/auth-context";
 
 export async function backfillGaragesFromExistingDocumentsAction(): Promise<{ success: boolean; count: number; error?: string }> {
   const adminSupabase = createAdminClient();
 
   try {
-    const { data: docs, error: docError } = await (adminSupabase as any)
-      .from("documents_sources")
-      .select("*");
+    const context = await getOptionalUserHouseholdContext();
+    const foyerFilter = context?.foyerId;
+
+    let query = (adminSupabase as any).from("documents_sources").select("*");
+    if (foyerFilter) {
+      query = query.eq("foyer_id", foyerFilter);
+    }
+
+    const { data: docs, error: docError } = await query;
 
     if (docError || !docs || docs.length === 0) {
       return { success: true, count: 0 };
@@ -101,32 +108,11 @@ export async function backfillGaragesFromExistingDocumentsAction(): Promise<{ su
 }
 
 export async function getFoyerGaragesAction(): Promise<Garage[]> {
-  const supabase = await createClient();
+  const context = await getOptionalUserHouseholdContext();
+  if (!context?.foyerId) return [];
+
   const adminSupabase = createAdminClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  let foyerId: string | null = null;
-
-  if (user) {
-    const { data: mem } = await (adminSupabase as any)
-      .from("foyer_members")
-      .select("foyer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (mem?.foyer_id) foyerId = mem.foyer_id;
-  }
-
-  if (!foyerId) {
-    const { data: firstFoyer } = await (adminSupabase as any)
-      .from("foyers")
-      .select("id")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (firstFoyer?.id) foyerId = firstFoyer.id;
-  }
-
-  if (!foyerId) return [];
+  const foyerId = context.foyerId;
 
   let { data: garages, error } = await (adminSupabase as any)
     .from("garages")
@@ -134,7 +120,6 @@ export async function getFoyerGaragesAction(): Promise<Garage[]> {
     .eq("foyer_id", foyerId)
     .order("nom", { ascending: true });
 
-  // Si aucun garage mais des factures existent, exécuter automatiquement le rattrapage
   if (!garages || garages.length === 0) {
     await backfillGaragesFromExistingDocumentsAction();
     const { data: refetched } = await (adminSupabase as any)
@@ -173,36 +158,11 @@ export async function getRecommendedGarageForVehicleAction(vehicleId: string): P
 }
 
 export async function saveGarageAction(garageData: Partial<Garage>): Promise<{ success: boolean; garage?: Garage; error?: string }> {
-  const supabase = await createClient();
-  const adminSupabase = createAdminClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  let foyerId = garageData.foyer_id;
-
-  if (!foyerId && user) {
-    const { data: mem } = await (adminSupabase as any)
-      .from("foyer_members")
-      .select("foyer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (mem?.foyer_id) foyerId = mem.foyer_id;
-  }
-
-  if (!foyerId) {
-    const { data: firstFoyer } = await (adminSupabase as any)
-      .from("foyers")
-      .select("id")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (firstFoyer?.id) foyerId = firstFoyer.id;
-  }
-
-  if (!foyerId) {
-    return { success: false, error: "Foyer introuvable." };
-  }
-
   try {
+    const context = await requireUserHouseholdContext();
+    const adminSupabase = createAdminClient();
+    const foyerId = context.foyerId;
+
     if (garageData.id && !garageData.id.startsWith("virtual-") && !garageData.id.startsWith("g-")) {
       const { data, error } = await (adminSupabase as any)
         .from("garages")
@@ -217,6 +177,7 @@ export async function saveGarageAction(garageData: Partial<Garage>): Promise<{ s
           updated_at: new Date().toISOString(),
         })
         .eq("id", garageData.id)
+        .eq("foyer_id", foyerId)
         .select()
         .single();
 

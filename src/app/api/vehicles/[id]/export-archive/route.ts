@@ -3,6 +3,7 @@ import { getVehicleDetailsAction } from "@/app/actions/vehicles";
 import { createAdminClient } from "@/lib/supabase/server";
 import { STORAGE_CONFIG } from "@/config/storage.config";
 import { createZipArchive, ZipEntry } from "@/lib/export/zip-archive";
+import { requireUserHouseholdContext, assertVehicleOwnership } from "@/lib/security/auth-context";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,12 @@ export async function GET(
       return NextResponse.json({ error: "Identifiant véhicule manquant." }, { status: 400 });
     }
 
+    // 0. Vérification d'authentification et contrôle d'appartenance au foyer
+    const context = await requireUserHouseholdContext();
+    const realVehicleId = await assertVehicleOwnership(targetIdentifier, context.foyerId);
+
     // 1. Récupération des données réelles du véhicule
-    const vehicleData = await getVehicleDetailsAction(targetIdentifier);
+    const vehicleData = await getVehicleDetailsAction(realVehicleId);
     if (!vehicleData || !vehicleData.vehicle) {
       return NextResponse.json({ error: "Véhicule non trouvé." }, { status: 404 });
     }

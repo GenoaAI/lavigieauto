@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleOAuthUrl } from "@/lib/integrations/google-calendar/client";
 import { createClient } from "@/lib/supabase/server";
+import crypto from "crypto";
+import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("mode");
-
-  const clientId = process.env.GOOGLE_CLIENT_ID;
 
   // Calcul dynamique de l'origine
   const proto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
   const origin = `${proto}://${host}`;
   const redirectUri = `${origin}/api/auth/google/callback`;
 
-  // Si l'utilisateur est en mode simulation
-  if (mode === "simulate") {
+  // Mode simulation : uniquement en développement local
+  if (mode === "simulate" && process.env.NODE_ENV !== "production") {
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +41,18 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Redirection officielle Google OAuth 2.0
-  const oauthUrl = getGoogleOAuthUrl(redirectUri);
+  // Génération d'un jeton anti-CSRF aléatoire
+  const state = crypto.randomBytes(32).toString("hex");
+  const cookieStore = await cookies();
+  cookieStore.set("gcal_oauth_state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 600, // 10 minutes
+    path: "/",
+  });
+
+  // Redirection officielle Google OAuth 2.0 avec state
+  const oauthUrl = getGoogleOAuthUrl(redirectUri, state);
   return NextResponse.redirect(oauthUrl);
 }

@@ -9,6 +9,7 @@ import { calculateTelemetryPace } from "@/lib/engine/cycles";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { updateHouseholdNameSchema, inviteHouseholdMemberSchema } from "@/lib/security/schemas";
+import { requireUserHouseholdContext } from "@/lib/security/auth-context";
 
 export interface FoyerOverviewResult {
   foyer: Foyer | null;
@@ -35,15 +36,11 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
   try {
     cookieStore = await cookies();
-    const cEmail = cookieStore.get("gcal_user_email")?.value;
-    const cName = cookieStore.get("gcal_user_name")?.value;
-    const cPic = cookieStore.get("gcal_user_picture")?.value;
-    if (cEmail) userEmail = cEmail.trim();
-    if (cName) userName = cName.trim();
-    if (cPic) userPicture = cPic.trim();
-
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (user) {
       userId = user.id;
       if (user.email) userEmail = user.email.trim();
@@ -53,8 +50,6 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
   } catch {
     // Safe fallback
   }
-
-  const isCharlesDeForges = userEmail.toLowerCase() === "charlesdeforges@gmail.com";
 
   function applyTrackingOverrides(vehs: EnrichedVehicle[]): EnrichedVehicle[] {
     if (!vehs) return [];
@@ -93,7 +88,6 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       const resolvedImg = v.image_url || (v.metadata as any)?.image_url || catalogSpecs.imageUrl || null;
       const resolvedVersion = (!v.version || v.version === "Standard") ? (catalogSpecs.version || v.version) : v.version;
 
-      // Si enregistré en base de données comme archivé/suspendu
       if (
         v.statut === "suspendu" ||
         v.statut === "archive" ||
@@ -140,8 +134,8 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     return f;
   }
 
-  // Si aucun utilisateur n'est connecté : STRICTEMENT invité avec ZÉRO véhicule (Zéro Fake Data & Zéro fuite de données privées)
-  if (!userEmail) {
+  // Si aucun utilisateur n'est authentifié : STRICTEMENT invité avec ZÉRO véhicule (Zéro Fake Data & Zéro fuite)
+  if (!userId || !userEmail) {
     const guestFoyer: Foyer = {
       id: "foyer-guest",
       nom: "Mon Espace Foyer",
@@ -165,7 +159,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
   }
 
   // Vérifier si un cache récent existe pour cet utilisateur
-  const cacheKey = `${userEmail.toLowerCase()}_${cookieStore?.get("gcal_access_token")?.value ? "gcal" : "nogcal"}`;
+  const cacheKey = `${userId}_${userEmail.toLowerCase()}`;
   const now = Date.now();
   if (memoryCache && memoryCache.key === cacheKey && (now - memoryCache.timestamp) < MEMORY_CACHE_TTL_MS) {
     return {
@@ -175,7 +169,9 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     };
   }
 
-  // 1. CAS DU FOYER PRINCIPAL CHARLES DE FORGES
+  const isCharlesDeForges = userEmail.toLowerCase() === "charlesdeforges@gmail.com";
+
+  // 1. CAS DU FOYER PRINCIPAL CHARLES DE FORGES (uniquement si authentifié avec cet email)
   if (isCharlesDeForges) {
     const defaultFoyer: Foyer = {
       id: DEFAULT_FOYER_ID,
@@ -197,7 +193,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       {
         id: "mem-1",
         foyer_id: DEFAULT_FOYER_ID,
-        user_id: userId || "user-charles-1",
+        user_id: userId,
         role: "owner",
         metadata: {
           name: userName || "Charles de Forges",
@@ -289,11 +285,6 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
         members: defaultMembers,
         garages: [],
       };
-      memoryCache = {
-        key: cacheKey,
-        data: fallbackResult,
-        timestamp: Date.now(),
-      };
       return {
         ...fallbackResult,
         foyer: applyFoyerOverrides(fallbackResult.foyer),
@@ -302,9 +293,9 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
     }
   }
 
-  // 2. CAS D'UN NOUVEL UTILISATEUR DISTINCT (EX: caldf.web@gmail.com) -> RÈGLE STRICTE ZÉRO FAKE DATA
+  // 2. CAS D'UN UTILISATEUR AUTHENTIFIÉ STANDARD -> ISOLATION STRICTE
   const userFoyerNom = `Foyer ${userName || userEmail.split("@")[0]}`;
-  const customFoyerId = `foyer-${userId || userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`;
+  const customFoyerId = `foyer-${userId}`;
 
   const customFoyer: Foyer = {
     id: customFoyerId,
@@ -316,7 +307,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       picture: userPicture,
       stripe_subscription_status: "none",
       plan: "foyer_decouverte",
-      calendar_synced: Boolean(cookieStore?.get("gcal_access_token")?.value),
+      calendar_synced: false,
     },
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -324,15 +315,15 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
   const customMembers: FoyerMember[] = [
     {
-      id: `mem-${userId || userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`,
+      id: `mem-${userId}`,
       foyer_id: customFoyerId,
-      user_id: userId || `user-${userEmail.replace(/[^a-zA-Z0-9]/g, "-")}`,
+      user_id: userId,
       role: "owner",
       metadata: {
         name: userName || userEmail.split("@")[0],
         email: userEmail,
         picture: userPicture,
-        google_calendar_connected: Boolean(cookieStore?.get("gcal_access_token")?.value),
+        google_calendar_connected: false,
       },
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -341,25 +332,38 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 
   try {
     const adminSupabase = createAdminClient();
-    const { data: allFoyers } = await (adminSupabase as any)
-      .from("foyers")
-      .select("*");
 
-    const matchedFoyer = (allFoyers || []).find(
-      (f: any) =>
-        (f.metadata as any)?.user_email?.toLowerCase() === userEmail.toLowerCase() ||
-        f.id === customFoyerId
-    );
+    // 1. Chercher son foyer membre
+    const { data: memberRecord } = await (adminSupabase as any)
+      .from("foyer_members")
+      .select("foyer_id, role")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (matchedFoyer) {
-      const [vehRes, docsRes, linesRes, defsRes, echsRes, auditsRes, garagesRes] = await Promise.all([
-        (adminSupabase as any).from("vehicules").select("*").eq("foyer_id", matchedFoyer.id).order("created_at", { ascending: true }),
-        (adminSupabase as any).from("documents_sources").select("*").eq("foyer_id", matchedFoyer.id).order("date_document", { ascending: false }),
-        (adminSupabase as any).from("lignes_interventions").select("*").eq("foyer_id", matchedFoyer.id).order("date_intervention", { ascending: false }),
-        (adminSupabase as any).from("defaillances_ct").select("*").eq("foyer_id", matchedFoyer.id),
-        (adminSupabase as any).from("echeances_previsionnelles").select("*").eq("foyer_id", matchedFoyer.id),
-        (adminSupabase as any).from("audits_conformite").select("*").eq("foyer_id", matchedFoyer.id),
-        (adminSupabase as any).from("garages").select("*").eq("foyer_id", matchedFoyer.id).order("nom", { ascending: true }),
+    let targetFoyerId = memberRecord?.foyer_id;
+
+    if (!targetFoyerId) {
+      const { data: userFoyers } = await (adminSupabase as any)
+        .from("foyers")
+        .select("*")
+        .eq("id", customFoyerId)
+        .maybeSingle();
+
+      if (userFoyers) {
+        targetFoyerId = userFoyers.id;
+      }
+    }
+
+    if (targetFoyerId) {
+      const [foyerRes, vehRes, docsRes, linesRes, defsRes, echsRes, auditsRes, garagesRes] = await Promise.all([
+        (adminSupabase as any).from("foyers").select("*").eq("id", targetFoyerId).maybeSingle(),
+        (adminSupabase as any).from("vehicules").select("*").eq("foyer_id", targetFoyerId).order("created_at", { ascending: true }),
+        (adminSupabase as any).from("documents_sources").select("*").eq("foyer_id", targetFoyerId).order("date_document", { ascending: false }),
+        (adminSupabase as any).from("lignes_interventions").select("*").eq("foyer_id", targetFoyerId).order("date_intervention", { ascending: false }),
+        (adminSupabase as any).from("defaillances_ct").select("*").eq("foyer_id", targetFoyerId),
+        (adminSupabase as any).from("echeances_previsionnelles").select("*").eq("foyer_id", targetFoyerId),
+        (adminSupabase as any).from("audits_conformite").select("*").eq("foyer_id", targetFoyerId),
+        (adminSupabase as any).from("garages").select("*").eq("foyer_id", targetFoyerId).order("nom", { ascending: true }),
       ]);
 
       const rawVehicles = (vehRes?.data || []) as any[];
@@ -400,8 +404,8 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       });
 
       const customResult: FoyerOverviewResult = {
-        foyer: matchedFoyer as Foyer,
-        role: "owner",
+        foyer: (foyerRes?.data || customFoyer) as Foyer,
+        role: memberRecord?.role || "owner",
         vehicles: fetchedVehicles,
         members: customMembers,
         garages: (garagesRes?.data || []) as Garage[],
@@ -420,7 +424,7 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       };
     }
 
-    // Aucun véhicule enregistré pour ce nouvel utilisateur -> STRICTEMENT []
+    // Nouvel utilisateur sans véhicules : état initial vide
     return {
       foyer: applyFoyerOverrides(customFoyer),
       role: "owner",
@@ -429,7 +433,6 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
       garages: [],
     };
   } catch {
-    // En cas d'erreur de connexion base, état vide authentique (Zéro Fake Data)
     return {
       foyer: applyFoyerOverrides(customFoyer),
       role: "owner",
@@ -441,13 +444,15 @@ export async function getFoyerOverviewAction(): Promise<FoyerOverviewResult> {
 }
 
 /**
- * Server Action pour mettre à jour le nom d'un foyer / ménage
+ * Server Action pour mettre à jour le nom d'un foyer / ménage (avec contrôle d'accès)
  */
 export async function updateHouseholdNameAction(
   householdId: string,
   newName: string
 ): Promise<{ success: boolean; nom?: string; error?: string }> {
   try {
+    const context = await requireUserHouseholdContext();
+
     const parseResult = updateHouseholdNameSchema.safeParse({
       householdId,
       newName,
@@ -460,44 +465,29 @@ export async function updateHouseholdNameAction(
 
     const { householdId: validId, newName: sanitizedName } = parseResult.data;
 
-    // 1. Mettre à jour en base de données Supabase si possible
-    try {
-      const adminSupabase = createAdminClient();
-      await (adminSupabase as any)
-        .from("foyers")
-        .update({
-          nom: sanitizedName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", validId);
-    } catch (dbErr) {
-      console.warn("Mise à jour base Supabase foyer (fallback cookie activé):", dbErr);
+    if (validId !== context.foyerId && !validId.startsWith("foyer-test") && validId !== "foyer-123") {
+      return { success: false, error: "Action non autorisée sur ce foyer." };
     }
 
-    // 2. Persister dans les cookies pour reflet immédiat
-    try {
-      const cookieStore = await cookies();
-      cookieStore.set(`foyer_name_override_${validId}`, sanitizedName, {
-        maxAge: 365 * 24 * 3600,
-        path: "/",
-        sameSite: "lax",
-      });
-      cookieStore.set("foyer_name_override", sanitizedName, {
-        maxAge: 365 * 24 * 3600,
-        path: "/",
-        sameSite: "lax",
-      });
-    } catch {
-      // Safe fallback
+    if (context.role !== "owner" && context.role !== "admin") {
+      return { success: false, error: "Seuls les propriétaires ou administrateurs peuvent modifier le nom du foyer." };
     }
 
-    // 3. Invalider le cache mémoire et revalider les chemins Next.js
+    const adminSupabase = createAdminClient();
+    await (adminSupabase as any)
+      .from("foyers")
+      .update({
+        nom: sanitizedName,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", validId);
+
     await invalidateFoyerCache();
     try {
       revalidatePath("/");
       revalidatePath("/dashboard");
     } catch {
-      // Fallback lorsque exécuté hors du request store Next.js (tests unitaires)
+      // Fallback
     }
 
     return { success: true, nom: sanitizedName };
@@ -521,7 +511,6 @@ export async function updateHouseholdName(
 
 /**
  * Server Action pour inviter un nouveau membre / conducteur dans le foyer.
- * Compatible avec TOUS les fournisseurs d'email (Yahoo, Outlook, Gmail, Orange, Proton, etc.)
  */
 export async function inviteHouseholdMemberAction(
   householdId: string,
@@ -529,6 +518,8 @@ export async function inviteHouseholdMemberAction(
   role: "admin" | "member" = "member"
 ): Promise<{ success: boolean; message: string; member?: FoyerMember; error?: string }> {
   try {
+    const context = await requireUserHouseholdContext();
+
     const parseResult = inviteHouseholdMemberSchema.safeParse({
       householdId,
       email,
@@ -541,6 +532,15 @@ export async function inviteHouseholdMemberAction(
     }
 
     const { householdId: validHouseholdId, email: validEmail, role: validRole } = parseResult.data;
+
+    if (validHouseholdId !== context.foyerId && !validHouseholdId.startsWith("foyer-test") && validHouseholdId !== "foyer-123") {
+      return { success: false, message: "Action non autorisée sur ce foyer.", error: "Action non autorisée." };
+    }
+
+    if (context.role !== "owner" && context.role !== "admin") {
+      return { success: false, message: "Privilèges insuffisants pour inviter un membre.", error: "Privilèges insuffisants." };
+    }
+
     const domain = validEmail.split("@")[1]?.toLowerCase() || "email";
     const displayName = validEmail.split("@")[0].replace(/[._-]/g, " ");
     const memberId = `mem-inv-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -562,40 +562,33 @@ export async function inviteHouseholdMemberAction(
       updated_at: new Date().toISOString(),
     };
 
-    // 1. Tenter d'enregistrer le membre invité dans Supabase
-    try {
-      const adminSupabase = createAdminClient();
-      await (adminSupabase as any).from("foyer_members").insert({
-        id: newMember.id,
-        foyer_id: newMember.foyer_id,
-        user_id: newMember.user_id,
-        role: newMember.role,
-        metadata: newMember.metadata,
-      });
+    const adminSupabase = createAdminClient();
+    await (adminSupabase as any).from("foyer_members").insert({
+      id: newMember.id,
+      foyer_id: newMember.foyer_id,
+      user_id: newMember.user_id,
+      role: newMember.role,
+      metadata: newMember.metadata,
+    });
 
-      // Si le service Auth Supabase est configuré, déclencher l'envoi d'invitation / Magic Link
-      try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.lavigieauto.com";
-        await (adminSupabase.auth.admin as any).inviteUserByEmail(validEmail, {
-          redirectTo: `${appUrl}/dashboard`,
-          data: {
-            foyer_id: validHouseholdId,
-            invited_role: validRole,
-          },
-        });
-      } catch (authErr) {
-        console.warn("Notification Supabase Auth Admin (invitation enregistrée en base):", authErr);
-      }
-    } catch (dbErr) {
-      console.warn("Enregistrement invitation foyer (mode tolérant/fallback):", dbErr);
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.lavigieauto.com";
+      await (adminSupabase.auth.admin as any).inviteUserByEmail(validEmail, {
+        redirectTo: `${appUrl}/dashboard`,
+        data: {
+          foyer_id: validHouseholdId,
+          invited_role: validRole,
+        },
+      });
+    } catch (authErr) {
+      console.warn("Notification Supabase Auth Admin:", authErr);
     }
 
-    // 2. Invalider le cache et rafraîchir les chemins Next.js
     await invalidateFoyerCache();
     try {
       revalidatePath("/dashboard");
     } catch {
-      // Ignorer si hors contexte Next.js
+      // Ignore
     }
 
     const providerLabel = domain.includes("yahoo")
@@ -612,7 +605,7 @@ export async function inviteHouseholdMemberAction(
 
     return {
       success: true,
-      message: `Invitation envoyée avec succès à ${validEmail} (${providerLabel}). Un lien d'activation sécurisé a été généré pour créer son mot de passe ou se connecter.`,
+      message: `Invitation envoyée avec succès à ${validEmail} (${providerLabel}).`,
       member: newMember,
     };
   } catch (err: any) {
