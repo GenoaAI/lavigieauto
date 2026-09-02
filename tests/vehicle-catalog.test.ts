@@ -37,20 +37,33 @@ export function testVehicleCatalogResolution() {
   }
   console.log('  ✔ Résolution Renault Espace V 2.0 Blue dCi 200 ch validée.');
 
-  // 3. Renault Clio
-  const clio = resolveVehicleCatalogSpecs({
+  // 3. Renault Clio (1.6 112ch et 1.2 75ch)
+  const clio112 = resolveVehicleCatalogSpecs({
     make: 'RENAULT',
     model: 'CLIO III',
     version: 'BR1B0H',
     fiscalPower: 7,
   });
-  if (clio.imageUrl !== '/images/vehicles/renault-clio-2007.jpg') {
-    throw new Error('Image Clio incorrecte: ' + clio.imageUrl);
+  if (clio112.imageUrl !== '/images/vehicles/renault-clio-2007.jpg') {
+    throw new Error('Image Clio incorrecte: ' + clio112.imageUrl);
   }
-  if (clio.dinPower !== 112 || !clio.version?.includes('1.6 16V 112 ch')) {
-    throw new Error('Version Clio 112ch incorrecte: ' + clio.version);
+  if (clio112.dinPower !== 112 || !clio112.version?.includes('1.6 16V 112 ch')) {
+    throw new Error('Version Clio 112ch incorrecte: ' + clio112.version);
   }
   console.log('  ✔ Résolution Renault Clio 1.6 16V 112 ch validée.');
+
+  const clio75 = resolveVehicleCatalogSpecs({
+    make: 'RENAULT',
+    model: 'CLIO',
+    fiscalPower: 5,
+  });
+  if (clio75.imageUrl !== '/images/vehicles/renault-clio-2007.jpg') {
+    throw new Error('Image Clio 75ch incorrecte: ' + clio75.imageUrl);
+  }
+  if (clio75.dinPower !== 75 || !clio75.version?.includes('1.2 16V 75 ch Authentique')) {
+    throw new Error('Version Clio 75ch incorrecte: ' + clio75.version);
+  }
+  console.log('  ✔ Résolution Renault Clio 1.2 16V 75 ch Authentique validée.');
 
   // 4. Modèle Inconnu / Générique
   const generic = resolveVehicleCatalogSpecs({
