@@ -344,38 +344,88 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     const vehicleList = (allFoyerVehicles || []) as Vehicule[];
     let matchedVehicle: Vehicule | null = null;
 
+    // Helper pour matching tolérant de plaque (SIV et FNI, ex: 799FS92 vs 799FSX92 ou CS318YD vs CS-318-YD)
+    const matchesPlateFuzzy = (p1: string, p2: string, makeA?: string | null, makeB?: string | null, modA?: string | null, modB?: string | null): boolean => {
+      const c1 = (p1 || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      const c2 = (p2 || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      if (!c1 || !c2) return false;
+      if (c1 === c2) return true;
+      if (c1.length >= 5 && c2.length >= 5 && (c1.includes(c2) || c2.includes(c1))) return true;
+
+      // Si même marque / modèle et différence de 1 seul caractère (bruit OCR sur plaque FNI ou SIV)
+      const nm1 = (makeA || "").toLowerCase().trim();
+      const nm2 = (makeB || "").toLowerCase().trim();
+      const mo1 = (modA || "").toLowerCase().trim();
+      const mo2 = (modB || "").toLowerCase().trim();
+      const sameBrand = !nm1 || !nm2 || nm1.includes(nm2) || nm2.includes(nm1);
+      const sameModel = !mo1 || !mo2 || mo1.includes(mo2) || mo2.includes(mo1);
+
+      if (sameBrand && sameModel && Math.abs(c1.length - c2.length) <= 1) {
+        let diff = 0;
+        let i = 0, j = 0;
+        while (i < c1.length && j < c2.length) {
+          if (c1[i] !== c2[j]) {
+            diff++;
+            if (c1.length > c2.length) i++;
+            else if (c2.length > c1.length) j++;
+            else { i++; j++; }
+          } else {
+            i++; j++;
+          }
+        }
+        diff += (c1.length - i) + (c2.length - j);
+        if (diff <= 1) return true;
+      }
+      return false;
+    };
+
     // A. Si vehicleId est explicitement fourni dans l'appel :
     if (vehicleId) {
       const explicitVehicle = vehicleList.find((v) => v.id === vehicleId) || null;
-      // Garde-fou anti-conflit : si le document extrait une plaque formelle différente, on priorise la vérité de la plaque
-      if (explicitVehicle && extractedPlate) {
+      if (explicitVehicle) {
         const explicitPlate = (explicitVehicle.immatriculation || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-        if (explicitPlate && explicitPlate !== extractedPlate && !explicitPlate.includes("NOUVEAU") && !explicitPlate.includes("XXX")) {
-          // Conflit : la facture porte une autre plaque -> recherche du vrai véhicule destinataire
+        if (!extractedPlate || explicitPlate.includes("NOUVEAU") || explicitPlate.includes("XXX")) {
+          matchedVehicle = explicitVehicle;
+        } else if (matchesPlateFuzzy(explicitPlate, extractedPlate, explicitVehicle.marque, extractedMake, explicitVehicle.modele, extractedModel)) {
+          matchedVehicle = explicitVehicle;
+        } else {
+          // Conflit : la facture porte formellement une autre plaque distincte -> recherche du bon véhicule du foyer
           const correctVehicle = vehicleList.find((v) => {
             const vPlate = (v.immatriculation || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-            return vPlate && vPlate === extractedPlate;
+            return matchesPlateFuzzy(vPlate, extractedPlate, v.marque, extractedMake, v.modele, extractedModel);
           });
           matchedVehicle = correctVehicle || null;
-        } else {
-          matchedVehicle = explicitVehicle;
         }
-      } else {
-        matchedVehicle = explicitVehicle;
       }
     }
 
-    // B. Recherche par immatriculation ou VIN exact
+    // B. Recherche par immatriculation (exacte ou tolérante) ou VIN exact
     if (!matchedVehicle && (extractedPlate || extractedVin)) {
       matchedVehicle =
         vehicleList.find((v) => {
           const vPlate = (v.immatriculation || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
           const vVin = (v.vin || "").trim().toUpperCase();
-          const plateMatch =
-            extractedPlate && vPlate && (vPlate === extractedPlate || extractedPlate.includes(vPlate) || vPlate.includes(extractedPlate));
           const vinMatch = extractedVin && vVin && vVin === extractedVin.trim().toUpperCase();
-          return plateMatch || vinMatch;
+          const plateMatch = extractedPlate && vPlate && matchesPlateFuzzy(vPlate, extractedPlate, v.marque, extractedMake, v.modele, extractedModel);
+          return vinMatch || plateMatch;
         }) || null;
+    }
+
+    // C. Si aucune plaque extraite mais qu'un véhicule de même marque/modèle existe dans le foyer :
+    if (!matchedVehicle && (!extractedPlate || extractedPlate.length < 3) && (extractedMake || extractedModel)) {
+      const candidate = vehicleList.find((v) => {
+        const vMake = (v.marque || "").toLowerCase().trim();
+        const vModel = (v.modele || "").toLowerCase().trim();
+        const docMake = (extractedMake || "").toLowerCase().trim();
+        const docModel = (extractedModel || "").toLowerCase().trim();
+        return (
+          docMake && vMake && (docMake.includes(vMake) || vMake.includes(docMake)) &&
+          docModel && vModel && (docModel.includes(vModel) || vModel.includes(docModel))
+        );
+      });
+      if (candidate) {
+        matchedVehicle = candidate;
+      }
     }
 
     // C. Si aucun véhicule existant ne correspond à la plaque/VIN extraite :

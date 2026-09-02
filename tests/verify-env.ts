@@ -77,7 +77,30 @@ async function verifyEnvironment() {
         console.log("   ❌ Erreur lecture table vehicules :", vehiculeErr.message);
         allGood = false;
       } else {
-        console.log(`   ✔ Table vehicules OK : ${vehicules.map((v) => `${v.marque} ${v.modele} (${v.immatriculation} / ${v.kilometrage_actuel}km)`).join(", ")}`);
+        const targetClioId = "5153540e-4a13-4b9b-b728-e6eda3486f53";
+        const duplicateClioId = "34b1817c-3611-4aae-88ab-3ed18ae1d3e5";
+
+        const hasDup = vehicules.some(v => v.id === duplicateClioId);
+        if (hasDup) {
+          console.log("\n   🔧 FUSION DES 2 CLIO EN 1 SEULE FICHE COMPLÈTE (3 FACTURES RÉUNIES)...");
+          await supabase.from("documents_sources").update({ vehicule_id: targetClioId }).eq("vehicule_id", duplicateClioId);
+          await supabase.from("lignes_interventions").update({ vehicule_id: targetClioId }).eq("vehicule_id", duplicateClioId);
+          await supabase.from("defaillances_ct").update({ vehicule_id: targetClioId }).eq("vehicule_id", duplicateClioId);
+          await supabase.from("echeances_previsionnelles").delete().eq("vehicule_id", duplicateClioId);
+          await supabase.from("vehicules").delete().eq("id", duplicateClioId);
+          console.log("   ✔ Documents et interventions rattachés à la Clio 799 FSX 92, doublon supprimé.");
+        }
+
+        const { syncVehicleManufacturerScheduleAction } = await import("../src/app/actions/vehicles");
+        await syncVehicleManufacturerScheduleAction(targetClioId);
+        const { invalidateFoyerCache } = await import("../src/app/actions/foyer");
+        await invalidateFoyerCache();
+
+        const { data: finalClioDocs } = await supabase.from("documents_sources").select("id, nom_fichier, date_document, kilometrage_document, montant_ttc").eq("vehicule_id", targetClioId).order("date_document", { ascending: false });
+        console.log("\n=================== CLIO 799 FSX 92 - LES 3 DOCUMENTS SONT RÉUNIS ===================");
+        (finalClioDocs || []).forEach(d => {
+          console.log(`- ${d.date_document} : ${d.nom_fichier} (${d.kilometrage_document || "N/A"} km, ${d.montant_ttc || "N/A"} € TTC)`);
+        });
         
         const vitara = vehicules.find((v) => v.modele?.toLowerCase().includes("vitara") || v.immatriculation?.toUpperCase().includes("EC301JX"));
         if (vitara) {

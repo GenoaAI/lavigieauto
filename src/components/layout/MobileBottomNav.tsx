@@ -144,12 +144,8 @@ export function MobileBottomNav() {
               onUploadComplete={() => {
                 router.refresh();
               }}
-              onExtractionSuccess={(result) => {
+              onExtractionSuccess={() => {
                 router.refresh();
-                if (result.vehicleId) {
-                  setIsScannerOpen(false);
-                  router.push(`/dashboard/vehicles/${result.vehicleId}`);
-                }
               }}
             />
           </div>
