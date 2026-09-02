@@ -31,3 +31,9 @@
 * **Isolation Storage Vault** : Toute génération d'URL signée (`getDocumentSignedUrlAction`) ou suppression de fichier physique doit vérifier l'appartenance de la ressource au foyer avant d'appeler l'API Storage.
 * **Protection en Production** : Les endpoints de debug et de seed (`/api/seed`) doivent être strictement neutralisés en production (`404 Not Found`).
 * **Headers de Sécurité Stricts** : Maintenir le middleware Next.js (`src/middleware.ts`) actif avec HSTS, CSP, X-Frame-Options: DENY et gestion sécurisée des sessions.
+
+## 7. RÈGLES SUPABASE AUTH, GOTRUE & GESTION DES IDENTITÉS
+* **Interdiction Formelle des INSERTs SQL Bruts dans `auth.users`** : Ne JAMAIS insérer d'utilisateurs directement dans `auth.users` via des scripts SQL bruts (`seed.sql`). Cela corrompt la table interne `auth.identities` et provoque des plantages 500 (`Database error finding user` / `Database error checking email`) dans GoTrue. L'enrôlement s'effectue exclusivement via `supabase.auth.admin.createUser` ou les formulaires officiels.
+* **Architecture PKCE & Route de Callback Obligatoire (`/auth/callback`)** : Tout flux d'authentification (Magic Link, Google OAuth) doit obligatoirement router par `src/app/auth/callback/route.ts` via `supabase.auth.exchangeCodeForSession(code)` avant d'accéder au dashboard, accompagné d'une auto-liaison de l'entité (`foyer_members`).
+* **Alignement Strict des URLs Supabase (Site URL & Redirect URLs)** : Définir obligatoirement le `Site URL` sur le domaine officiel (`https://lavigieauto.com`) et inscrire `https://lavigieauto.com/**` dans les Redirect URLs autorisées dans Supabase Dashboard pour empêcher le renvoi parasite vers `localhost:3000`.
+* **Redondance des Modes d'Accès (Anti-Rate Limit)** : Toujours maintenir une modalité d'accès par mot de passe direct en secours du Magic Link afin de prémunir l'utilisateur des blocages liés aux quotas d'envoi d'emails (rate-limit SMTP 60s).
