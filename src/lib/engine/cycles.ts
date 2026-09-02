@@ -40,16 +40,16 @@ export function calculateMileagePace(
   if (refDateInput instanceof Date) {
     referenceDate = refDateInput;
   } else if (typeof refDateInput === 'string') {
-    referenceDate = new Date(refDateInput);
+    const parsed = new Date(refDateInput);
+    if (!isNaN(parsed.getTime())) referenceDate = parsed;
   }
 
-  // Filtrer et trier les relevés avec un kilométrage > 0
-  const validReadings = readings.filter((r) => r && r.mileage > 0 && r.date);
-  const sorted = [...validReadings].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  // 1. Filtrer et valider les relevés odométriques
+  const validReadings = (readings || []).filter(
+    (r) => r && typeof r.mileage === 'number' && r.mileage > 0 && r.date
   );
 
-  if (sorted.length === 0) {
+  if (validReadings.length === 0) {
     return {
       dailyKmRate: 37,
       annualMileageKm: 13500,
@@ -63,80 +63,84 @@ export function calculateMileagePace(
     };
   }
 
-  const latest = sorted[sorted.length - 1];
+  // 2. Dédupliquer par date (conserver le relevé le plus élevé si plusieurs factures le même jour)
+  const byDateMap = new Map<string, number>();
+  validReadings.forEach((r) => {
+    byDateMap.set(r.date, Math.max(byDateMap.get(r.date) || 0, r.mileage));
+  });
+
+  const rawSorted = Array.from(byDateMap.entries())
+    .map(([date, mileage]) => ({ date, mileage }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // 3. Filtrage monotone rétrograde (Auto-guérison : exclusion des anomalies / régressions odométriques)
+  const cleanedSorted: Array<{ date: string; mileage: number }> = [];
+  let currentMin = Infinity;
+  for (let i = rawSorted.length - 1; i >= 0; i--) {
+    const pt = rawSorted[i];
+    if (pt.mileage <= currentMin) {
+      cleanedSorted.unshift(pt);
+      currentMin = pt.mileage;
+    }
+  }
+
+  const latest = cleanedSorted[cleanedSorted.length - 1];
   const daysSinceLatest = Math.max(
     0,
     Math.floor((referenceDate.getTime() - new Date(latest.date).getTime()) / (1000 * 3600 * 24))
   );
 
-  // Si on a 1 seul relevé, mais une date de première immatriculation connue
-  if (sorted.length === 1 && vehicleFirstRegistration) {
-    const firstRegDays = Math.max(
-      30,
-      Math.floor((new Date(latest.date).getTime() - new Date(vehicleFirstRegistration).getTime()) / (1000 * 3600 * 24))
-    );
-    const paceSinceNew = latest.mileage / firstRegDays;
-    const dailyKmRate = Math.max(5, Math.min(250, paceSinceNew));
-    const annualMileageKm = Math.round(dailyKmRate * 365);
-    const estimatedCurrentMileage = Math.round(latest.mileage + daysSinceLatest * dailyKmRate);
+  let dailyKmRate = 37;
+  let confidence = 0.5;
 
-    return {
-      dailyKmRate: Math.round(dailyKmRate * 10) / 10,
-      annualMileageKm,
-      confidence: 0.7,
-      trend: 'STABLE',
-      lastRecordedMileage: latest.mileage,
-      lastReadingDate: latest.date,
-      estimatedCurrentMileage,
-      readingsCount: 1,
-      daysSinceLastReading: daysSinceLatest,
-    };
+  const firstReading = cleanedSorted[0];
+  const spanDays = Math.max(
+    0,
+    Math.floor((new Date(latest.date).getTime() - new Date(firstReading.date).getTime()) / (1000 * 3600 * 24))
+  );
+  const spanKmDiff = Math.max(0, latest.mileage - firstReading.mileage);
+
+  // Rythme depuis la 1ère immatriculation (0 km)
+  let regDailyRate: number | null = null;
+  if (vehicleFirstRegistration) {
+    const regDate = new Date(vehicleFirstRegistration);
+    if (!isNaN(regDate.getTime())) {
+      const daysSinceReg = Math.max(
+        30,
+        Math.floor((new Date(latest.date).getTime() - regDate.getTime()) / (1000 * 3600 * 24))
+      );
+      if (daysSinceReg > 0) {
+        regDailyRate = latest.mileage / daysSinceReg;
+      }
+    }
   }
 
-  if (sorted.length === 1) {
-    const estimatedKm = latest.mileage + daysSinceLatest * 37;
-    return {
-      dailyKmRate: 37,
-      annualMileageKm: 13500,
-      confidence: 0.4,
-      trend: 'STABLE',
-      lastRecordedMileage: latest.mileage,
-      lastReadingDate: latest.date,
-      estimatedCurrentMileage: Math.round(estimatedKm),
-      readingsCount: 1,
-      daysSinceLastReading: daysSinceLatest,
-    };
+  if (cleanedSorted.length >= 2 && spanDays >= 90 && spanKmDiff > 0) {
+    // Calcul précis basé sur les relevés certifiés étalés dans le temps
+    dailyKmRate = spanKmDiff / spanDays;
+    confidence = Math.min(0.98, 0.7 + cleanedSorted.length * 0.05);
+  } else if (regDailyRate !== null) {
+    // 1 seul relevé ou relevés trop rapprochés (<90 jours) : rythme moyen depuis sortie d'usine
+    dailyKmRate = regDailyRate;
+    confidence = cleanedSorted.length >= 1 ? 0.75 : 0.6;
+  } else if (cleanedSorted.length >= 2 && spanDays > 0 && spanKmDiff > 0) {
+    dailyKmRate = spanKmDiff / spanDays;
+    confidence = 0.6;
   }
 
-  // Si 2+ factures / relevés, calcul précis du delta km / delta jours
-  let totalKmDiff = 0;
-  let totalDays = 0;
-
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    const days = Math.max(1, Math.floor((new Date(curr.date).getTime() - new Date(prev.date).getTime()) / (1000 * 3600 * 24)));
-    const kmDiff = Math.max(0, curr.mileage - prev.mileage);
-
-    totalKmDiff += kmDiff;
-    totalDays += days;
-  }
-
-  const overallDailyRate = totalDays > 0 ? totalKmDiff / totalDays : 37;
-  const dailyKmRate = Math.max(5, Math.min(250, overallDailyRate));
+  dailyKmRate = Math.max(5, Math.min(250, dailyKmRate));
   const annualMileageKm = Math.round(dailyKmRate * 365);
   const estimatedCurrentMileage = Math.round(latest.mileage + daysSinceLatest * dailyKmRate);
-  const confidence = Math.min(0.98, 0.6 + sorted.length * 0.1);
 
   return {
     dailyKmRate: Math.round(dailyKmRate * 10) / 10,
     annualMileageKm,
-    confidence,
+    confidence: Math.round(confidence * 100) / 100,
     trend: 'STABLE',
     lastRecordedMileage: latest.mileage,
     lastReadingDate: latest.date,
     estimatedCurrentMileage,
-    readingsCount: sorted.length,
+    readingsCount: cleanedSorted.length,
     daysSinceLastReading: daysSinceLatest,
   };
 }
@@ -313,7 +317,7 @@ export function projectMaintenanceSchedule(options: {
   referenceDate?: Date;
 }): MaintenanceForecast {
   const refDate = options.referenceDate || new Date();
-  const pace = calculateMileagePace(options.mileageReadings, refDate);
+  const pace = calculateMileagePace(options.mileageReadings, refDate, options.vehicleRegistrationDate);
   const rules = options.customRules || DEFAULT_MAINTENANCE_PRESETS;
   const isSevere = options.isSevereUsage || false;
 

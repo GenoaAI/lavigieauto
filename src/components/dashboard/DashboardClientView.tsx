@@ -255,6 +255,13 @@ export function DashboardClientView({
     if (isVehicleTrackingSuspended(v)) return;
 
     (v.echeances_previsionnelles || []).forEach((ech: any) => {
+      const isSuspended =
+        ech.statut === "ignore" ||
+        ech.statut === "suspendu" ||
+        ech.statut === "muted" ||
+        ech.metadata?.alert_muted === true;
+      if (isSuspended) return;
+
       const isOverdue =
         ech.statut === "en_retard" ||
         (ech.date_preconisee && new Date(ech.date_preconisee).getTime() <= new Date().getTime()) ||
@@ -439,14 +446,29 @@ export function DashboardClientView({
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {vehicles.map((v) => {
               const vehicleMilestones = v.echeances_previsionnelles || [];
-              const overdueList = vehicleMilestones.filter((ech: any) =>
-                ech.statut === "en_retard" ||
-                (ech.date_preconisee && new Date(ech.date_preconisee).getTime() <= new Date().getTime()) ||
-                (v.kilometrage_actuel > 0 && ech.km_preconise && ech.km_preconise <= v.kilometrage_actuel)
+              const overdueList = vehicleMilestones.filter((ech: any) => {
+                const isSuspended =
+                  ech.statut === "ignore" ||
+                  ech.statut === "suspendu" ||
+                  ech.statut === "muted" ||
+                  ech.metadata?.alert_muted === true;
+                if (isSuspended) return false;
+                return (
+                  ech.statut === "en_retard" ||
+                  (ech.date_preconisee && new Date(ech.date_preconisee).getTime() <= new Date().getTime()) ||
+                  (v.kilometrage_actuel > 0 && ech.km_preconise && ech.km_preconise <= v.kilometrage_actuel)
+                );
+              });
+
+              const activeMilestones = vehicleMilestones.filter((ech: any) =>
+                ech.statut !== "ignore" &&
+                ech.statut !== "suspendu" &&
+                ech.statut !== "muted" &&
+                !ech.metadata?.alert_muted
               );
 
               const hasOverdue = overdueList.length > 0;
-              const nextEcheance = overdueList[0] || vehicleMilestones[0] || null;
+              const nextEcheance = overdueList[0] || activeMilestones[0] || vehicleMilestones[0] || null;
 
               const readings = [
                 ...(v.documents_sources || []).map((d: any) => ({

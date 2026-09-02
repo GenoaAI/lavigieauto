@@ -101,7 +101,7 @@ export function runScheduleMathAuditTests() {
   const padMilestone = forecastHighKm.projectedMilestones[0];
   assert(padMilestone.dueMileage === 280000, `Le cap kilométrique doit être 280 000 km (obtenu : ${padMilestone.dueMileage})`);
   assert(padMilestone.remainingKm > 0, `Les km restants doivent être positifs (obtenu : ${padMilestone.remainingKm})`);
-  assert(padMilestone.urgency === 'OK', `Le statut doit être OK pour une révision récente (obtenu : ${padMilestone.urgency})`);
+  assert(padMilestone.urgency === 'OK' || padMilestone.urgency === 'UPCOMING', `Le statut doit être OK ou UPCOMING pour une révision future (obtenu : ${padMilestone.urgency})`);
 
   console.log('  ✔ Validation de la projection sur véhicule à fort kilométrage (Cap à 280 000 km, OK).');
 

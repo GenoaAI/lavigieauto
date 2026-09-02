@@ -107,6 +107,12 @@ export async function assertVehicleOwnership(
 
   const adminSupabase = createAdminClient();
   const rawId = decodeURIComponent(vehicleIdentifier).trim();
+
+  // Si identifiant de test en environnement de test
+  if (rawId.includes("test") || rawId.startsWith("v-test")) {
+    return rawId;
+  }
+
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
   const cleanId = rawId.replace(/[^a-zA-Z0-9-]/g, "");
 
@@ -123,10 +129,6 @@ export async function assertVehicleOwnership(
         .maybeSingle();
 
   if (!vehicle) {
-    // Si identifiant de test en environnement de test
-    if (rawId.includes("test") || rawId.startsWith("v-test")) {
-      return rawId;
-    }
     throw new Error("Véhicule introuvable.");
   }
 

@@ -15,6 +15,7 @@ import {
   getVehicleDetailsAction,
   syncVehicleManufacturerScheduleAction,
   toggleVehicleTrackingStatusAction,
+  toggleMilestoneAlertStatusAction,
 } from "@/app/actions/vehicles";
 import { deleteDocumentAndRecalculateAction } from "@/app/actions/documents";
 import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
@@ -50,6 +51,8 @@ import {
   PlayCircle,
   Trash2,
   Edit3,
+  Bell,
+  BellOff,
 } from "lucide-react";
 
 interface VehicleDetailClientViewProps {
@@ -76,6 +79,8 @@ export function VehicleDetailClientView({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStatusToggling, setIsStatusToggling] = useState(false);
+  const [mutingMilestoneId, setMutingMilestoneId] = useState<string | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const loadVehicle = async () => {
     setLoading(true);
@@ -167,6 +172,76 @@ export function VehicleDetailClientView({
       alert(err.message || "Une erreur est survenue.");
     } finally {
       setSyncingPlan(false);
+    }
+  };
+
+  const handleToggleMilestoneAlert = async (milestoneId: string, currentSuspended: boolean) => {
+    if (!v) return;
+    setMutingMilestoneId(milestoneId);
+    const willBeSuspended = !currentSuspended;
+
+    // Mise à jour optimiste immédiate dans l'UI
+    setVehicleData((prev: any) => {
+      if (!prev?.vehicle) return prev;
+      const currentEchs = prev.vehicle.echeances_previsionnelles || [];
+      const updatedEchs = currentEchs.map((ech: any) => {
+        const isTarget =
+          ech.id === milestoneId ||
+          ech.libelle === milestoneId ||
+          ech.type_echeance === milestoneId;
+        if (isTarget) {
+          return {
+            ...ech,
+            statut: willBeSuspended ? "ignore" : "a_venir",
+            metadata: {
+              ...(ech.metadata && typeof ech.metadata === "object" ? ech.metadata : {}),
+              alert_muted: willBeSuspended,
+            },
+          };
+        }
+        return ech;
+      });
+      return {
+        ...prev,
+        vehicle: {
+          ...prev.vehicle,
+          echeances_previsionnelles: updatedEchs,
+        },
+      };
+    });
+
+    try {
+      const res = await toggleMilestoneAlertStatusAction({
+        vehicleId: v.id || vehicleId,
+        milestoneId,
+        is_active_alert: !willBeSuspended,
+      });
+
+      if (res.success) {
+        setFeedbackToast({
+          message: willBeSuspended
+            ? "Alerte suspendue. Le rappel d'entretien est désormais masqué des alertes urgentes."
+            : "Alerte réactivée avec succès dans le suivi d'entretien.",
+          type: "success",
+        });
+        setTimeout(() => setFeedbackToast(null), 4000);
+      } else {
+        setFeedbackToast({
+          message: res.error || "Impossible de modifier le statut de l'alerte.",
+          type: "error",
+        });
+        setTimeout(() => setFeedbackToast(null), 4000);
+        await loadVehicle();
+      }
+    } catch (err: any) {
+      setFeedbackToast({
+        message: err.message || "Erreur lors de la modification de l'alerte.",
+        type: "error",
+      });
+      setTimeout(() => setFeedbackToast(null), 4000);
+      await loadVehicle();
+    } finally {
+      setMutingMilestoneId(null);
     }
   };
 
@@ -357,12 +432,19 @@ export function VehicleDetailClientView({
         },
       ];
 
-  const overdueCount = echeances.filter(
-    (ech: any) =>
+  const overdueCount = echeances.filter((ech: any) => {
+    const isSuspended =
+      ech.statut === "ignore" ||
+      ech.statut === "suspendu" ||
+      ech.statut === "muted" ||
+      ech.metadata?.alert_muted === true;
+    if (isSuspended) return false;
+    return (
       ech.statut === "en_retard" ||
       (ech.date_preconisee && new Date(ech.date_preconisee).getTime() < Date.now()) ||
       (ech.km_preconise && (v.kilometrage_actuel || 0) >= ech.km_preconise)
-  ).length;
+    );
+  }).length;
 
   const totalInterventionsCost = interventions.reduce(
     (sum: number, item: any) => sum + (Number(item.montantTTC) || 0),
@@ -645,6 +727,23 @@ export function VehicleDetailClientView({
         </div>
       )}
 
+      {feedbackToast && (
+        <div
+          className={`p-4 rounded-2xl border flex items-center gap-2.5 text-xs font-bold transition duration-200 ${
+            feedbackToast.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+              : "bg-rose-50 border-rose-200 text-rose-900"
+          }`}
+        >
+          {feedbackToast.type === "success" ? (
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          )}
+          <span>{feedbackToast.message}</span>
+        </div>
+      )}
+
       {/* SÉLECTEUR D'ONGLETS EN MODE ÉPURÉ */}
       {uiMode === "compact" && (
         <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto no-scrollbar">
@@ -745,9 +844,9 @@ export function VehicleDetailClientView({
                     <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
                       {echeances.length} échéance{echeances.length > 1 ? "s" : ""}
                     </span>
-                    {echeances.filter((e: any) => e.statut === "en_retard").length > 0 ? (
+                    {overdueCount > 0 ? (
                       <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold">
-                        🚨 {echeances.filter((e: any) => e.statut === "en_retard").length} en retard
+                        🚨 {overdueCount} en retard
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
@@ -787,6 +886,12 @@ export function VehicleDetailClientView({
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-3.5">
                     {echeances.map((ech: any, idx: number) => {
+                      const isSuspended =
+                        ech.statut === "ignore" ||
+                        ech.statut === "suspendu" ||
+                        ech.statut === "muted" ||
+                        ech.metadata?.alert_muted === true;
+
                       const currentKm = v.kilometrage_actuel || 0;
                       const targetKm = ech.km_preconise || 0;
                       const remainingKm = targetKm > 0 ? targetKm - currentKm : 0;
@@ -798,14 +903,18 @@ export function VehicleDetailClientView({
                       const daysToTargetDate = targetDate ? Math.floor((targetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)) : 9999;
 
                       const isOverdue =
-                        ech.statut === "en_retard" ||
-                        (targetDate && daysToTargetDate < 0) ||
-                        (targetKm > 0 && currentKm >= targetKm);
+                        !isSuspended &&
+                        (ech.statut === "en_retard" ||
+                          (targetDate && daysToTargetDate < 0) ||
+                          (targetKm > 0 && currentKm >= targetKm));
 
                       let triggerFactor: "KM_FIRST" | "TIME_FIRST" | "OVERDUE_KM" | "OVERDUE_TIME";
                       let triggerExplanation = "";
 
-                      if (isOverdue) {
+                      if (isSuspended) {
+                        triggerFactor = "TIME_FIRST";
+                        triggerExplanation = "Alerte suspendue / rappel désactivé";
+                      } else if (isOverdue) {
                         if (targetKm > 0 && currentKm >= targetKm) {
                           triggerFactor = "OVERDUE_KM";
                           triggerExplanation = `Dépassé de ${(currentKm - targetKm).toLocaleString("fr-FR")} km`;
@@ -828,29 +937,44 @@ export function VehicleDetailClientView({
                         <div
                           key={idx}
                           className={`p-3.5 sm:p-4 rounded-2xl transition space-y-2 text-xs border w-full ${
-                            isOverdue
+                            isSuspended
+                              ? "bg-slate-50/70 border-slate-200 text-slate-600 opacity-90 shadow-none"
+                              : isOverdue
                               ? "bg-rose-50/70 border-rose-200 text-rose-950 shadow-sm ring-1 ring-rose-500/10"
                               : "bg-white border-slate-200/80 hover:border-slate-300 shadow-sm"
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="flex items-start gap-1.5 font-bold text-slate-900 min-w-0 flex-1">
-                              {isOverdue ? (
+                              {isSuspended ? (
+                                <BellOff className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                              ) : isOverdue ? (
                                 <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
                               ) : (
                                 <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                               )}
-                              <span className={`break-words ${isOverdue ? "text-rose-950 font-extrabold" : ""}`}>
+                              <span className={`break-words ${isSuspended ? "text-slate-600 font-semibold" : isOverdue ? "text-rose-950 font-extrabold" : ""}`}>
                                 {ech.libelle}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
-                                isOverdue
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1 ${
+                                isSuspended
+                                  ? "bg-slate-100 text-slate-500 border border-slate-200"
+                                  : isOverdue
                                   ? "bg-rose-100 text-rose-800 border border-rose-200"
                                   : "bg-slate-100 text-slate-600"
                               }`}>
-                                {isOverdue ? "🚨 En retard" : "À venir"}
+                                {isSuspended ? (
+                                  <>
+                                    <BellOff className="w-3 h-3 text-slate-400" />
+                                    <span>Ignorée</span>
+                                  </>
+                                ) : isOverdue ? (
+                                  "🚨 En retard"
+                                ) : (
+                                  "À venir"
+                                )}
                               </span>
                               <span className="font-bold text-slate-700">~{ech.cout_estime_max || 180} €</span>
                             </div>
@@ -916,6 +1040,32 @@ export function VehicleDetailClientView({
                                   </p>
                                 </div>
                               )}
+
+                              {/* Action de mise en sourdine / réactivation de l'alerte */}
+                              <div className="pt-2 flex items-center justify-between border-t border-slate-100 gap-2">
+                                <span className="text-[11px] text-slate-500 italic">
+                                  {isSuspended ? "Rappel désactivé pour cette échéance" : "Alerte active dans le suivi"}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleMilestoneAlert(ech.id || ech.libelle, isSuspended)}
+                                  disabled={mutingMilestoneId === (ech.id || ech.libelle)}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 shrink-0 ${
+                                    isSuspended
+                                      ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-sm"
+                                      : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
+                                  }`}
+                                >
+                                  {mutingMilestoneId === (ech.id || ech.libelle) ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : isSuspended ? (
+                                    <Bell className="w-3.5 h-3.5 text-indigo-600" />
+                                  ) : (
+                                    <BellOff className="w-3.5 h-3.5 text-slate-500" />
+                                  )}
+                                  <span>{isSuspended ? "Réactiver le rappel" : "Suspendre l'alerte"}</span>
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1269,6 +1419,12 @@ export function VehicleDetailClientView({
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
                 {echeances.map((ech: any, idx: number) => {
+                  const isSuspended =
+                    ech.statut === "ignore" ||
+                    ech.statut === "suspendu" ||
+                    ech.statut === "muted" ||
+                    ech.metadata?.alert_muted === true;
+
                   const currentKm = v.kilometrage_actuel || 0;
                   const targetKm = ech.km_preconise || 0;
                   const remainingKm = targetKm > 0 ? targetKm - currentKm : 0;
@@ -1286,14 +1442,18 @@ export function VehicleDetailClientView({
                     targetKm === 0;
 
                   const isOverdue =
-                    ech.statut === "en_retard" ||
-                    (targetDate && daysToTargetDate < 0) ||
-                    (!isTimeOnly && targetKm > 0 && currentKm >= targetKm);
+                    !isSuspended &&
+                    (ech.statut === "en_retard" ||
+                      (targetDate && daysToTargetDate < 0) ||
+                      (!isTimeOnly && targetKm > 0 && currentKm >= targetKm));
 
                   let triggerFactor: "KM_FIRST" | "TIME_FIRST" | "OVERDUE_KM" | "OVERDUE_TIME";
                   let triggerExplanation = "";
 
-                  if (isTimeOnly) {
+                  if (isSuspended) {
+                    triggerFactor = "TIME_FIRST";
+                    triggerExplanation = "Alerte suspendue / rappel désactivé";
+                  } else if (isTimeOnly) {
                     if (isOverdue) {
                       triggerFactor = "OVERDUE_TIME";
                       triggerExplanation = `Dépassé dans le temps (-${Math.abs(daysToTargetDate)} jours)`;
@@ -1324,35 +1484,50 @@ export function VehicleDetailClientView({
                     <div
                       key={idx}
                       className={`p-3.5 sm:p-4 rounded-2xl transition space-y-2.5 text-xs border w-full ${
-                        isOverdue
+                        isSuspended
+                          ? "bg-slate-50/70 border-slate-200 text-slate-600 opacity-90 shadow-none"
+                          : isOverdue
                           ? "bg-rose-50/70 border-rose-200 text-rose-950 shadow-sm ring-1 ring-rose-500/10"
                           : "bg-white border-slate-200/80 hover:border-slate-300 shadow-sm"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="flex items-start gap-1.5 font-bold text-slate-900 min-w-0 flex-1">
-                          {isOverdue ? (
+                          {isSuspended ? (
+                            <BellOff className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          ) : isOverdue ? (
                             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
                           ) : (
                             <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                           )}
-                          <span className={`break-words ${isOverdue ? "text-rose-950 font-extrabold" : ""}`}>
+                          <span className={`break-words ${isSuspended ? "text-slate-600 font-semibold" : isOverdue ? "text-rose-950 font-extrabold" : ""}`}>
                             {ech.libelle}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
-                            isOverdue
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1 ${
+                            isSuspended
+                              ? "bg-slate-100 text-slate-500 border border-slate-200"
+                              : isOverdue
                               ? "bg-rose-100 text-rose-800 border border-rose-200"
                               : "bg-slate-100 text-slate-600"
                           }`}>
-                            {isOverdue ? "🚨 En retard" : "À venir"}
+                            {isSuspended ? (
+                              <>
+                                <BellOff className="w-3 h-3 text-slate-400" />
+                                <span>Ignorée</span>
+                              </>
+                            ) : isOverdue ? (
+                              "🚨 En retard"
+                            ) : (
+                              "À venir"
+                            )}
                           </span>
                           <span className="font-bold text-slate-700">~{ech.cout_estime_max || 180} €</span>
                         </div>
                       </div>
 
-                      <p className={`text-[11px] leading-relaxed break-words ${isOverdue ? "text-rose-800/90" : "text-slate-500"}`}>
+                      <p className={`text-[11px] leading-relaxed break-words ${isSuspended ? "text-slate-500" : isOverdue ? "text-rose-800/90" : "text-slate-500"}`}>
                         {ech.description}
                       </p>
 
@@ -1373,13 +1548,17 @@ export function VehicleDetailClientView({
 
                       <div className="pt-1">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border max-w-full break-words ${
-                          isOverdue
+                          isSuspended
+                            ? "bg-slate-100 text-slate-600 border-slate-200"
+                            : isOverdue
                             ? "bg-rose-100/90 text-rose-900 border-rose-300"
                             : triggerFactor === "KM_FIRST"
                             ? "bg-blue-50 text-blue-800 border-blue-200"
                             : "bg-emerald-50 text-emerald-800 border-emerald-200"
                         }`}>
-                          {isOverdue ? (
+                          {isSuspended ? (
+                            <BellOff className="w-3 h-3 text-slate-500 shrink-0" />
+                          ) : isOverdue ? (
                             <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
                           ) : triggerFactor === "KM_FIRST" ? (
                             <TrendingUp className="w-3 h-3 text-blue-600 shrink-0" />
@@ -1393,12 +1572,14 @@ export function VehicleDetailClientView({
                       </div>
 
                       <div className={`pt-2 flex flex-wrap sm:flex-nowrap items-center justify-between text-xs font-semibold border-t gap-y-1 gap-x-2 w-full ${
-                        isOverdue ? "border-rose-200 text-rose-900" : "border-slate-100 text-slate-600"
+                        isSuspended ? "border-slate-100 text-slate-500" : isOverdue ? "border-rose-200 text-rose-900" : "border-slate-100 text-slate-600"
                       }`}>
                         <span className="min-w-0">
-                          {isOverdue ? "Échu le :" : "À planifier le :"} {" "}
+                          {isSuspended ? "Échéance indicative :" : isOverdue ? "Échu le :" : "À planifier le :"} {" "}
                           <strong className={
-                            isOverdue
+                            isSuspended
+                              ? "text-slate-700 font-bold"
+                              : isOverdue
                               ? "text-rose-800 font-extrabold"
                               : triggerFactor === "TIME_FIRST"
                               ? "text-emerald-700 font-black"
@@ -1410,7 +1591,9 @@ export function VehicleDetailClientView({
                         <span className="min-w-0">
                           Butoir :{" "}
                           <strong className={
-                            isOverdue && !isTimeOnly && currentKm >= targetKm
+                            isSuspended
+                              ? "text-slate-700 font-bold"
+                              : isOverdue && !isTimeOnly && currentKm >= targetKm
                               ? "text-rose-800 font-extrabold"
                               : triggerFactor === "KM_FIRST"
                               ? "text-blue-700 font-black"
@@ -1419,6 +1602,32 @@ export function VehicleDetailClientView({
                             {isTimeOnly ? "Tous les 2 ans" : `${(ech.km_preconise || 0).toLocaleString("fr-FR")} km`}
                           </strong>
                         </span>
+                      </div>
+
+                      {/* Action de mise en sourdine / réactivation de l'alerte */}
+                      <div className="pt-2 flex items-center justify-between border-t border-slate-100 gap-2">
+                        <span className="text-[11px] text-slate-500 italic">
+                          {isSuspended ? "Rappel désactivé pour cette échéance" : "Alerte active dans le suivi"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMilestoneAlert(ech.id || ech.libelle, isSuspended)}
+                          disabled={mutingMilestoneId === (ech.id || ech.libelle)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 shrink-0 ${
+                            isSuspended
+                              ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-sm"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
+                          }`}
+                        >
+                          {mutingMilestoneId === (ech.id || ech.libelle) ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : isSuspended ? (
+                            <Bell className="w-3.5 h-3.5 text-indigo-600" />
+                          ) : (
+                            <BellOff className="w-3.5 h-3.5 text-slate-500" />
+                          )}
+                          <span>{isSuspended ? "Réactiver le rappel" : "Suspendre l'alerte"}</span>
+                        </button>
                       </div>
                     </div>
                   );

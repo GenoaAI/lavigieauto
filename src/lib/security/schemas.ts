@@ -150,3 +150,54 @@ export const tireOffersResponseSchema = z.object({
 });
 
 export type TireOffersResponse = z.infer<typeof tireOffersResponseSchema>;
+
+/**
+ * Schéma de validation pour la suspension / réactivation d'une alerte d'échéance d'entretien
+ */
+export const updateMilestoneAlertStatusSchema = z
+  .object({
+    vehicleId: z
+      .string({
+        required_error: "L'identifiant du véhicule est requis.",
+      })
+      .refine((val) => val.trim().length > 0, {
+        message: "L'identifiant du véhicule ne peut pas être vide.",
+      }),
+    milestoneId: z
+      .string({
+        required_error: "L'identifiant de l'échéance est requis.",
+      })
+      .refine((val) => val.trim().length > 0, {
+        message: "L'identifiant de l'échéance ne peut pas être vide.",
+      }),
+    status: z
+      .enum(["actif", "ignore", "suspendu", "muted", "a_venir", "en_retard"], {
+        errorMap: () => ({ message: "Le statut doit être valide." }),
+      })
+      .optional(),
+    is_active_alert: z.boolean().optional(),
+    isActiveAlert: z.boolean().optional(),
+    muted: z.boolean().optional(),
+    ignored: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.status !== undefined ||
+      data.is_active_alert !== undefined ||
+      data.isActiveAlert !== undefined ||
+      data.muted !== undefined ||
+      data.ignored !== undefined,
+    {
+      message: "Au moins un paramètre d'état (status, is_active_alert, muted ou ignored) doit être spécifié.",
+    }
+  );
+
+export type UpdateMilestoneAlertStatusInput = z.infer<typeof updateMilestoneAlertStatusSchema>;
+
+// Alias pour compatibilité
+export const toggleMilestoneAlertStatusSchema = updateMilestoneAlertStatusSchema;
+export type ToggleMilestoneAlertStatusInput = UpdateMilestoneAlertStatusInput;
+
+export const updateEcheanceAlertStatusSchema = updateMilestoneAlertStatusSchema;
+export type UpdateEcheanceAlertStatusInput = UpdateMilestoneAlertStatusInput;
+

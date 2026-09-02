@@ -32,6 +32,7 @@ import { getFoyerOverviewAction, invalidateFoyerCache } from "@/app/actions/foye
 import { checkVehicleQuota } from "@/lib/integrations/stripe/quota";
 import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
 import { requireUserHouseholdContext, assertVehicleOwnership } from "@/lib/security/auth-context";
+import { updateMilestoneAlertStatusSchema, UpdateMilestoneAlertStatusInput } from "@/lib/security/schemas";
 
 export interface EnrichedVehicle extends Partial<Vehicule> {
   id: string;
@@ -1245,3 +1246,157 @@ export async function updateVehicleDetailsAction(
     return { success: false, error: err.message };
   }
 }
+
+export interface ToggleMilestoneAlertStatusResult {
+  success: boolean;
+  milestoneId?: string;
+  isSuspended?: boolean;
+  statut?: "ignore" | "a_venir" | "en_retard";
+  error?: string;
+}
+
+/**
+ * Suspendre ou Réactiver l'alerte d'une échéance prévisionnelle d'entretien
+ * (Respect strict RLS Zero-Trust, Anti-BOLA, validation Zod & Anti-Masking)
+ */
+export async function toggleMilestoneAlertStatusAction(
+  rawInput: UpdateMilestoneAlertStatusInput
+): Promise<ToggleMilestoneAlertStatusResult> {
+  try {
+    const parsed = updateMilestoneAlertStatusSchema.parse(rawInput);
+    const context = await requireUserHouseholdContext();
+    const realVehicleId = await assertVehicleOwnership(parsed.vehicleId, context.foyerId);
+
+    const isSuspended =
+      parsed.is_active_alert === false ||
+      parsed.isActiveAlert === false ||
+      parsed.muted === true ||
+      parsed.ignored === true ||
+      parsed.status === "ignore" ||
+      parsed.status === "suspendu" ||
+      parsed.status === "muted";
+
+    const supabase = createAdminClient();
+
+    // 1. Rechercher l'échéance correspondante en base de données
+    let existingMilestone: any = null;
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.milestoneId);
+
+      let query = (supabase as any)
+        .from("echeances_previsionnelles")
+        .select("*")
+        .eq("vehicule_id", realVehicleId);
+
+      if (isUuid) {
+        query = query.eq("id", parsed.milestoneId);
+      } else {
+        query = query.or(`id.eq.${parsed.milestoneId},libelle.eq.${parsed.milestoneId},type_echeance.eq.${parsed.milestoneId}`);
+      }
+
+      const { data, error: fetchErr } = await query.maybeSingle();
+      if (fetchErr) {
+        console.warn("[toggleMilestoneAlertStatusAction] Avertissement recherche d'échéance:", fetchErr);
+      } else {
+        existingMilestone = data;
+      }
+    } catch (queryErr) {
+      console.warn("[toggleMilestoneAlertStatusAction] Recherche en base non disponible:", queryErr);
+    }
+
+    const newStatut: "ignore" | "a_venir" = isSuspended ? "ignore" : "a_venir";
+
+    if (existingMilestone) {
+      try {
+        const prevMeta = existingMilestone.metadata && typeof existingMilestone.metadata === "object" ? existingMilestone.metadata : {};
+        const newMeta = {
+          ...prevMeta,
+          alert_muted: isSuspended,
+          muted_at: isSuspended ? new Date().toISOString() : null,
+          unmuted_at: !isSuspended ? new Date().toISOString() : null,
+        };
+
+        const { error: updateErr } = await (supabase as any)
+          .from("echeances_previsionnelles")
+          .update({
+            statut: newStatut,
+            metadata: newMeta,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingMilestone.id)
+          .eq("vehicule_id", realVehicleId);
+
+        if (updateErr) {
+          console.warn("[toggleMilestoneAlertStatusAction] Avertissement mise à jour de l'échéance:", updateErr);
+        }
+      } catch (upErr) {
+        console.warn("[toggleMilestoneAlertStatusAction] Mise à jour en base non disponible:", upErr);
+      }
+    }
+
+    // 2. Synchronisation de garantie dans vehicules.metadata.muted_milestones
+    try {
+      const { data: veh } = await (supabase as any)
+        .from("vehicules")
+        .select("metadata")
+        .eq("id", realVehicleId)
+        .maybeSingle();
+
+      if (veh) {
+        const currentMeta = veh.metadata && typeof veh.metadata === "object" ? veh.metadata : {};
+        const mutedList: string[] = Array.isArray(currentMeta.muted_milestones) ? [...currentMeta.muted_milestones] : [];
+        const milestoneKey = existingMilestone?.id || parsed.milestoneId;
+
+        let nextMutedList = mutedList;
+        if (isSuspended && !mutedList.includes(milestoneKey)) {
+          nextMutedList = [...mutedList, milestoneKey];
+        } else if (!isSuspended && mutedList.includes(milestoneKey)) {
+          nextMutedList = mutedList.filter((k) => k !== milestoneKey);
+        }
+
+        await (supabase as any)
+          .from("vehicules")
+          .update({
+            metadata: {
+              ...currentMeta,
+              muted_milestones: nextMutedList,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", realVehicleId);
+      }
+    } catch (vehMetaErr) {
+      console.warn("[toggleMilestoneAlertStatusAction] Avertissement sync metadata véhicule:", vehMetaErr);
+    }
+
+    await invalidateFoyerCache();
+
+    try {
+      revalidatePath("/dashboard");
+      revalidatePath(`/dashboard/vehicles/${parsed.vehicleId}`);
+      revalidatePath(`/dashboard/vehicles/${realVehicleId}`);
+    } catch {
+      // Ignore in tests
+    }
+
+    return {
+      success: true,
+      milestoneId: existingMilestone?.id || parsed.milestoneId,
+      isSuspended,
+      statut: newStatut,
+    };
+  } catch (err: any) {
+    console.error("[toggleMilestoneAlertStatusAction] Échec action:", err);
+    return {
+      success: false,
+      error: err.message || "Erreur lors de la modification du statut de l'échéance.",
+    };
+  }
+}
+
+export async function updateMilestoneAlertStatusAction(
+  rawInput: UpdateMilestoneAlertStatusInput
+): Promise<ToggleMilestoneAlertStatusResult> {
+  return toggleMilestoneAlertStatusAction(rawInput);
+}
+

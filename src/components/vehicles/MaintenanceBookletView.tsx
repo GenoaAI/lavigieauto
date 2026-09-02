@@ -360,18 +360,33 @@ export function MaintenanceBookletView({
             ) : (
               <div className="grid sm:grid-cols-2 gap-2.5">
                 {echeances.map((ech: any, idx: number) => {
-                  const isOverdue = ech.statut === "en_retard";
+                  const isSuspended =
+                    ech.statut === "ignore" ||
+                    ech.statut === "suspendu" ||
+                    ech.statut === "muted" ||
+                    ech.metadata?.alert_muted === true;
+                  const isOverdue = !isSuspended && ech.statut === "en_retard";
                   return (
                     <div
                       key={idx}
                       className={`p-3 rounded-xl border text-xs space-y-1 ${
-                        isOverdue ? "bg-rose-50 border-rose-200 text-rose-950" : "bg-slate-50 border-slate-200 text-slate-900"
+                        isSuspended
+                          ? "bg-slate-50 border-slate-200 text-slate-500 opacity-80"
+                          : isOverdue
+                          ? "bg-rose-50 border-rose-200 text-rose-950"
+                          : "bg-slate-50 border-slate-200 text-slate-900"
                       }`}
                     >
                       <div className="flex items-center justify-between font-bold">
                         <span className="truncate">{ech.libelle}</span>
-                        <span className={`text-[10px] font-mono shrink-0 ${isOverdue ? "text-rose-700 font-extrabold" : "text-slate-500"}`}>
-                          {isOverdue ? "🚨 ÉCHU" : ech.date_preconisee || "À planifier"}
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          isSuspended
+                            ? "text-slate-500 font-semibold"
+                            : isOverdue
+                            ? "text-rose-700 font-extrabold"
+                            : "text-slate-500"
+                        }`}>
+                          {isSuspended ? "🔕 IGNORÉE" : isOverdue ? "🚨 ÉCHU" : ech.date_preconisee || "À planifier"}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-600 line-clamp-1">{ech.description}</p>

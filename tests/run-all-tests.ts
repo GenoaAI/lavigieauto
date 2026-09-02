@@ -29,6 +29,7 @@ import { testBrakePredictiveEngine } from "./brakes.test";
 import { testStrictVehicleIsolation } from "./vehicle-isolation.test";
 import { runChallengerR1R2EmpiricalTests } from "./adversarial-challenger-r1-r2.test";
 import { testMaintenanceBookletAndExportArchive } from "./maintenance-booklet-export.test";
+import { testMilestoneAlertStatusManagement } from "./milestone-alert-status.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -71,6 +72,7 @@ async function runAllTests() {
     { name: "Cloisonnement Strict Inter-Véhicules & Isolation des Échéanciers", fn: testStrictVehicleIsolation },
     { name: "Tests de Stress & Adversariaux R1 & R2 (Challenger 1 - CT Scoring, Secrets, Pace)", fn: runChallengerR1R2EmpiricalTests },
     { name: "Export du Carnet d'Entretien Numérique & Pack Justificatifs Scellés (.ZIP)", fn: testMaintenanceBookletAndExportArchive },
+    { name: "Gestion de la Suspension / Snooze des Échéances d'Entretien (Zod, Server Actions, RLS & UI)", fn: testMilestoneAlertStatusManagement },
   ];
 
 
