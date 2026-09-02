@@ -147,7 +147,7 @@ export function MobileBottomNav() {
               onExtractionSuccess={(result) => {
                 router.refresh();
                 if (result.vehicleId) {
-                  // Redirection fluide vers la fiche du véhicule scanné
+                  setIsScannerOpen(false);
                   router.push(`/dashboard/vehicles/${result.vehicleId}`);
                 }
               }}
