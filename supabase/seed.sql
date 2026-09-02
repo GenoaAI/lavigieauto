@@ -14,30 +14,8 @@ DECLARE
     v_clio_id UUID := '13e1a1d1-34c0-45a1-90cc-bc2dd7927e20';
     v_jeep_id UUID := '66666666-6666-6666-6666-666666666666';
 BEGIN
-    -- 2. Récupérer l'ID utilisateur
+    -- 2. Récupérer l'ID utilisateur réel si déjà inscrit via Supabase Auth
     SELECT id INTO v_user_id FROM auth.users WHERE email = 'charlesdeforges@gmail.com' LIMIT 1;
-
-    IF v_user_id IS NULL THEN
-        v_user_id := '00000000-0000-0000-0000-000000000001';
-        INSERT INTO auth.users (
-            id, instance_id, aud, role, email, encrypted_password,
-            email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
-        )
-        VALUES (
-            v_user_id,
-            '00000000-0000-0000-0000-000000000000',
-            'authenticated',
-            'authenticated',
-            'charlesdeforges@gmail.com',
-            crypt('LaVigieAuto2026!', gen_salt('bf')),
-            NOW(),
-            '{"provider":"email","providers":["email"]}'::JSONB,
-            '{"full_name":"Charles de Forges"}'::JSONB,
-            NOW(),
-            NOW()
-        )
-        ON CONFLICT (id) DO NOTHING;
-    END IF;
 
     -- 3. Foyer
     INSERT INTO public.foyers (id, nom, description, metadata)

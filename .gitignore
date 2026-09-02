@@ -42,3 +42,4 @@ next-env.d.ts
 .agents/
 PROJECT.md
 TEST_INFRA.md
+supabase/.temp/

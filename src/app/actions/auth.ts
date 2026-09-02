@@ -69,7 +69,7 @@ export async function signInWithEmailAction(
     const { error } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
       options: {
-        emailRedirectTo: `${appUrl}/dashboard`,
+        emailRedirectTo: `${appUrl}/auth/callback?next=/dashboard`,
       },
     });
 
@@ -80,6 +80,31 @@ export async function signInWithEmailAction(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Erreur de connexion" };
+  }
+}
+
+/**
+ * Initialisation de la connexion Google OAuth (Supabase Auth)
+ */
+export async function signInWithGoogleAction(): Promise<{ url?: string; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+      },
+    });
+
+    if (error || !data?.url) {
+      return { error: error?.message || "Impossible d'initialiser l'authentification Google." };
+    }
+
+    return { url: data.url };
+  } catch (err: any) {
+    return { error: err.message || "Erreur d'authentification Google." };
   }
 }
 
