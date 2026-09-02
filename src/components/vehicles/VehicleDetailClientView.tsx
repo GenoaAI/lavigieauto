@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
 import { DeleteVehicleModal } from "@/components/vehicles/DeleteVehicleModal";
+import { EditVehicleModal } from "@/components/vehicles/EditVehicleModal";
 import { CarnetExportModal } from "@/components/vehicles/CarnetExportModal";
 import { TireWearTracker } from "@/components/vehicles/TireWearTracker";
 import { BrakeWearTracker } from "@/components/vehicles/BrakeWearTracker";
@@ -48,6 +49,7 @@ import {
   PauseCircle,
   PlayCircle,
   Trash2,
+  Edit3,
 } from "lucide-react";
 
 interface VehicleDetailClientViewProps {
@@ -72,6 +74,7 @@ export function VehicleDetailClientView({
   const [isKitOpen, setIsKitOpen] = useState(false);
   const [isCarnetModalOpen, setIsCarnetModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStatusToggling, setIsStatusToggling] = useState(false);
 
   const loadVehicle = async () => {
@@ -464,6 +467,17 @@ export function VehicleDetailClientView({
               size="md"
               filename={`echeances-${v.marque}-${v.modele}-${v.immatriculation}`}
             />
+
+            {/* BOUTON MODIFIER LE VÉHICULE */}
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
+              title="Modifier la marque, le modèle, la version ou la plaque de ce véhicule"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+              <span>Modifier</span>
+            </button>
 
             {/* BOUTON METTRE EN PAUSE / REPRENDRE LE SUIVI */}
             <button
@@ -1715,6 +1729,14 @@ export function VehicleDetailClientView({
         healthScore={conformity?.overallScore ?? 95}
         grade={conformity?.grade ?? "A+"}
         isPublic={false}
+      />
+
+      {/* MODALE D'ÉDITION DU VÉHICULE */}
+      <EditVehicleModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        vehicle={v}
+        onSuccess={loadVehicle}
       />
 
       {/* MODALE DE CONFIRMATION DE SUPPRESSION */}

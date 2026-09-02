@@ -34,12 +34,16 @@ Extrais l'ensemble des informations de facturation, de l'émetteur, du véhicule
    - \`garage.siret\` : Numéro SIRET (14 chiffres si visible)
    - \`garage.address\` : Adresse complète du garage
 
-2. **Identification & Kilométrage Véhicule** :
-   - \`vehicle.licensePlate\` : Immatriculation (ex: FX-563-KZ, EC-301-JX)
-   - \`vehicle.currentMileage\` : Kilométrage relevé au compteur lors du passage atelier (ex: 272448, 125789)
-   - \`vehicle.make\` : Marque (ex: RENAULT, SUZUKI)
-   - \`vehicle.model\` : Modèle (ex: ESPACE V, VITARA)
+2. **Identification & Kilométrage Véhicule (ATTENTION AUX CONFUSIONS EN-TÊTE / VÉHICULE)** :
+   - \`vehicle.licensePlate\` : Immatriculation (ex: FX-563-KZ, EC-301-JX, CS-318-YD)
+   - \`vehicle.currentMileage\` : Kilométrage relevé au compteur lors du passage atelier (ex: 272448, 125789, 78800)
+   - \`vehicle.make\` : Marque réelle du véhicule client (ex: RENAULT, PEUGEOT, SUZUKI, CITROEN, TOYOTA, VOLKSWAGEN)
+   - \`vehicle.model\` : Modèle réel du véhicule (ex: CLIO, 208, 2008, 308, VITARA, ESPACE, CAPTUR)
    - \`vehicle.vin\` : Numéro de série VIN (17 caractères)
+   - ⚠️ **RÈGLE CRITIQUE D'EXTRACTION DE LA MARQUE & DU MODÈLE** :
+     * Ne JAMAIS confondre la marque du garage / concessionnaire émetteur (ex: en-tête "Agent PEUGEOT", "Concession RENAULT", "Garage CITROËN") avec la marque du véhicule client ! Si une facture émise par un garage Peugeot concerne un véhicule indiqué "CLIO", "RENAULT" ou "MEGANE", \`vehicle.make\` doit être "RENAULT" et \`vehicle.model\` doit être "CLIO", et NON "PEUGEOT".
+     * Extrais STRICTEMENT la marque et le modèle à partir de la ligne de désignation du véhicule du client (ex: "Véhicule : ...", "Type : ...", "Désignation : ...", "Immat : ...").
+     * Ne JAMAIS confondre une date ou une année (ex: 2008, 2018, 2020) ou un code postal avec un modèle de voiture sauf s'il s'agit explicitement du nom du modèle dans le bloc véhicule.
 
 3. **Lignes d'Interventions et Pièces** :
    - Extrais chaque ligne avec sa désignation exacte (\`description\`), sa référence pièce (\`partNumber\`), sa catégorie normalisée (\`category\`), son code canonique d'opération (\`canonicalCode\`: DRAIN_OIL, AIR_FILTER, CABIN_FILTER, FUEL_FILTER, SPARK_PLUGS, GLOW_PLUGS, BRAKE_FLUID, COOLANT, BRAKE_PADS_FRONT, BRAKE_PADS_REAR, BRAKE_DISCS_FRONT, BRAKE_DISCS_REAR, ACCESSORY_BELT, TIMING_BELT, TIRES_FRONT, TIRES_REAR, BATTERY, CLUTCH, SUSPENSION_SHOCK, GEARBOX_OIL, AIR_CONDITIONING, WIPER_BLADES, TECHNICAL_INSPECTION_PREP, DIAGNOSTIC_ELECTRONIC, LABOR_ONLY, OTHER), son type d'action (\`actionType\`: REPLACE pour tout changement de pièce/fluide, INSPECT_ONLY pour tout contrôle/diagnostic/vérification sans changement, PACKAGE_SERVICE pour tout forfait révision globale, REPAIR, CLEAN, LABOR), sa quantité (\`quantity\`), son prix unitaire HT (\`unitPriceHT\`), son montant total TTC (\`totalTTC\`), et si c'est de la pièce ou de la main d'œuvre (\`isLabor\`, \`isPart\`).

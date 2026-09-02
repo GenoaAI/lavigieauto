@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
 import { DeleteVehicleModal } from "@/components/vehicles/DeleteVehicleModal";
+import { EditVehicleModal } from "@/components/vehicles/EditVehicleModal";
 import { FoyerMembersManager } from "@/components/foyer/FoyerMembersManager";
 import { GoogleCalendarSyncCard } from "@/components/foyer/GoogleCalendarSyncCard";
 import { FoyerNameEditor } from "@/components/foyer/FoyerNameEditor";
@@ -36,6 +37,7 @@ import {
   PauseCircle,
   PlayCircle,
   Trash2,
+  Edit3,
 } from "lucide-react";
 
 import { Foyer, FoyerMember } from "@/lib/types/database.types";
@@ -66,6 +68,7 @@ export function DashboardClientView({
   const [loadingKitId, setLoadingKitId] = useState<string | null>(null);
   const [actionMenuVehicleId, setActionMenuVehicleId] = useState<string | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<EnrichedVehicle | null>(null);
+  const [vehicleToEdit, setVehicleToEdit] = useState<EnrichedVehicle | null>(null);
   const [statusLoadingId, setStatusLoadingId] = useState<string | null>(null);
   const [seoWelcomeContext, setSeoWelcomeContext] = useState<{
     brand: string;
@@ -526,6 +529,18 @@ export function DashboardClientView({
                             type="button"
                             onClick={() => {
                               setActionMenuVehicleId(null);
+                              setVehicleToEdit(v);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left font-medium hover:bg-slate-50 transition text-slate-700"
+                          >
+                            <Edit3 className="w-4 h-4 text-blue-600" />
+                            <span>Modifier le véhicule</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActionMenuVehicleId(null);
                               setVehicleToDelete(v);
                             }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left font-bold hover:bg-rose-50 transition text-rose-600"
@@ -721,6 +736,16 @@ export function DashboardClientView({
           garageName={selectedGarageRecommendation?.recommendedGarage?.nom || undefined}
           garageAddress={selectedGarageRecommendation?.recommendedGarage?.adresse || undefined}
           garageEmail={selectedGarageRecommendation?.recommendedGarage?.email || undefined}
+        />
+      )}
+
+      {/* MODAL DE MODIFICATION DE VÉHICULE */}
+      {vehicleToEdit && (
+        <EditVehicleModal
+          isOpen={Boolean(vehicleToEdit)}
+          onClose={() => setVehicleToEdit(null)}
+          vehicle={vehicleToEdit}
+          onSuccess={loadData}
         />
       )}
 

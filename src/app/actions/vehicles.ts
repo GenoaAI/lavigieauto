@@ -1124,14 +1124,16 @@ export async function deleteVehicleAction(
 }
 
 /**
- * Mettre à jour les informations du véhicule (version, modèle, finition, usage, etc.) — Sécurisé
+ * Mettre à jour les informations du véhicule (marque, modèle, version, immatriculation, énergie, etc.) — Sécurisé
  */
 export async function updateVehicleDetailsAction(
   vehicleId: string,
   payload: {
+    immatriculation?: string;
     marque?: string;
     modele?: string;
     version?: string;
+    annee_mise_en_circulation?: number;
     puissance_din?: number;
     puissance_fiscale?: number;
     energie?: string;
@@ -1147,16 +1149,84 @@ export async function updateVehicleDetailsAction(
 
     const supabase = createAdminClient();
 
+    // Récupération des données existantes pour comparaison
+    const { data: existingVehicle } = await (supabase as any)
+      .from("vehicules")
+      .select("*")
+      .eq("id", realVehicleId)
+      .eq("foyer_id", context.foyerId)
+      .single();
+
+    if (!existingVehicle) {
+      throw new Error("Véhicule introuvable.");
+    }
+
+    const nextMake = payload.marque !== undefined ? payload.marque.trim() : existingVehicle.marque;
+    const nextModel = payload.modele !== undefined ? payload.modele.trim() : existingVehicle.modele;
+    const nextVersion = payload.version !== undefined ? payload.version.trim() : existingVehicle.version;
+    const nextFuel = payload.energie !== undefined ? payload.energie.trim() : existingVehicle.energie;
+    const nextFiscalPower = payload.puissance_fiscale !== undefined ? payload.puissance_fiscale : existingVehicle.puissance_fiscale;
+
+    // Résolution intelligente des caractéristiques et visuel officiel constructeur
+    const catalogSpecs = resolveVehicleCatalogSpecs({
+      make: nextMake,
+      model: nextModel,
+      version: nextVersion,
+      fuel: nextFuel,
+      fiscalPower: nextFiscalPower,
+    });
+
+    const updatePayload: Record<string, unknown> = {
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (payload.immatriculation) {
+      updatePayload.immatriculation = payload.immatriculation.trim().toUpperCase();
+    }
+    if (payload.marque) {
+      updatePayload.marque = nextMake;
+    }
+    if (payload.modele) {
+      updatePayload.modele = nextModel;
+    }
+    if (catalogSpecs.imageUrl && (!payload.image_url || payload.marque || payload.modele)) {
+      updatePayload.image_url = catalogSpecs.imageUrl;
+    }
+    if (catalogSpecs.version && (!nextVersion || nextVersion === "Standard" || payload.marque || payload.modele)) {
+      updatePayload.version = catalogSpecs.version;
+    }
+    if (catalogSpecs.dinPower && (!existingVehicle.puissance_din || payload.marque || payload.modele)) {
+      updatePayload.puissance_din = catalogSpecs.dinPower;
+    }
+    if (catalogSpecs.boiteVitesse && (!existingVehicle.boite_vitesse || payload.marque || payload.modele)) {
+      updatePayload.boite_vitesse = catalogSpecs.boiteVitesse;
+    }
+    if (catalogSpecs.fuel && (!nextFuel || payload.marque || payload.modele)) {
+      updatePayload.energie = catalogSpecs.fuel;
+    }
+
     const { error } = await (supabase as any)
       .from("vehicules")
-      .update({
-        ...payload,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", realVehicleId)
       .eq("foyer_id", context.foyerId);
 
     if (error) throw new Error(error.message);
+
+    // Resynchronisation automatique de l'échéancier constructeur si marque, modèle ou énergie modifiés
+    const makeModelChanged =
+      (payload.marque && payload.marque.toUpperCase() !== (existingVehicle.marque || "").toUpperCase()) ||
+      (payload.modele && payload.modele.toUpperCase() !== (existingVehicle.modele || "").toUpperCase()) ||
+      (payload.energie && payload.energie.toLowerCase() !== (existingVehicle.energie || "").toLowerCase());
+
+    if (makeModelChanged) {
+      try {
+        await syncVehicleManufacturerScheduleAction(realVehicleId);
+      } catch (syncErr) {
+        console.warn("[Update Vehicle] Avertissement resynchronisation plan:", syncErr);
+      }
+    }
 
     await invalidateFoyerCache();
 
@@ -1164,6 +1234,8 @@ export async function updateVehicleDetailsAction(
       revalidatePath("/dashboard");
       revalidatePath(`/dashboard/vehicles/${vehicleId}`);
       revalidatePath(`/dashboard/vehicles/${realVehicleId}`);
+      revalidatePath(`/v/${vehicleId}`);
+      revalidatePath(`/v/${realVehicleId}`);
     } catch {
       // Ignore
     }

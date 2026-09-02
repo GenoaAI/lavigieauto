@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Loader2, Camera, FolderOpen, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Loader2, Camera, FolderOpen, Trash2, ArrowRight } from "lucide-react";
 import { processDocumentAction, ProcessDocumentResult, deleteDocumentAndRecalculateAction } from "@/app/actions/documents";
 
 interface DocumentDropzoneProps {
@@ -256,19 +257,31 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
               <span>Document analysé et synchronisé avec succès</span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRollback}
-              disabled={isRollingBack}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold shadow-sm transition disabled:opacity-60 self-start sm:self-auto"
-            >
-              {isRollingBack ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {lastProcessedVehicleId && (
+                <Link
+                  href={`/dashboard/vehicles/${lastProcessedVehicleId}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold shadow-sm transition"
+                >
+                  <span>Voir la fiche</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
+                </Link>
               )}
-              <span>Mauvais import ? Annuler et supprimer</span>
-            </button>
+
+              <button
+                type="button"
+                onClick={handleRollback}
+                disabled={isRollingBack}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold shadow-sm transition disabled:opacity-60"
+              >
+                {isRollingBack ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                )}
+                <span>Mauvais import ? Annuler</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
