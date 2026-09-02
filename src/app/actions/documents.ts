@@ -115,6 +115,18 @@ export async function processDocumentAction(formData: FormData): Promise<Process
     const buffer = Buffer.from(arrayBuffer);
     const base64Data = buffer.toString("base64");
 
+    // Détection précise et résiliente du type MIME (notamment sur mobile iOS/Android)
+    let determinedMimeType = file.type;
+    if (!determinedMimeType || determinedMimeType === "application/octet-stream") {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (ext === "pdf") determinedMimeType = "application/pdf";
+      else if (ext === "jpg" || ext === "jpeg") determinedMimeType = "image/jpeg";
+      else if (ext === "png") determinedMimeType = "image/png";
+      else if (ext === "webp") determinedMimeType = "image/webp";
+      else if (ext === "heic") determinedMimeType = "image/heic";
+      else determinedMimeType = "image/jpeg";
+    }
+
     const aiRegistry = AIProviderRegistry.getInstance();
     const aiProvider = aiRegistry.getProvider();
 
@@ -123,19 +135,19 @@ export async function processDocumentAction(formData: FormData): Promise<Process
       extractionResult = await aiProvider.extractRegistrationCard({
         documentType: "REGISTRATION_CARD",
         fileBase64: base64Data,
-        mimeType: file.type || "application/pdf",
+        mimeType: determinedMimeType,
       });
     } else if (documentType === "controle_technique") {
       extractionResult = await aiProvider.extractTechnicalInspection({
         documentType: "TECHNICAL_INSPECTION",
         fileBase64: base64Data,
-        mimeType: file.type || "application/pdf",
+        mimeType: determinedMimeType,
       });
     } else {
       extractionResult = await aiProvider.extractInvoice({
         documentType: "INVOICE",
         fileBase64: base64Data,
-        mimeType: file.type || "application/pdf",
+        mimeType: determinedMimeType,
       });
     }
 

@@ -143,7 +143,13 @@ export function MobileBottomNav() {
             <DocumentDropzone
               onUploadComplete={() => {
                 router.refresh();
-                setTimeout(() => setIsScannerOpen(false), 1200);
+              }}
+              onExtractionSuccess={(result) => {
+                router.refresh();
+                if (result.vehicleId) {
+                  // Redirection fluide vers la fiche du véhicule scanné
+                  router.push(`/dashboard/vehicles/${result.vehicleId}`);
+                }
               }}
             />
           </div>

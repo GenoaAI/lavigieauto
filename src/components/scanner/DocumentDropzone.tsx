@@ -12,6 +12,82 @@ interface DocumentDropzoneProps {
   className?: string;
 }
 
+/**
+ * Optimisation et compression côté client des photos prises par smartphone
+ * Réduit les images de 10-20 Mo à ~400 Ko pour respecter la limite Vercel Serverless (4.5 Mo)
+ * et accélérer l'envoi en 4G/5G par 10x sans perte de lisibilité pour l'OCR.
+ */
+async function optimizeImageForUpload(file: File): Promise<File> {
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    return file;
+  }
+
+  if (typeof window === "undefined" || (!file.type.startsWith("image/") && !file.name.match(/\.(jpe?g|png|webp|heic)$/i))) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const MAX_DIM = 2048;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^.]+$/, ".jpg");
+            const optimizedFile = new File([blob], cleanName, { type: "image/jpeg" });
+            resolve(optimizedFile);
+          },
+          "image/jpeg",
+          0.85
+        );
+      } catch {
+        resolve(file);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+
+    img.src = url;
+  });
+}
+
 export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicleId, className = "" }: DocumentDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,11 +114,12 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
     setError(null);
     setFeedbackMessage(null);
     setIsProcessing(true);
-    setProgressStep("Lecture et détection du document...");
+    setProgressStep("Optimisation et lecture du document...");
 
     try {
+      const fileToUpload = await optimizeImageForUpload(file);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
       if (vehicleId) formData.append("vehicleId", vehicleId);
 
       // Guess type from name
