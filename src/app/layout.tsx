@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText } from "lucide-react";
+import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText, BookOpen } from "lucide-react";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { UserNavHeader } from "@/components/layout/UserNavHeader";
 import { FeedbackDrawer } from "@/components/feedback/FeedbackDrawer";
@@ -36,13 +36,17 @@ export default function RootLayout({
             </Link>
 
             {/* Navigation Links */}
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+            <nav className="hidden md:flex items-center gap-5 lg:gap-8 text-sm font-medium text-slate-600">
               <Link href="/#scan-first" className="hover:text-blue-600 transition flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-blue-500" />
                 Scan Instantané
               </Link>
               <Link href="/#methode-2-gestes" className="hover:text-blue-600 transition">
                 Deux gestes clefs
+              </Link>
+              <Link href="/entretien" className="hover:text-blue-600 transition flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-blue-500" />
+                Plans d&apos;entretien
               </Link>
               <Link href="/v/cert-demo-8492" className="hover:text-blue-600 transition flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -73,7 +77,7 @@ export default function RootLayout({
         {/* Footer */}
         <footer className="bg-slate-900 text-white py-12 border-t border-slate-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12 pb-12 border-b border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-8 pb-12 border-b border-slate-800">
               {/* Brand Col */}
               <div className="space-y-4 md:col-span-1">
                 <div className="flex items-center gap-2">
@@ -118,7 +122,72 @@ export default function RootLayout({
                 </ul>
               </div>
 
-              {/* Col 2 */}
+              {/* Col 2 : Plans d'Entretien Constructeur (SEO) */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  <Link href="/entretien" className="hover:text-blue-400 transition flex items-center gap-1 group">
+                    <span>Plans d&apos;Entretien Constructeur</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                  </Link>
+                </p>
+                <div className="space-y-3 text-xs text-slate-400">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-1.5">
+                      Par Marque
+                    </p>
+                    <ul className="grid grid-cols-2 gap-x-2 gap-y-1">
+                      <li>
+                        <Link href="/entretien/peugeot" className="hover:text-white transition">Peugeot</Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/renault" className="hover:text-white transition">Renault</Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/dacia" className="hover:text-white transition">Dacia</Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/citroen" className="hover:text-white transition">Citroën</Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/volkswagen" className="hover:text-white transition">Volkswagen</Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/toyota" className="hover:text-white transition">Toyota</Link>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-1.5">
+                      Fiches Phares
+                    </p>
+                    <ul className="space-y-1 text-[11px]">
+                      <li>
+                        <Link href="/entretien/dacia/sandero-2/0-9-tce-90" className="hover:text-white transition">
+                          Sandero 2 TCe
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/renault/clio-4/1-5-dci-90" className="hover:text-white transition">
+                          Clio 4 dCi
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/peugeot/208/1-2-puretech-82" className="hover:text-white transition">
+                          208 PureTech
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/entretien/peugeot/3008/1-2-puretech-130" className="hover:text-white transition">
+                          3008 PureTech
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Col 3 */}
               <div className="space-y-3">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-200">Foyer & Partage</p>
                 <ul className="space-y-2 text-xs text-slate-400">

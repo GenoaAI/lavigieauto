@@ -1,10 +1,15 @@
 import { MetadataRoute } from 'next';
-import { getAllBrandSlugs, getAllMaintenanceData } from '@/lib/maintenance/maintenance-data';
+import {
+  getAllBrandSlugs,
+  getAllMaintenanceModels,
+  getAllMaintenanceData,
+} from '@/lib/maintenance/maintenance-data';
 
 const BASE_URL = 'https://www.lavigieauto.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const brandSlugs = getAllBrandSlugs();
+  const modelEntries = getAllMaintenanceModels();
   const maintenanceItems = getAllMaintenanceData();
 
   const brandUrls: MetadataRoute.Sitemap = brandSlugs.map((slug) => ({
@@ -12,6 +17,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(),
     changeFrequency: 'weekly',
     priority: 0.85,
+  }));
+
+  const modelUrls: MetadataRoute.Sitemap = modelEntries.map((item) => ({
+    url: `${BASE_URL}/entretien/${item.brandSlug}/${item.modelSlug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.82,
   }));
 
   const maintenanceUrls: MetadataRoute.Sitemap = maintenanceItems.map((item) => ({
@@ -35,6 +47,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     ...brandUrls,
+    ...modelUrls,
     ...maintenanceUrls,
   ];
 }

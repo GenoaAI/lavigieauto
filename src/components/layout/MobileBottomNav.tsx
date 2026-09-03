@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Car,
   X,
+  BookOpen,
 } from "lucide-react";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 
@@ -38,10 +39,10 @@ export function MobileBottomNav() {
       onClick: () => setIsScannerOpen(true),
     },
     {
-      label: "Agenda",
-      href: "/dashboard#calendar-sync",
-      icon: Calendar,
-      isActive: false,
+      label: "Entretien",
+      href: "/entretien",
+      icon: BookOpen,
+      isActive: pathname.startsWith("/entretien"),
     },
     {
       label: "Accueil",

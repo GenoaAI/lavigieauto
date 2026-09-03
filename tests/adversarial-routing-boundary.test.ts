@@ -6,12 +6,22 @@ import {
   getAllBrandParams,
   getMaintenanceDataForBrand,
   getAllBrandsSummary,
+  getFamilySlug,
+  getModelDisplayName,
+  getEnginesByModel,
+  getMaintenanceDataForModel,
+  getAllMaintenanceModels,
+  getAllMaintenanceModelParams,
 } from '../src/lib/maintenance/maintenance-data';
 import sitemap from '../src/app/sitemap';
 import {
   generateStaticParams as generateBrandStaticParams,
   generateMetadata as generateBrandMetadata,
 } from '../src/app/entretien/[brand]/page';
+import {
+  generateStaticParams as generateModelStaticParams,
+  generateMetadata as generateModelMetadata,
+} from '../src/app/entretien/[brand]/[model]/page';
 import {
   generateStaticParams as generateVehicleStaticParams,
   generateMetadata as generateVehicleMetadata,
@@ -114,6 +124,51 @@ export async function runAdversarialRoutingBoundaryTests() {
     console.log(`  ✔ Null input gracefully handled or threw expectedly.`);
   }
 
+  // Boundary & Adversarial Inputs for getFamilySlug
+  const slugBoundaryCases = [
+    { input: '', expected: '' },
+    { input: '   ', expected: '' },
+    { input: 'sandero-2', expected: 'sandero' },
+    { input: 'clio-4', expected: 'clio' },
+    { input: '208-1', expected: '208' },
+    { input: '208-2', expected: '208' },
+    { input: 'c3-aircross', expected: 'c3-aircross' },
+    { input: 'c4-picasso', expected: 'c4-picasso' },
+    { input: 'golf-7', expected: 'golf' },
+    { input: 'polo-5', expected: 'polo' },
+    { input: 'yaris', expected: 'yaris' },
+    { input: 'UNKNOWN-99', expected: 'unknown' },
+  ];
+  for (const { input, expected } of slugBoundaryCases) {
+    const res = getFamilySlug(input);
+    if (res !== expected) {
+      throw new Error(`[FAIL] getFamilySlug('${input}') expected '${expected}', got '${res}'`);
+    }
+  }
+  console.log(`  ✔ Passed ${slugBoundaryCases.length} boundary inputs for getFamilySlug.`);
+
+  // Adversarial Inputs for getEnginesByModel & getMaintenanceDataForModel
+  const badEngineInputs = [
+    { brand: '', model: '' },
+    { brand: '   ', model: '   ' },
+    { brand: 'unknown', model: 'sandero' },
+    { brand: 'dacia', model: 'unknown' },
+    { brand: "' OR 1=1 --", model: 'sandero' },
+    { brand: 'dacia', model: '<script>alert("xss")</script>' },
+    { brand: '../../etc', model: 'passwd' },
+  ];
+  for (const bad of badEngineInputs) {
+    const resEngines = getEnginesByModel(bad.brand, bad.model);
+    if (!Array.isArray(resEngines) || resEngines.length !== 0) {
+      throw new Error(`[VULNERABILITY] getEnginesByModel('${bad.brand}', '${bad.model}') should return [], got ${JSON.stringify(resEngines)}`);
+    }
+    const resModel = getMaintenanceDataForModel(bad.brand, bad.model);
+    if (resModel !== null) {
+      throw new Error(`[VULNERABILITY] getMaintenanceDataForModel('${bad.brand}', '${bad.model}') should return null, got ${JSON.stringify(resModel)}`);
+    }
+  }
+  console.log(`  ✔ Passed ${badEngineInputs.length} adversarial inputs for getEnginesByModel and getMaintenanceDataForModel.`);
+
   // =========================================================================
   // 2. BREADCRUMB URL RESOLUTION FOR ALL 30 VEHICLES IN CATALOG
   // =========================================================================
@@ -209,18 +264,55 @@ export async function runAdversarialRoutingBoundaryTests() {
   }
   console.log(`  ✔ Verified breadcrumb chain for all 6 brand hubs.`);
 
+  // Verify Model Hub Breadcrumbs for all 16 canonical models
+  const allModels = getAllMaintenanceModels();
+  if (allModels.length !== 16) {
+    throw new Error(`[FAIL] Expected 16 canonical models, got ${allModels.length}`);
+  }
+
+  const checkedModelUrls = new Set<string>();
+
+  for (const m of allModels) {
+    const modelData = getMaintenanceDataForModel(m.brandSlug, m.modelSlug);
+    if (!modelData) {
+      throw new Error(`[FAIL] Model hub missing for ${m.brandSlug}/${m.modelSlug}`);
+    }
+
+    const modelBreadcrumbs = [
+      { position: 1, name: 'Accueil', url: 'https://www.lavigieauto.com' },
+      { position: 2, name: "Plan d'entretien", url: 'https://www.lavigieauto.com/entretien' },
+      { position: 3, name: modelData.brand, url: `https://www.lavigieauto.com/entretien/${modelData.brandSlug}` },
+      {
+        position: 4,
+        name: modelData.modelDisplayName,
+        url: `https://www.lavigieauto.com/entretien/${modelData.brandSlug}/${modelData.modelSlug}`,
+      },
+    ];
+
+    if (!modelBreadcrumbs[3].name || modelBreadcrumbs[3].name.length === 0) {
+      throw new Error(`Empty model name in breadcrumbs for ${m.brandSlug}/${m.modelSlug}`);
+    }
+
+    const modelUrl = modelBreadcrumbs[3].url;
+    if (checkedModelUrls.has(modelUrl)) {
+      throw new Error(`[FAIL] Duplicate model URL found: ${modelUrl}`);
+    }
+    checkedModelUrls.add(modelUrl);
+  }
+  console.log(`  ✔ Verified breadcrumb chain and unique URL resolution for all 16 model hubs.`);
+
   // =========================================================================
-  // 3. SITEMAP CONSISTENCY & STATIC PARAMS ALIGNMENT (38 URLs)
+  // 3. SITEMAP CONSISTENCY & STATIC PARAMS ALIGNMENT (54 URLs)
   // =========================================================================
-  console.log('\n▶ [STRESS TEST 3] Sitemap Consistency, Uniqueness & Static Params Alignment...');
+  console.log('\n▶ [STRESS TEST 3] Sitemap Consistency, Uniqueness & Static Params Alignment (54 URLs)...');
 
   const sitemapList = sitemap();
   if (!Array.isArray(sitemapList)) {
     throw new Error(`[FAIL] sitemap() did not return an array.`);
   }
 
-  if (sitemapList.length !== 38) {
-    throw new Error(`[FAIL] Expected exactly 38 URLs in sitemap, got ${sitemapList.length}.`);
+  if (sitemapList.length !== 54) {
+    throw new Error(`[FAIL] Expected exactly 54 URLs in sitemap, got ${sitemapList.length}.`);
   }
 
   const urlSet = new Set<string>();
@@ -261,7 +353,7 @@ export async function runAdversarialRoutingBoundaryTests() {
     }
   }
 
-  // Cross-reference with generateStaticParams
+  // Cross-reference with generateStaticParams: Brands (6)
   const brandParams = await generateBrandStaticParams();
   if (brandParams.length !== 6) {
     throw new Error(`[FAIL] generateBrandStaticParams returned ${brandParams.length}, expected 6`);
@@ -272,8 +364,36 @@ export async function runAdversarialRoutingBoundaryTests() {
     if (!urlSet.has(expectedUrl)) {
       throw new Error(`[FAIL] Brand static param /entretien/${bp.brand} missing from sitemap!`);
     }
+    const entry = sitemapList.find((e) => e.url === expectedUrl);
+    if (!entry || entry.priority !== 0.85 || entry.changeFrequency !== 'weekly') {
+      throw new Error(`[FAIL] Invalid sitemap metadata for brand ${expectedUrl}: priority=${entry?.priority}`);
+    }
   }
 
+  // Cross-reference with generateStaticParams: Models (16)
+  const modelParams = await generateModelStaticParams();
+  if (modelParams.length !== 16) {
+    throw new Error(`[FAIL] generateModelStaticParams returned ${modelParams.length}, expected 16`);
+  }
+
+  for (const mp of modelParams) {
+    const expectedUrl = `https://www.lavigieauto.com/entretien/${mp.brand}/${mp.model}`;
+    if (!urlSet.has(expectedUrl)) {
+      throw new Error(`[FAIL] Model static param /entretien/${mp.brand}/${mp.model} missing from sitemap!`);
+    }
+    const entry = sitemapList.find((e) => e.url === expectedUrl);
+    if (!entry) {
+      throw new Error(`[FAIL] Model URL missing from sitemap: ${expectedUrl}`);
+    }
+    if (entry.priority !== 0.82) {
+      throw new Error(`[FAIL] Model URL '${expectedUrl}' expected priority 0.82, got ${entry.priority}`);
+    }
+    if (entry.changeFrequency !== 'weekly') {
+      throw new Error(`[FAIL] Model URL '${expectedUrl}' expected changeFrequency 'weekly', got ${entry.changeFrequency}`);
+    }
+  }
+
+  // Cross-reference with generateStaticParams: Leaf Vehicles (30)
   const vehicleParams = await generateVehicleStaticParams();
   if (vehicleParams.length !== 30) {
     throw new Error(`[FAIL] generateVehicleStaticParams returned ${vehicleParams.length}, expected 30`);
@@ -284,22 +404,29 @@ export async function runAdversarialRoutingBoundaryTests() {
     if (!urlSet.has(expectedUrl)) {
       throw new Error(`[FAIL] Vehicle static param /entretien/${vp.brand}/${vp.model}/${vp.engine} missing from sitemap!`);
     }
+    const entry = sitemapList.find((e) => e.url === expectedUrl);
+    if (!entry || entry.priority !== 0.8 || entry.changeFrequency !== 'weekly') {
+      throw new Error(`[FAIL] Invalid sitemap metadata for leaf ${expectedUrl}: priority=${entry?.priority}`);
+    }
   }
 
-  console.log(`  ✔ Sitemap contains exactly 38 unique, well-formed, valid URLs.`);
-  console.log(`  ✔ All 6 brand static params and all 30 leaf vehicle static params are 100% matched in sitemap.`);
+  console.log(`  ✔ Sitemap contains exactly 54 unique, well-formed, valid URLs.`);
+  console.log(`  ✔ All 16 model URLs present with priority 0.82 and changeFrequency 'weekly'.`);
+  console.log(`  ✔ All 6 brand static params, all 16 model static params, and all 30 leaf vehicle static params are 100% matched in sitemap.`);
 
   // =========================================================================
   // 4. PERFORMANCE & HIGH-VOLUME RESOLUTION BENCHMARK
   // =========================================================================
-  console.log('\n▶ [STRESS TEST 4] High-Volume Lookup Benchmark (2,000 queries)...');
+  console.log('\n▶ [STRESS TEST 4] High-Volume Lookup Benchmark (3,000 queries)...');
   const t0 = Date.now();
-  for (let k = 0; k < 1000; k++) {
+  for (let k = 0; k < 750; k++) {
     getMaintenanceDataForBrand('peugeot');
     getMaintenanceData('dacia', 'sandero-3', '1-0-eco-g-100');
+    getEnginesByModel('dacia', 'sandero');
+    getMaintenanceDataForModel('renault', 'clio');
   }
   const tElapsed = Date.now() - t0;
-  console.log(`  ✔ Executed 2,000 lookups in ${tElapsed}ms (~${(tElapsed / 2).toFixed(3)} µs per lookup). No memory leak or degradation.`);
+  console.log(`  ✔ Executed 3,000 lookups in ${tElapsed}ms (~${(tElapsed / 3).toFixed(3)} µs per lookup). No memory leak or degradation.`);
 
   console.log('\n======================================================================');
   console.log('✅ ALL ADVERSARIAL ROUTING & BOUNDARY TESTS PASSED SUCCESSFULLY');

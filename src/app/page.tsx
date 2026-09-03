@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Shield,
   Zap,
+  BookOpen,
 } from "lucide-react";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import type { ProcessDocumentResult } from "@/app/actions/documents";
@@ -594,6 +595,197 @@ export default function LandingPage() {
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 3.5 PROGRAMMES D'ENTRETIEN CONSTRUCTEUR & CARNETS OFFICIELS (MAILLAGE SEO) */}
+      {/* ========================================================================= */}
+      <section id="programmes-entretien" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200/80 shadow-sm space-y-10">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
+                <BookOpen className="w-3.5 h-3.5" />
+                Référentiel Mécanique & Carnets Numériques
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                Programmes d&apos;entretien constructeur & carnets par modèle
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                Consultez les périodicités officielles de révision, vidange, remplacement de courroie et normes d&apos;huile homologuées pour les véhicules les plus populaires en France.
+              </p>
+            </div>
+            <Link
+              href="/entretien"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition self-start md:self-auto shrink-0"
+            >
+              <span>Explorer l&apos;intégralité du catalogue (30 motorisations)</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* Quick Access by Brand (6 brands) */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Accès direct par marque
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { name: "Peugeot", slug: "peugeot", count: "10 motorisations" },
+                { name: "Renault", slug: "renault", count: "8 motorisations" },
+                { name: "Dacia", slug: "dacia", count: "4 motorisations" },
+                { name: "Citroën", slug: "citroen", count: "3 motorisations" },
+                { name: "Volkswagen", slug: "volkswagen", count: "4 motorisations" },
+                { name: "Toyota", slug: "toyota", count: "1 motorisation" },
+              ].map((brand) => (
+                <Link
+                  key={brand.slug}
+                  href={`/entretien/${brand.slug}`}
+                  className="group p-3.5 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200/80 hover:border-blue-200 transition text-left flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition">
+                      {brand.name}
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+                  </div>
+                  <span className="text-[11px] text-slate-500 group-hover:text-blue-700 font-medium">
+                    {brand.count}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Featured Models Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Fiches d&apos;entretien les plus consultées
+              </p>
+              <Link
+                href="/entretien"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                <span>Voir les 30 fiches</span>
+                <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Sandero 2 TCe */}
+              <Link
+                href="/entretien/dacia/sandero-2/0-9-tce-90"
+                className="group p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-lg transition flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-blue-600 mb-1">
+                    <span>Dacia Sandero 2</span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px]">Stepway</span>
+                  </div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-blue-600 transition">
+                    0.9 TCe 90 ch
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                    Vidange 1 an / 20 000 km (normes RN0710 / RN17), distribution par chaîne sans entretien préventif.
+                  </p>
+                </div>
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-blue-600">
+                  <span>Consulter le carnet</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+
+              {/* Clio 4 dCi */}
+              <Link
+                href="/entretien/renault/clio-4/1-5-dci-90"
+                className="group p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-lg transition flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-amber-600 mb-1">
+                    <span>Renault Clio 4</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px]">Diesel dCi</span>
+                  </div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-blue-600 transition">
+                    1.5 dCi 90 ch
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                    Vidange 1 an / 20 000 km (RN0720 Low SAPS FAP), courroie de distribution 6 ans / 150 000 km.
+                  </p>
+                </div>
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-blue-600">
+                  <span>Consulter le carnet</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+
+              {/* 208 PureTech */}
+              <Link
+                href="/entretien/peugeot/208/1-2-puretech-82"
+                className="group p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-lg transition flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-600 mb-1">
+                    <span>Peugeot 208</span>
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px]">PureTech</span>
+                  </div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-blue-600 transition">
+                    1.2 PureTech 82 ch
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                    Vidange 1 an / 15 000 km (PSA B71 2312), surveillance courroie humide 6 ans / 100 000 km.
+                  </p>
+                </div>
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-blue-600">
+                  <span>Consulter le carnet</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+
+              {/* 3008 PureTech */}
+              <Link
+                href="/entretien/peugeot/3008/1-2-puretech-130"
+                className="group p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-lg transition flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-600 mb-1">
+                    <span>Peugeot 3008</span>
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px]">SUV PureTech</span>
+                  </div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-blue-600 transition">
+                    1.2 PureTech 130 ch
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                    Vidange 1 an / 15 000 km (PSA B71 2312 0W-30), intervalle courroie immergée 6 ans / 100 000 km.
+                  </p>
+                </div>
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-blue-600">
+                  <span>Consulter le carnet</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Bottom Banner inside the section */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                <FileCheck2 className="w-4 h-4" />
+              </div>
+              <p className="text-slate-600 text-center sm:text-left">
+                <span className="font-semibold text-slate-900">Votre véhicule n&apos;est pas dans cette sélection ?</span> Déposez votre carte grise ou une facture pour générer son carnet officiel personnalisé.
+              </p>
+            </div>
+            <Link
+              href="/#scan-first"
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold shrink-0 transition"
+            >
+              Scanner ma carte grise
+            </Link>
           </div>
         </div>
       </section>

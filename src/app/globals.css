@@ -145,3 +145,108 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Print Stylesheet for Printable Carnet & PDF export */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Hide navigation, footers, interactive drawers and designated elements */
+  header,
+  footer,
+  nav,
+  aside,
+  .print\:hidden,
+  [data-feedback-trigger],
+  #feedback-drawer,
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  article {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    background: transparent !important;
+  }
+
+  /* Prevent awkward page breaks across cards, sections, and tables */
+  section,
+  h1,
+  h2,
+  h3,
+  .card,
+  tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    font-size: 9pt !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+  }
+
+  /* Display print-specific elements and prioritize desktop table over mobile card list */
+  .print\:block {
+    display: block !important;
+  }
+
+  .block.md\:hidden {
+    display: none !important;
+  }
+
+  .hidden.md\:block {
+    display: block !important;
+  }
+}
+

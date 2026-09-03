@@ -7,6 +7,7 @@ import { MaintenanceDropzone } from '@/components/maintenance/MaintenanceDropzon
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
 import { ReliabilityAlert } from '@/components/maintenance/ReliabilityAlert';
 import { MaintenanceFAQ } from '@/components/maintenance/MaintenanceFAQ';
+import { MaintenancePrintActions } from '@/components/maintenance/MaintenancePrintActions';
 
 interface PageProps {
   params: Promise<{
@@ -49,8 +50,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? 'changement de courroie de distribution'
     : 'contrôle de distribution par chaîne';
 
-  const title = `Plan d'entretien & Révision ${data.brand} ${data.model} ${data.engine} : Vidange, ${distributionTitle} et Coûts | LaVigieAuto`;
-  const description = `Calendrier d'entretien officiel & révision pour ${data.brand} ${data.model} ${data.engine}. Périodicité vidange (${data.recommendedOilNorm}), ${distributionDesc}, carnet numérique et estimation des devis.`;
+  const title = `Plan d'entretien & Révision ${data.brand} ${data.model} (${data.engine}) : Fréquences vidange, ${distributionTitle} & Fiche PDF | LaVigieAuto`;
+  const description = `Plan d'entretien constructeur & révision pour ${data.brand} ${data.model} ${data.engine}. Fréquences de vidange, norme d'huile ${data.recommendedOilNorm}, ${distributionDesc}. Fiche PDF officielle et carnet d'entretien gratuit.`;
 
   return {
     title,
@@ -176,7 +177,7 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
         <article className="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-2xl border border-slate-200 shadow-sm">
           
           {/* Fil d'Ariane Sémantique */}
-          <nav aria-label="Fil d'Ariane" className="text-xs text-slate-500 mb-6">
+          <nav aria-label="Fil d'Ariane" className="text-xs text-slate-500 mb-6 print:hidden">
             <ol className="flex items-center gap-1.5 flex-wrap">
               <li>
                 <Link href="/" className="hover:underline">
@@ -199,6 +200,14 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
               <li className="font-semibold text-slate-800">{data.model} ({data.engine})</li>
             </ol>
           </nav>
+
+          {/* En-tête certifié pour l'impression A4 */}
+          <div className="hidden print:block border-b-2 border-slate-900 pb-3 mb-6">
+            <div className="flex justify-between items-center text-xs text-slate-700 font-semibold">
+              <span className="font-bold text-slate-900">LaVigieAuto.com • Fiche d'Entretien Officielle Constructeur</span>
+              <span>Document édité pour {data.brand} {data.model} ({data.engine})</span>
+            </div>
+          </div>
 
           {/* En-tête H1 */}
           <header className="border-b border-slate-100 pb-6">
@@ -224,8 +233,19 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
             </div>
           </section>
 
+          {/* Action Imprimer / Télécharger la fiche PDF & Lead Magnet Vigie Foyer */}
+          <MaintenancePrintActions
+            brand={data.brand}
+            model={data.model}
+            engine={data.engine}
+            recommendedOilNorm={data.recommendedOilNorm}
+            oilViscosity={data.oilViscosity}
+          />
+
           {/* Déposoir OCR / Lead Magnet */}
-          <MaintenanceDropzone brand={data.brand} engine={data.engine} model={data.model} />
+          <div className="print:hidden">
+            <MaintenanceDropzone brand={data.brand} engine={data.engine} model={data.model} />
+          </div>
 
           {/* Tableau des échéances d'entretien */}
           <section className="my-10">
@@ -273,7 +293,7 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
           </section>
 
           {/* CTA Pied de page */}
-          <footer className="mt-12 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 p-8 text-center text-white">
+          <footer className="mt-12 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 p-8 text-center text-white print:hidden">
             <h2 className="text-xl font-bold">Carnet d'entretien numérique & suivi en temps réel</h2>
             <p className="mt-2 text-sm text-slate-300 max-w-lg mx-auto">
               Centralisez vos véhicules, recevez vos alertes révision à J-30 et générez votre carnet numérique certifié pour la revente.

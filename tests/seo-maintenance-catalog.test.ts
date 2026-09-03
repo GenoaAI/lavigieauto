@@ -9,12 +9,22 @@ import {
   getAllBrandParams,
   getMaintenanceDataForBrand,
   getAllBrandsSummary,
+  getFamilySlug,
+  getModelDisplayName,
+  getEnginesByModel,
+  getMaintenanceDataForModel,
+  getAllMaintenanceModels,
+  getAllMaintenanceModelParams,
 } from '../src/lib/maintenance/maintenance-data';
 import sitemap from '../src/app/sitemap';
 import {
   generateStaticParams as generateBrandStaticParams,
   generateMetadata as generateBrandMetadata,
 } from '../src/app/entretien/[brand]/page';
+import {
+  generateStaticParams as generateModelStaticParams,
+  generateMetadata as generateModelMetadata,
+} from '../src/app/entretien/[brand]/[model]/page';
 import {
   generateStaticParams as generateVehicleStaticParams,
   generateMetadata as generateVehicleMetadata,
@@ -230,24 +240,174 @@ export async function testSeoMaintenanceCatalog() {
   if (totalSummaryCount !== 30) {
     throw new Error(`Nombre total de véhicules dans le résumé : ${totalSummaryCount} au lieu de 30`);
   }
-  console.log('  ✔ Comportement robuste aux cas limites, insensibilité à la casse et helpers validés.\n');
+  console.log('  ✔ Comportement robuste aux cas limites, insensibilité à la casse et helpers validés.');
+
+  // 2.5 Unit Tests for New Data Helpers (getFamilySlug, getEnginesByModel, getMaintenanceDataForModel, getAllMaintenanceModels)
+  console.log('  Testing new data helpers (getFamilySlug, getEnginesByModel, getMaintenanceDataForModel, getAllMaintenanceModels)...');
+
+  // getFamilySlug
+  if (getFamilySlug('sandero-2') !== 'sandero') {
+    throw new Error(`getFamilySlug('sandero-2') attendu 'sandero', obtenu '${getFamilySlug('sandero-2')}'`);
+  }
+  if (getFamilySlug('clio-4') !== 'clio') {
+    throw new Error(`getFamilySlug('clio-4') attendu 'clio', obtenu '${getFamilySlug('clio-4')}'`);
+  }
+  if (getFamilySlug('208-1') !== '208') {
+    throw new Error(`getFamilySlug('208-1') attendu '208', obtenu '${getFamilySlug('208-1')}'`);
+  }
+  if (getFamilySlug('c3-aircross') !== 'c3-aircross') {
+    throw new Error(`getFamilySlug('c3-aircross') attendu 'c3-aircross', obtenu '${getFamilySlug('c3-aircross')}'`);
+  }
+  if (getFamilySlug('c4-picasso') !== 'c4-picasso') {
+    throw new Error(`getFamilySlug('c4-picasso') attendu 'c4-picasso', obtenu '${getFamilySlug('c4-picasso')}'`);
+  }
+  if (getFamilySlug('golf-7') !== 'golf') {
+    throw new Error(`getFamilySlug('golf-7') attendu 'golf', obtenu '${getFamilySlug('golf-7')}'`);
+  }
+  if (getFamilySlug('') !== '' || getFamilySlug('   ') !== '') {
+    throw new Error(`getFamilySlug avec chaîne vide ou espaces aurait dû renvoyer ''`);
+  }
+
+  // getEnginesByModel (bi-mode and case-insensitivity)
+  const genericSanderoEngines = getEnginesByModel('dacia', 'sandero');
+  if (genericSanderoEngines.length !== 3) {
+    throw new Error(`getEnginesByModel('dacia', 'sandero') attendu 3 motorisations, obtenu ${genericSanderoEngines.length}`);
+  }
+
+  const specificSandero2Engines = getEnginesByModel('dacia', 'sandero-2');
+  if (specificSandero2Engines.length !== 1) {
+    throw new Error(`getEnginesByModel('dacia', 'sandero-2') attendu 1 motorisation, obtenu ${specificSandero2Engines.length}`);
+  }
+  if (specificSandero2Engines[0].engineSlug !== '0-9-tce-90') {
+    throw new Error(`Moteur inattendu pour Sandero 2 : ${specificSandero2Engines[0].engineSlug}`);
+  }
+
+  // Case-insensitivity
+  const upperSandero = getEnginesByModel('DACIA', 'SANDERO');
+  if (upperSandero.length !== 3) {
+    throw new Error(`getEnginesByModel('DACIA', 'SANDERO') case-insensitive a échoué (${upperSandero.length})`);
+  }
+  const mixedSandero2 = getEnginesByModel('DaCiA', 'SaNdErO-2');
+  if (mixedSandero2.length !== 1) {
+    throw new Error(`getEnginesByModel('DaCiA', 'SaNdErO-2') case-insensitive a échoué (${mixedSandero2.length})`);
+  }
+
+  // Unknown model/brand
+  if (getEnginesByModel('dacia', 'inconnu').length !== 0) {
+    throw new Error('getEnginesByModel avec modèle inconnu aurait dû renvoyer []');
+  }
+  if (getEnginesByModel('inconnu', 'sandero').length !== 0) {
+    throw new Error('getEnginesByModel avec marque inconnue aurait dû renvoyer []');
+  }
+
+  // getMaintenanceDataForModel
+  const sanderoModelSummary = getMaintenanceDataForModel('dacia', 'sandero');
+  if (!sanderoModelSummary) {
+    throw new Error('getMaintenanceDataForModel("dacia", "sandero") a renvoyé null');
+  }
+  if (sanderoModelSummary.count !== 3) {
+    throw new Error(`getMaintenanceDataForModel Sandero count inattendu : ${sanderoModelSummary.count}`);
+  }
+  if (sanderoModelSummary.modelDisplayName !== 'Sandero / Stepway') {
+    throw new Error(`modelDisplayName Sandero inattendu : ${sanderoModelSummary.modelDisplayName}`);
+  }
+  if (sanderoModelSummary.powerRange.min !== 90 || sanderoModelSummary.powerRange.max !== 100) {
+    throw new Error(`powerRange Sandero inattendu : ${JSON.stringify(sanderoModelSummary.powerRange)}`);
+  }
+  if (
+    !sanderoModelSummary.recommendedOilNorms.some((n) => n.includes('RN17')) ||
+    !sanderoModelSummary.recommendedOilNorms.some((n) => n.includes('RN0710'))
+  ) {
+    throw new Error(`recommendedOilNorms Sandero incomplet : ${JSON.stringify(sanderoModelSummary.recommendedOilNorms)}`);
+  }
+  if (!sanderoModelSummary.hasDistributionChain) {
+    throw new Error('sanderoModelSummary.hasDistributionChain doit être true');
+  }
+  if (sanderoModelSummary.hasDistributionBelt) {
+    throw new Error('sanderoModelSummary.hasDistributionBelt doit être false');
+  }
+  if (!sanderoModelSummary.productionYearsRange || sanderoModelSummary.productionYearsRange.length < 4) {
+    throw new Error(`productionYearsRange Sandero invalide : ${sanderoModelSummary.productionYearsRange}`);
+  }
+
+  // Peugeot 208 model summary
+  const p208Summary = getMaintenanceDataForModel('peugeot', '208');
+  if (!p208Summary) {
+    throw new Error('getMaintenanceDataForModel("peugeot", "208") a renvoyé null');
+  }
+  if (p208Summary.count !== 4) {
+    throw new Error(`getMaintenanceDataForModel 208 count inattendu : ${p208Summary.count}`);
+  }
+  if (!p208Summary.hasDistributionBelt) {
+    throw new Error('p208Summary.hasDistributionBelt doit être true (PureTech courroie humide)');
+  }
+  if (!p208Summary.hasVulnerabilities) {
+    throw new Error('p208Summary.hasVulnerabilities doit être true');
+  }
+  if (p208Summary.powerRange.min !== 82 || p208Summary.powerRange.max !== 100) {
+    throw new Error(`powerRange 208 inattendu : ${JSON.stringify(p208Summary.powerRange)}`);
+  }
+
+  // Null returns on invalid inputs
+  if (getMaintenanceDataForModel('', '') !== null) {
+    throw new Error('getMaintenanceDataForModel("", "") aurait dû renvoyer null');
+  }
+  if (getMaintenanceDataForModel('inconnu', 'modele') !== null) {
+    throw new Error('getMaintenanceDataForModel("inconnu", "modele") aurait dû renvoyer null');
+  }
+
+  // getAllMaintenanceModels
+  const allModels = getAllMaintenanceModels();
+  if (allModels.length !== 16) {
+    throw new Error(`getAllMaintenanceModels() attendu exactement 16 modèles canoniques, obtenu ${allModels.length}`);
+  }
+
+  const expectedModelKeys = [
+    'citroen/c3',
+    'citroen/c3-aircross',
+    'citroen/c4-picasso',
+    'dacia/duster',
+    'dacia/sandero',
+    'peugeot/2008',
+    'peugeot/208',
+    'peugeot/3008',
+    'peugeot/308',
+    'renault/captur',
+    'renault/clio',
+    'renault/megane',
+    'renault/twingo',
+    'toyota/yaris',
+    'volkswagen/golf',
+    'volkswagen/polo',
+  ];
+
+  const actualModelKeys = allModels.map((m) => `${m.brandSlug}/${m.modelSlug}`).sort();
+  if (JSON.stringify(actualModelKeys) !== JSON.stringify(expectedModelKeys.sort())) {
+    throw new Error(`Liste des modèles canoniques inattendue : ${JSON.stringify(actualModelKeys)} vs attendu ${JSON.stringify(expectedModelKeys)}`);
+  }
+
+  const totalEngineCountInModels = allModels.reduce((acc, m) => acc + m.count, 0);
+  if (totalEngineCountInModels !== 30) {
+    throw new Error(`Somme des motorisations par modèle : ${totalEngineCountInModels} au lieu de 30`);
+  }
+  console.log('  ✔ Nouveaux data helpers validés (16 modèles canoniques, bi-mode moteur, synthèse agrégée).\n');
 
   // =========================================================================
   // TIER 3: CROSS-FEATURE COMBINATIONS & SITEMAP COHERENCE
   // =========================================================================
-  console.log('▶ [TIER 3] Cohérence Croisée : Sitemap XML (38 URLs), SSG & Maillage Interne...');
+  console.log('▶ [TIER 3] Cohérence Croisée : Sitemap XML (54 URLs), SSG & Maillage Interne...');
 
   const sitemapEntries = sitemap();
-  if (!Array.isArray(sitemapEntries) || sitemapEntries.length !== 38) {
-    throw new Error(`Sitemap XML incomplet : attendu exactement 38 URLs, obtenu ${sitemapEntries?.length}`);
+  if (!Array.isArray(sitemapEntries) || sitemapEntries.length !== 54) {
+    throw new Error(`Sitemap XML incomplet : attendu exactement 54 URLs, obtenu ${sitemapEntries?.length}`);
   }
 
   const sitemapUrls = sitemapEntries.map((e) => e.url);
 
   // Vérification de l'unicité stricte des URLs
   const uniqueUrls = new Set(sitemapUrls);
-  if (uniqueUrls.size !== 38) {
-    throw new Error(`Doublons détectés dans le sitemap XML (${uniqueUrls.size} uniques sur 38 entrées)`);
+  if (uniqueUrls.size !== 54) {
+    throw new Error(`Doublons détectés dans le sitemap XML (${uniqueUrls.size} uniques sur 54 entrées)`);
   }
 
   // 1 Racine + 1 Hub Global
@@ -270,6 +430,20 @@ export async function testSeoMaintenanceCatalog() {
     }
   }
 
+  // 16 Hubs Modèles Intermédiaires
+  for (const model of allModels) {
+    const modelUrl = `https://www.lavigieauto.com/entretien/${model.brandSlug}/${model.modelSlug}`;
+    if (!sitemapUrls.includes(modelUrl)) {
+      throw new Error(`URL de hub modèle intermédiaire manquante dans le sitemap : ${modelUrl}`);
+    }
+    const entry = sitemapEntries.find((e) => e.url === modelUrl);
+    if (entry?.priority !== 0.82 || entry?.changeFrequency !== 'weekly') {
+      throw new Error(
+        `Métadonnées de sitemap incorrectes pour le modèle ${model.brandSlug}/${model.modelSlug} : priority=${entry?.priority}, frequency=${entry?.changeFrequency}`
+      );
+    }
+  }
+
   // 30 Fiches Feuilles Véhicules
   for (const item of allData) {
     const leafUrl = `https://www.lavigieauto.com/entretien/${item.brandSlug}/${item.modelSlug}/${item.engineSlug}`;
@@ -282,10 +456,15 @@ export async function testSeoMaintenanceCatalog() {
     }
   }
 
-  // Vérification generateStaticParams pour Brand Hub et Leaf Pages
+  // Vérification generateStaticParams pour Brand Hub, Model Hub et Leaf Pages
   const staticBrandParams = await generateBrandStaticParams();
   if (staticBrandParams.length !== 6) {
     throw new Error(`generateStaticParams Brand Hub doit renvoyer 6 entrées, obtenu ${staticBrandParams.length}`);
+  }
+
+  const staticModelParams = await generateModelStaticParams();
+  if (staticModelParams.length !== 16) {
+    throw new Error(`generateStaticParams Model Hub doit renvoyer 16 entrées, obtenu ${staticModelParams.length}`);
   }
 
   const staticVehicleParams = await generateVehicleStaticParams();
@@ -293,8 +472,9 @@ export async function testSeoMaintenanceCatalog() {
     throw new Error(`generateStaticParams Leaf Vehicle doit renvoyer 30 entrées, obtenu ${staticVehicleParams.length}`);
   }
 
-  console.log('  ✔ Sitemap XML certifié à 38 URLs uniques (1 racine + 1 hub + 6 marques + 30 véhicules).');
-  console.log('  ✔ Génération des paramètres statiques SSG 100% alignée.\n');
+  console.log('  ✔ Sitemap XML certifié à 54 URLs uniques (1 racine + 1 hub + 6 marques + 16 modèles + 30 véhicules).');
+  console.log('  ✔ Priorités Sitemap validées : Racine (1.0), Hub (0.9), Marques (0.85), Modèles (0.82), Feuilles (0.80).');
+  console.log('  ✔ Génération des paramètres statiques SSG 100% alignée (6 marques, 16 modèles, 30 feuilles).\n');
 
   // =========================================================================
   // TIER 4: REAL-WORLD E2E SCENARIOS & BUSINESS SPECIFICATIONS
@@ -352,7 +532,7 @@ export async function testSeoMaintenanceCatalog() {
   }
   console.log('  ✔ Comptage et exhaustivité des modèles par marque certifiés (dacia:4, peugeot:10, renault:8, citroen:3, volkswagen:4, toyota:1).');
 
-  // 4.3 Logique de détection Courroie vs Chaîne & Métadonnées Dynamiques
+  // 4.3 Logique de détection Courroie vs Chaîne & Métadonnées Dynamiques (Snippets CTR & Fiche PDF)
   // Test moteurs à courroie (Belt)
   const beltVehicles = [
     { brand: 'peugeot', model: '208', engine: '1-2-puretech-82' },
@@ -365,14 +545,30 @@ export async function testSeoMaintenanceCatalog() {
     const meta = await generateVehicleMetadata({ params: Promise.resolve(v) });
     const title = typeof meta.title === 'string' ? meta.title : '';
     const desc = meta.description || '';
+    if (!title.startsWith("Plan d'entretien & Révision")) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Plan d'entretien & Révision" : ${title}`);
+    }
+    if (!title.includes('Fréquences vidange')) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fréquences vidange' : ${title}`);
+    }
     if (!title.includes('Courroie')) {
       throw new Error(`Le titre pour ${v.brand} ${v.model} ${v.engine} aurait dû contenir 'Courroie' : ${title}`);
+    }
+    if (!title.includes('Fiche PDF')) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fiche PDF' : ${title}`);
+    }
+    if (!desc.includes('Fréquences de vidange')) {
+      throw new Error(`La description pour ${v.brand} ${v.model} doit inclure 'Fréquences de vidange' : ${desc}`);
+    }
+    if (!desc.includes("carnet d'entretien gratuit")) {
+      throw new Error(`La description pour ${v.brand} ${v.model} doit inclure 'carnet d'entretien gratuit' : ${desc}`);
     }
     if (!desc.includes('changement de courroie de distribution')) {
       throw new Error(`La description pour ${v.brand} ${v.model} aurait dû mentionner la courroie : ${desc}`);
     }
-    if (!title.startsWith("Plan d'entretien & Révision")) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Plan d'entretien & Révision" : ${title}`);
+    const vehicleData = getMaintenanceData(v.brand, v.model, v.engine);
+    if (vehicleData && !desc.includes(vehicleData.recommendedOilNorm)) {
+      throw new Error(`La description pour ${v.brand} ${v.model} doit mentionner la norme d'huile ${vehicleData.recommendedOilNorm} : ${desc}`);
     }
   }
 
@@ -388,14 +584,33 @@ export async function testSeoMaintenanceCatalog() {
     const meta = await generateVehicleMetadata({ params: Promise.resolve(v) });
     const title = typeof meta.title === 'string' ? meta.title : '';
     const desc = meta.description || '';
+    if (!title.startsWith("Plan d'entretien & Révision")) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Plan d'entretien & Révision" : ${title}`);
+    }
+    if (!title.includes('Fréquences vidange')) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fréquences vidange' : ${title}`);
+    }
     if (!title.includes('Chaîne')) {
       throw new Error(`Le titre pour ${v.brand} ${v.model} ${v.engine} aurait dû contenir 'Chaîne' : ${title}`);
+    }
+    if (!title.includes('Fiche PDF')) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fiche PDF' : ${title}`);
+    }
+    if (!desc.includes('Fréquences de vidange')) {
+      throw new Error(`La description pour ${v.brand} ${v.model} doit inclure 'Fréquences de vidange' : ${desc}`);
+    }
+    if (!desc.includes("carnet d'entretien gratuit")) {
+      throw new Error(`La description pour ${v.brand} ${v.model} doit inclure 'carnet d'entretien gratuit' : ${desc}`);
     }
     if (!desc.includes('contrôle de distribution par chaîne')) {
       throw new Error(`La description pour ${v.brand} ${v.model} aurait dû mentionner la chaîne : ${desc}`);
     }
+    const vehicleData = getMaintenanceData(v.brand, v.model, v.engine);
+    if (vehicleData && !desc.includes(vehicleData.recommendedOilNorm)) {
+      throw new Error(`La description pour ${v.brand} ${v.model} doit mentionner la norme d'huile ${vehicleData.recommendedOilNorm} : ${desc}`);
+    }
   }
-  console.log('  ✔ Détection dynamique de cinématique de distribution (Courroie vs Chaîne) et balises <title>/<meta> validées.');
+  console.log('  ✔ Détection dynamique de cinématique de distribution (Courroie vs Chaîne) et balises CTR enrichies validées.');
 
   // 4.4 Métadonnées des Hubs Marques
   for (const slug of expectedSlugs) {
@@ -411,12 +626,39 @@ export async function testSeoMaintenanceCatalog() {
   }
   console.log('  ✔ Balises d\'en-tête et métadonnées canoniques des 6 hubs de marque validées.');
 
+  // 4.4 bis Métadonnées des Hubs Modèles Intermédiaires
+  for (const model of allModels) {
+    const meta = await generateModelMetadata({ params: Promise.resolve({ brand: model.brandSlug, model: model.modelSlug }) });
+    const title = typeof meta.title === 'string' ? meta.title : '';
+    const desc = meta.description || '';
+    const canonical = meta.alternates?.canonical;
+    if (!title.startsWith("Plan d'entretien & Révision")) {
+      throw new Error(`Titre de hub modèle non conforme pour ${model.brandSlug}/${model.modelSlug} : ${title}`);
+    }
+    if (!title.includes(model.brand) || !title.includes(model.modelDisplayName)) {
+      throw new Error(`Titre de hub modèle doit inclure marque et modèle pour ${model.brandSlug}/${model.modelSlug} : ${title}`);
+    }
+    if (canonical !== `https://www.lavigieauto.com/entretien/${model.brandSlug}/${model.modelSlug}`) {
+      throw new Error(`Canonical incorrect pour le modèle ${model.brandSlug}/${model.modelSlug} : ${canonical}`);
+    }
+    if (!desc.includes(model.brand) || !desc.includes(model.modelDisplayName)) {
+      throw new Error(`Description de hub modèle incorrecte pour ${model.brandSlug}/${model.modelSlug} : ${desc}`);
+    }
+  }
+  console.log('  ✔ Métadonnées CTR et canonical des 16 hubs modèles intermédiaires validées.');
+
   // 4.5 Absence de liens brisés (404) ou d'anciennes routes dépréciées (/app/onboarding)
   const leafPageSrc = fs.readFileSync('src/app/entretien/[brand]/[model]/[engine]/page.tsx', 'utf-8');
   const brandPageSrc = fs.readFileSync('src/app/entretien/[brand]/page.tsx', 'utf-8');
+  const modelPageSrc = fs.readFileSync('src/app/entretien/[brand]/[model]/page.tsx', 'utf-8');
   const hubPageSrc = fs.readFileSync('src/app/entretien/page.tsx', 'utf-8');
 
-  if (leafPageSrc.includes('/app/onboarding') || brandPageSrc.includes('/app/onboarding') || hubPageSrc.includes('/app/onboarding')) {
+  if (
+    leafPageSrc.includes('/app/onboarding') ||
+    brandPageSrc.includes('/app/onboarding') ||
+    modelPageSrc.includes('/app/onboarding') ||
+    hubPageSrc.includes('/app/onboarding')
+  ) {
     throw new Error('Présence détectée de l\'ancienne route 404 "/app/onboarding" dans le code UI');
   }
   if (!leafPageSrc.includes('https://schema.org') || !leafPageSrc.includes('BreadcrumbList') || !leafPageSrc.includes('FAQPage') || !leafPageSrc.includes('Car')) {
@@ -425,7 +667,114 @@ export async function testSeoMaintenanceCatalog() {
   if (!brandPageSrc.includes('https://schema.org') || !brandPageSrc.includes('BreadcrumbList') || !brandPageSrc.includes('CollectionPage')) {
     throw new Error('Schémas Schema.org manquants dans la page de hub de marque');
   }
+  if (!modelPageSrc.includes('https://schema.org') || !modelPageSrc.includes('BreadcrumbList') || (!modelPageSrc.includes('CollectionPage') && !modelPageSrc.includes('ItemList'))) {
+    throw new Error('Schémas Schema.org manquants dans la page de hub modèle intermédiaire');
+  }
   console.log('  ✔ Élimination des liens dépréciés 404 et présence des schémas Schema.org validées.\n');
+
+  // =========================================================================
+  // TIER 5: INTERNAL LINKING (M1) & PRINTABLE LEAD MAGNET (M3)
+  // =========================================================================
+  console.log('▶ [TIER 5] Maillage Interne Exhaustif (M1) & Lead Magnet PDF Imprimable (M3)...');
+
+  // 5.1 Internal Linking: Header Navigation (src/app/layout.tsx)
+  const layoutSrc = fs.readFileSync('src/app/layout.tsx', 'utf-8');
+  const hasHeaderPlanEntretien =
+    layoutSrc.includes('/entretien') &&
+    (layoutSrc.includes("Plans d'entretien") || layoutSrc.includes("Plans d&apos;entretien"));
+  if (!hasHeaderPlanEntretien) {
+    throw new Error("Lien Header '/entretien' avec libellé 'Plans d'entretien' manquant dans src/app/layout.tsx");
+  }
+  if (!layoutSrc.includes('BookOpen')) {
+    throw new Error("Icône 'BookOpen' manquante pour le lien d'entretien dans src/app/layout.tsx");
+  }
+  console.log("  ✔ Header : lien '/entretien' ('Plans d'entretien') et icône BookOpen validés.");
+
+  // 5.2 Internal Linking: Mobile Navigation (src/components/layout/MobileBottomNav.tsx)
+  const mobileNavSrc = fs.readFileSync('src/components/layout/MobileBottomNav.tsx', 'utf-8');
+  if (!mobileNavSrc.includes('/entretien') || !mobileNavSrc.includes('Entretien')) {
+    throw new Error("Lien mobile '/entretien' manquant dans src/components/layout/MobileBottomNav.tsx");
+  }
+  console.log("  ✔ MobileBottomNav : onglet dédié '/entretien' validé.");
+
+  // 5.3 Internal Linking: Footer 5th Column (src/app/layout.tsx)
+  const hasFooterColTitle =
+    layoutSrc.includes("Plans d'Entretien Constructeur") ||
+    layoutSrc.includes("Plans d&apos;Entretien Constructeur");
+  if (!hasFooterColTitle) {
+    throw new Error("Colonne Footer 'Plans d'Entretien Constructeur' manquante dans src/app/layout.tsx");
+  }
+  if (!layoutSrc.includes('lg:grid-cols-5')) {
+    throw new Error("Grille de pied de page 5 colonnes ('lg:grid-cols-5') manquante dans src/app/layout.tsx");
+  }
+
+  // Verify all 6 brand links in footer
+  for (const slug of expectedSlugs) {
+    const brandLink = `/entretien/${slug}`;
+    if (!layoutSrc.includes(brandLink)) {
+      throw new Error(`Lien footer marque manquant pour '${brandLink}' dans src/app/layout.tsx`);
+    }
+  }
+
+  // Verify 4 featured model links in footer
+  const featuredModels = [
+    '/entretien/dacia/sandero-2/0-9-tce-90',
+    '/entretien/renault/clio-4/1-5-dci-90',
+    '/entretien/peugeot/208/1-2-puretech-82',
+    '/entretien/peugeot/3008/1-2-puretech-130',
+  ];
+  for (const modelLink of featuredModels) {
+    if (!layoutSrc.includes(modelLink)) {
+      throw new Error(`Lien footer fiche phare manquant pour '${modelLink}' dans src/app/layout.tsx`);
+    }
+  }
+  console.log("  ✔ Footer : colonne 5, 6 marques et 4 fiches phares maillées avec succès.");
+
+  // 5.4 Internal Linking: Homepage Maintenance Section (src/app/page.tsx)
+  const homeSrc = fs.readFileSync('src/app/page.tsx', 'utf-8');
+  if (!homeSrc.includes('id="programmes-entretien"')) {
+    throw new Error("Section avec id='programmes-entretien' manquante dans src/app/page.tsx");
+  }
+  if (!homeSrc.includes('/entretien')) {
+    throw new Error("Lien vers '/entretien' manquant dans la section programmes d'entretien de src/app/page.tsx");
+  }
+  console.log("  ✔ Homepage : section '#programmes-entretien' avec maillage profond validée.");
+
+  // 5.5 Lead Magnet PDF & Print Component (src/components/maintenance/MaintenancePrintActions.tsx)
+  const printCompPath = path.join(process.cwd(), 'src/components/maintenance/MaintenancePrintActions.tsx');
+  if (!fs.existsSync(printCompPath)) {
+    throw new Error(`Composant introuvable : ${printCompPath}`);
+  }
+  const printCompSrc = fs.readFileSync(printCompPath, 'utf-8');
+  if (!printCompSrc.includes("'use client'") && !printCompSrc.includes('"use client"')) {
+    throw new Error("MaintenancePrintActions.tsx doit porter la directive 'use client'");
+  }
+  if (!printCompSrc.includes('window.print()')) {
+    throw new Error("MaintenancePrintActions.tsx doit invoquer nativement 'window.print()'");
+  }
+  if (!printCompSrc.includes('/dashboard')) {
+    throw new Error("MaintenancePrintActions.tsx doit proposer le lien CTA vers '/dashboard' pour la conversion des anonymes");
+  }
+  if (!printCompSrc.includes('print:hidden')) {
+    throw new Error("MaintenancePrintActions.tsx doit porter 'print:hidden' pour ne pas s'auto-imprimer");
+  }
+  console.log("  ✔ Lead Magnet : MaintenancePrintActions.tsx avec window.print() et conversion /dashboard validé.");
+
+  // 5.6 CSS @media print Stylesheet (src/app/globals.css)
+  const cssSrc = fs.readFileSync('src/app/globals.css', 'utf-8');
+  if (!cssSrc.includes('@media print')) {
+    throw new Error("Règles '@media print' manquantes dans src/app/globals.css");
+  }
+  if (!cssSrc.includes('size: A4') && !cssSrc.includes('size: A4 portrait')) {
+    throw new Error("Format '@page { size: A4 }' manquant dans src/app/globals.css");
+  }
+  if (!cssSrc.includes('print-color-adjust')) {
+    throw new Error("Propriété 'print-color-adjust: exact' manquante dans src/app/globals.css");
+  }
+  if (!cssSrc.includes('.print\\:hidden') && !cssSrc.includes('.print:hidden')) {
+    throw new Error("Règle de masquage de chrome '.print:hidden' manquante dans src/app/globals.css");
+  }
+  console.log("  ✔ Stylesheet : règles d'impression '@media print' A4 validées dans src/app/globals.css.\n");
 
   console.log('=================================================');
   console.log('🎉 TOUS LES TESTS E2E DU CATALOGUE & SEO SONT AU VERT !');
