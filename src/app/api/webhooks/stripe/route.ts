@@ -170,6 +170,16 @@ export async function POST(req: NextRequest) {
             ? parseInt(subscription.metadata.vehicle_count, 10)
             : existingMeta.max_vehicles;
 
+          let safePeriodEnd: string | undefined = undefined;
+          if (subscription.current_period_end) {
+            const num = Number(subscription.current_period_end);
+            if (!isNaN(num) && num > 0) {
+              const ms = num < 10000000000 ? num * 1000 : num;
+              const d = new Date(ms);
+              if (!isNaN(d.getTime())) safePeriodEnd = d.toISOString();
+            }
+          }
+
           await (supabase as any)
             .from("foyers")
             .update({
@@ -179,7 +189,7 @@ export async function POST(req: NextRequest) {
                 stripe_subscription_status: status,
                 max_vehicles: metaVehicleCount || existingMeta.max_vehicles || 1,
                 vehicle_quota: metaVehicleCount || existingMeta.vehicle_quota || 1,
-                stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                ...(safePeriodEnd ? { stripe_current_period_end: safePeriodEnd } : {}),
               },
               updated_at: new Date().toISOString(),
             })

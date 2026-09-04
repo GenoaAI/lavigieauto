@@ -58,6 +58,16 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
             const adminSupabase = createAdminClient();
             const isCanceling = Boolean(activeSub.cancel_at_period_end);
 
+            let safePeriodEnd: string | undefined = undefined;
+            if (activeSub.current_period_end) {
+              const num = Number(activeSub.current_period_end);
+              if (!isNaN(num) && num > 0) {
+                const ms = num < 10000000000 ? num * 1000 : num;
+                const d = new Date(ms);
+                if (!isNaN(d.getTime())) safePeriodEnd = d.toISOString();
+              }
+            }
+
             metadata = {
               ...metadata,
               stripe_customer_id: customer.id,
@@ -68,7 +78,7 @@ export async function getHouseholdBillingStatusAction(): Promise<BillingStatusRe
               vehicle_quota: vCount,
               plan: `foyer_${vCount}_vehicules`,
               activated_at: new Date().toISOString(),
-              stripe_current_period_end: new Date(activeSub.current_period_end * 1000).toISOString(),
+              ...(safePeriodEnd ? { stripe_current_period_end: safePeriodEnd } : {}),
             };
 
             if (foyer?.id) {
