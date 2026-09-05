@@ -226,7 +226,7 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-6 sm:p-9 text-center transition-all duration-200 ${
+        className={`relative border-2 border-dashed rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 text-center transition-all duration-200 ${
           isDragging
             ? "border-blue-500 bg-blue-50/60 scale-[1.01] shadow-lg shadow-blue-500/10"
             : "border-slate-200/90 hover:border-blue-300 bg-slate-50/50 hover:bg-blue-50/20 shadow-xs"
@@ -251,39 +251,39 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
           className="hidden"
         />
 
-        <div className="flex flex-col items-center justify-center space-y-3.5">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white text-blue-600 flex items-center justify-center shadow-md shadow-slate-200/70 border border-slate-100">
+        <div className="flex flex-col items-center justify-center space-y-2.5 sm:space-y-3.5">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white text-blue-600 flex items-center justify-center shadow-md shadow-slate-200/70 border border-slate-100">
             {isProcessing ? (
-              <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin text-blue-600" />
+              <Loader2 className="w-5 h-5 sm:w-7 sm:h-7 animate-spin text-blue-600" />
             ) : (
-              <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
+              <Upload className="w-5 h-5 sm:w-7 sm:h-7" />
             )}
           </div>
 
-          <div className="space-y-1 px-2">
-            <p className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+          <div className="space-y-0.5 sm:space-y-1 px-2">
+            <p className="text-xs sm:text-base font-bold text-slate-900 tracking-tight">
               {isProcessing
                 ? progressStep
                 : "Glissez ou photographiez votre document"}
             </p>
-            <p className="text-[11.5px] sm:text-xs text-slate-500 font-normal">
+            <p className="text-[10.5px] sm:text-xs text-slate-500 font-normal">
               Carte grise, facture d&apos;entretien ou contrôle technique (PDF, JPG, PNG)
             </p>
           </div>
 
           {/* Boutons d'action tactiles / mobile-first */}
           {!isProcessing && (
-            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto pt-1">
+            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto pt-0.5 sm:pt-1">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   cameraInputRef.current?.click();
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-600/25 active:scale-95 transition"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-600/25 active:scale-95 transition"
               >
-                <Camera className="w-4 h-4" />
-                <span>Prendre en photo</span>
+                <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="truncate">Prendre photo</span>
               </button>
 
               <button
@@ -292,10 +292,10 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition border border-slate-200 shadow-2xs"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition border border-slate-200 shadow-2xs"
               >
-                <FolderOpen className="w-4 h-4 text-slate-400" />
-                <span>Parcourir mes fichiers</span>
+                <FolderOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
+                <span className="truncate">Parcourir</span>
               </button>
             </div>
           )}

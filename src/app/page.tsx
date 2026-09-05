@@ -150,15 +150,15 @@ export default function LandingPage() {
       {/* ========================================================================= */}
       {/* 1. HERO SECTION & SCAN-FIRST (Épuré & Focalisé) */}
       {/* ========================================================================= */}
-      <section id="scan-first" className="relative overflow-hidden pt-8 pb-12 lg:pt-14 lg:pb-16 bg-gradient-to-b from-blue-50/50 via-white to-slate-50/30">
+      <section id="scan-first" className="relative overflow-hidden pt-5 pb-8 sm:pt-12 sm:pb-16 bg-gradient-to-b from-blue-50/50 via-white to-slate-50/30">
         {/* Soft radial glow */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-blue-100/50 rounded-full blur-3xl pointer-events-none -z-10" />
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <div className="text-center space-y-3 sm:space-y-4 max-w-3xl mx-auto">
             {/* Pill & Foyer Identifier */}
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-800 text-xs font-semibold border border-blue-200/60 shadow-2xs">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-blue-50 text-blue-800 text-[11px] sm:text-xs font-semibold border border-blue-200/60 shadow-2xs">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                 <span>L&apos;assistant d&apos;entretien automobile du foyer</span>
               </div>
@@ -173,28 +173,28 @@ export default function LandingPage() {
             </div>
 
             {/* Headline */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight leading-[1.14]">
-              Sécurisez le suivi de l&apos;entretien de vos voitures{" "}
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight leading-tight">
+              Sécurisez le suivi de vos véhicules{" "}
               <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 en deux gestes simples.
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-              Fini les factures égarées et les révisions oubliées. Déposez vos documents : l&apos;assistant met à jour votre carnet constructeur, anticipe les échéances et vous guide pour réserver chez votre garagiste.
+            <p className="text-xs sm:text-base text-slate-600 leading-snug sm:leading-relaxed max-w-xl mx-auto">
+              Fini les factures égarées et les révisions oubliées. Déposez vos documents : l&apos;assistant met à jour votre carnet constructeur et anticipe les échéances.
             </p>
           </div>
 
           {/* DROPZONE ZONE */}
-          <div className="mt-8 max-w-2xl mx-auto">
-            <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200/80">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="mt-5 sm:mt-8 max-w-2xl mx-auto">
+            <div className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200/80">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-amber-500" />
-                  Testez instantanément avec un document :
+                  Testez instantanément :
                 </span>
-                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
                   Gratuit &amp; Sans Compte
                 </span>
               </div>
@@ -209,29 +209,29 @@ export default function LandingPage() {
               />
 
               {/* Sample Chips */}
-              <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-                <span className="text-slate-500 text-[11px]">Pas de document sous la main ?</span>
-                <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
+              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                <span className="text-slate-500 text-[11px]">Pas de document ? Testez en 1 clic :</span>
+                <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:flex">
                   <button
                     type="button"
                     onClick={() => handleLoadSample("carte_grise")}
-                    className="flex-1 sm:flex-initial px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition text-[11px] border border-blue-200/70 cursor-pointer"
+                    className="px-2 py-1.5 sm:px-2.5 sm:py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition text-[11px] border border-blue-200/70 cursor-pointer text-center truncate"
                   >
-                    🪪 Exemple Carte Grise
+                    🪪 Carte Grise
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("invoice")}
-                    className="flex-1 sm:flex-initial px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition text-[11px] border border-slate-200 cursor-pointer"
+                    className="px-2 py-1.5 sm:px-2.5 sm:py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition text-[11px] border border-slate-200 cursor-pointer text-center truncate"
                   >
-                    📄 Exemple Facture
+                    📄 Facture
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("ct")}
-                    className="flex-1 sm:flex-initial px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition text-[11px] border border-slate-200 cursor-pointer"
+                    className="px-2 py-1.5 sm:px-2.5 sm:py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition text-[11px] border border-slate-200 cursor-pointer text-center truncate"
                   >
-                    📑 Exemple Contrôle Tech.
+                    📑 Contrôle T.
                   </button>
                 </div>
               </div>
