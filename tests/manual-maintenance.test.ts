@@ -151,8 +151,8 @@ export async function testManualMaintenanceManagement() {
   );
 
   if (drainOilMilestone) {
-    if (drainOilMilestone.targetMileage <= 85000) {
-      throw new Error(`La prochaine vidange aurait dû être projetée après 85 000 km, trouvé: ${drainOilMilestone.targetMileage}`);
+    if (drainOilMilestone.dueMileage <= 85000) {
+      throw new Error(`La prochaine vidange aurait dû être projetée après 85 000 km, trouvé: ${drainOilMilestone.dueMileage}`);
     }
   }
 
