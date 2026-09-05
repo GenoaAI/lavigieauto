@@ -226,10 +226,10 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-6 sm:p-10 text-center transition-all duration-200 ${
+        className={`relative border-2 border-dashed rounded-3xl p-6 sm:p-9 text-center transition-all duration-200 ${
           isDragging
-            ? "border-blue-500 bg-blue-50/50 scale-[1.01]"
-            : "border-slate-300 hover:border-slate-400 bg-white shadow-sm"
+            ? "border-blue-500 bg-blue-50/60 scale-[1.01] shadow-lg shadow-blue-500/10"
+            : "border-slate-200/90 hover:border-blue-300 bg-slate-50/50 hover:bg-blue-50/20 shadow-xs"
         }`}
       >
         {/* Input standard pour fichier/PDF */}
@@ -251,23 +251,23 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
           className="hidden"
         />
 
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
+        <div className="flex flex-col items-center justify-center space-y-3.5">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white text-blue-600 flex items-center justify-center shadow-md shadow-slate-200/70 border border-slate-100">
             {isProcessing ? (
-              <Loader2 className="w-7 h-7 sm:w-8 sm:h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin text-blue-600" />
             ) : (
-              <Upload className="w-7 h-7 sm:w-8 sm:h-8" />
+              <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
             )}
           </div>
 
           <div className="space-y-1 px-2">
-            <p className="text-sm sm:text-base font-bold text-slate-800">
+            <p className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
               {isProcessing
                 ? progressStep
-                : "Glissez ou photographiez votre Carte Grise, Facture ou PV de CT"}
+                : "Glissez ou photographiez votre document"}
             </p>
-            <p className="text-[11.5px] sm:text-xs text-slate-500">
-              PDF, JPG, PNG ou Photo smartphone • Analyse IA instantanée
+            <p className="text-[11.5px] sm:text-xs text-slate-500 font-normal">
+              Carte grise, facture d&apos;entretien ou contrôle technique (PDF, JPG, PNG)
             </p>
           </div>
 
@@ -280,10 +280,10 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
                   e.stopPropagation();
                   cameraInputRef.current?.click();
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 transition"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-600/25 active:scale-95 transition"
               >
                 <Camera className="w-4 h-4" />
-                <span>Prendre en photo (Smartphone)</span>
+                <span>Prendre en photo</span>
               </button>
 
               <button
@@ -292,18 +292,18 @@ export function DocumentDropzone({ onExtractionSuccess, onUploadComplete, vehicl
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition border border-slate-200"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition border border-slate-200 shadow-2xs"
               >
-                <FolderOpen className="w-4 h-4 text-slate-500" />
-                <span>Parcourir les fichiers / PDF</span>
+                <FolderOpen className="w-4 h-4 text-slate-400" />
+                <span>Parcourir mes fichiers</span>
               </button>
             </div>
           )}
 
           {!isProcessing && (
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Geste 2 Conducteur : scannez pour synchroniser, clôturer et recalculer</span>
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 text-slate-500 text-[11px] font-medium border border-slate-200/60 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+              <span>Analyse instantanée et confidentielle • Aucun compte requis</span>
             </div>
           )}
         </div>

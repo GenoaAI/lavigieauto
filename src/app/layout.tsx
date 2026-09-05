@@ -36,21 +36,17 @@ export default function RootLayout({
             </Link>
 
             {/* Navigation Links */}
-            <nav className="hidden md:flex items-center gap-5 lg:gap-8 text-sm font-medium text-slate-600">
-              <Link href="/#scan-first" className="hover:text-blue-600 transition flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-blue-500" />
-                Scan Instantané
-              </Link>
+            <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium text-slate-600">
               <Link href="/#methode-2-gestes" className="hover:text-blue-600 transition">
-                Deux gestes clefs
+                Comment ça marche
               </Link>
               <Link href="/entretien" className="hover:text-blue-600 transition flex items-center gap-1.5">
                 <BookOpen className="w-4 h-4 text-blue-500" />
-                Plans d&apos;entretien
+                <span>Plans d&apos;entretien</span>
               </Link>
               <Link href="/v/cert-demo-8492" className="hover:text-blue-600 transition flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                Certificat Revente
+                <span>Certificat Revente</span>
               </Link>
               <Link href="/dashboard" className="hover:text-blue-600 transition">
                 Tableau de Bord
