@@ -25,7 +25,7 @@ export async function generateStaticParams() {
  * Génère un titre SEO ultra-optimisé CTR strictement inférieur à 65 caractères.
  * Format cible : "Carnet d'Entretien [Marque] [Modèle] [Moteur] (PDF)"
  */
-export function formatVehicleTitle(brand: string, model: string, engine: string): string {
+function formatVehicleTitle(brand: string, model: string, engine: string): string {
   // 1. Nettoyage initial : suppression du slash disgracieux dans le modèle
   let cleanModel = model.replace(/\s*\/\s*/g, ' ');
   let cleanEngine = engine;
