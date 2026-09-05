@@ -201,3 +201,73 @@ export type ToggleMilestoneAlertStatusInput = UpdateMilestoneAlertStatusInput;
 export const updateEcheanceAlertStatusSchema = updateMilestoneAlertStatusSchema;
 export type UpdateEcheanceAlertStatusInput = UpdateMilestoneAlertStatusInput;
 
+/**
+ * Schéma de validation pour l'ajout manuel d'une opération d'entretien réalisée par le propriétaire (DIY)
+ */
+export const addManualMaintenanceSchema = z.object({
+  vehicleId: z
+    .string({ required_error: "L'identifiant du véhicule est requis." })
+    .trim()
+    .min(1, "L'identifiant du véhicule ne peut pas être vide."),
+  operation: z
+    .string({ required_error: "Le nom de l'opération est requis." })
+    .trim()
+    .min(2, "Le nom de l'opération doit comporter au moins 2 caractères.")
+    .max(255, "Le nom de l'opération ne peut pas dépasser 255 caractères."),
+  category: z
+    .enum([
+      "moteur",
+      "freinage",
+      "liaison_au_sol",
+      "echappement",
+      "distribution",
+      "visibilite",
+      "carrosserie",
+      "pneumatiques",
+      "electricite",
+      "climatisation",
+      "revision_generale",
+      "transmission",
+      "autre",
+    ], {
+      errorMap: () => ({ message: "La catégorie d'entretien sélectionnée est invalide." }),
+    })
+    .default("moteur"),
+  dateIntervention: z
+    .string({ required_error: "La date de l'opération est requise." })
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "La date doit être au format AAAA-MM-JJ."),
+  kilometrage: z
+    .coerce
+    .number({ required_error: "Le kilométrage est requis." })
+    .int("Le kilométrage doit être un nombre entier.")
+    .min(0, "Le kilométrage ne peut pas être négatif.")
+    .max(2000000, "Le kilométrage est supérieur à la limite autorisée."),
+  coutTTC: z
+    .coerce
+    .number()
+    .min(0, "Le coût ne peut pas être négatif.")
+    .max(100000, "Le montant dépasse la limite autorisée.")
+    .optional()
+    .nullable(),
+  referencePiece: z
+    .string()
+    .trim()
+    .max(255, "La référence des pièces ne peut pas dépasser 255 caractères.")
+    .optional()
+    .nullable(),
+  notes: z
+    .string()
+    .trim()
+    .max(2000, "Les notes ne peuvent pas dépasser 2000 caractères.")
+    .optional()
+    .nullable(),
+  milestoneId: z
+    .string()
+    .trim()
+    .optional()
+    .nullable(),
+});
+
+export type AddManualMaintenanceInput = z.infer<typeof addManualMaintenanceSchema>;
+
+

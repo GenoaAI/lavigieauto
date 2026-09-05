@@ -84,6 +84,12 @@ export function MaintenanceBookletView({
         garage: l.emetteur || "Atelier Professionnel",
         totalCost: 0,
         items: [],
+        isDIY:
+          l.metadata?.is_diy === true ||
+          l.metadata?.fait_par === "proprietaire" ||
+          (l.emetteur || "").toLowerCase().includes("propriétaire") ||
+          (l.emetteur || "").toLowerCase().includes("diy"),
+        referencePiece: l.reference_piece || null,
       });
     }
     const g = groupedMap.get(key);
@@ -305,13 +311,21 @@ export function MaintenanceBookletView({
                 {interventions.map((item, idx) => (
                   <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <strong className="text-slate-900 font-bold">{item.garage}</strong>
+                        {item.isDIY && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[9px] border border-emerald-200 uppercase tracking-wider">
+                            🔧 Propriétaire (DIY)
+                          </span>
+                        )}
                         <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-mono text-[10px]">
                           {item.date}
                         </span>
                       </div>
                       <p className="text-slate-600 text-[11.5px]">{item.items.join(" • ")}</p>
+                      {item.referencePiece && (
+                        <p className="text-[10px] text-slate-500 italic">Pièces : {item.referencePiece}</p>
+                      )}
                     </div>
                     <div className="text-left sm:text-right shrink-0">
                       <span className="font-mono font-bold text-slate-900 text-sm">{(item.km || 0).toLocaleString("fr-FR")} km</span>

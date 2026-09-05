@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { recalculateMaintenanceForecast, MaintenanceForecast, LastServiceRecord, calculateTelemetryPace } from "@/lib/engine/cycles";
 import { calculateConformityScore, ConformityAuditResult, TechnicalInspectionHistoryItem } from "@/lib/engine/conformity-score";
@@ -32,7 +33,13 @@ import { getFoyerOverviewAction, invalidateFoyerCache } from "@/app/actions/foye
 import { checkVehicleQuota } from "@/lib/integrations/stripe/quota";
 import { resolveVehicleCatalogSpecs } from "@/lib/engine/vehicle-catalog";
 import { requireUserHouseholdContext, assertVehicleOwnership } from "@/lib/security/auth-context";
-import { updateMilestoneAlertStatusSchema, UpdateMilestoneAlertStatusInput } from "@/lib/security/schemas";
+import { vaultStorageService } from "@/lib/storage/vault-service";
+import {
+  updateMilestoneAlertStatusSchema,
+  UpdateMilestoneAlertStatusInput,
+  addManualMaintenanceSchema,
+  AddManualMaintenanceInput,
+} from "@/lib/security/schemas";
 
 export interface EnrichedVehicle extends Partial<Vehicule> {
   id: string;
@@ -1399,4 +1406,220 @@ export async function updateMilestoneAlertStatusAction(
 ): Promise<ToggleMilestoneAlertStatusResult> {
   return toggleMilestoneAlertStatusAction(rawInput);
 }
+
+export interface AddManualMaintenanceResult {
+  success: boolean;
+  interventionId?: string;
+  documentId?: string;
+  updatedMileage?: number;
+  error?: string;
+}
+
+/**
+ * Enregistre une intervention d'entretien réalisée manuellement par le propriétaire (DIY).
+ * - Vérifie l'appartenance Zero Trust du véhicule au foyer
+ * - Enregistre optionnellement la facture de pièces dans le coffre-fort documentaire
+ * - Crée la ligne d'intervention officielle dans lignes_interventions
+ * - Met à jour l'odomètre du véhicule (auto-guérison) si le km déclaré est supérieur
+ * - Déclenche le recalibrage automatique de l'échéancier constructeur
+ */
+export async function addManualMaintenanceAction(
+  formDataOrData: AddManualMaintenanceInput | FormData
+): Promise<AddManualMaintenanceResult> {
+  try {
+    let parsedInput: AddManualMaintenanceInput;
+    let file: File | null = null;
+
+    if (formDataOrData instanceof FormData) {
+      const rawCout = formDataOrData.get("coutTTC");
+      const rawKm = formDataOrData.get("kilometrage");
+      const candidateFile = formDataOrData.get("receiptFile");
+      if (candidateFile && typeof (candidateFile as any).arrayBuffer === "function" && (candidateFile as any).size > 0) {
+        file = candidateFile as File;
+      }
+
+      parsedInput = addManualMaintenanceSchema.parse({
+        vehicleId: formDataOrData.get("vehicleId"),
+        operation: formDataOrData.get("operation"),
+        category: formDataOrData.get("category") || "moteur",
+        dateIntervention: formDataOrData.get("dateIntervention"),
+        kilometrage: rawKm ? Number(rawKm) : undefined,
+        coutTTC: rawCout !== null && rawCout !== "" && rawCout !== undefined ? Number(rawCout) : null,
+        referencePiece: formDataOrData.get("referencePiece") || null,
+        notes: formDataOrData.get("notes") || null,
+        milestoneId: formDataOrData.get("milestoneId") || null,
+      });
+    } else {
+      parsedInput = addManualMaintenanceSchema.parse(formDataOrData);
+    }
+
+    // 1. Contrôle d'accès strict Zero Trust & Anti-BOLA/IDOR
+    const authContext = await requireUserHouseholdContext();
+    await assertVehicleOwnership(parsedInput.vehicleId, authContext.foyerId);
+
+    const supabase = createAdminClient();
+
+    // 2. Résolution du véhicule réel
+    const { data: vehicle, error: vehErr } = await (supabase as any)
+      .from("vehicules")
+      .select("*")
+      .eq("foyer_id", authContext.foyerId)
+      .or(`id.eq.${parsedInput.vehicleId},immatriculation.eq.${parsedInput.vehicleId.toUpperCase().replace(/[\s-]/g, "")}`)
+      .single();
+
+    if (vehErr || !vehicle) {
+      return { success: false, error: "Véhicule introuvable ou non autorisé." };
+    }
+
+    const realVehicleId = vehicle.id;
+
+    // 3. Traitement optionnel du justificatif d'achat des pièces (stockage coffre-fort)
+    let createdDocId: string | null = null;
+    if (file && file.size > 0) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const fileHash = crypto.createHash("sha256").update(buffer).digest("hex").substring(0, 8);
+
+        const vaultUpload = await vaultStorageService.uploadToVault({
+          fileBuffer: buffer,
+          mimeType: file.type || "application/pdf",
+          userId: authContext.userId || authContext.foyerId,
+          vehicleId: realVehicleId,
+          metadata: {
+            date: parsedInput.dateIntervention,
+            licensePlate: vehicle.immatriculation || "VEHICULE",
+            type: "invoice",
+            mileage: parsedInput.kilometrage,
+            entityName: "Achat pièces détachées (DIY)",
+            originalFileName: file.name,
+            uniqueHash: fileHash,
+          },
+        });
+
+        const storagePath = vaultUpload.storagePath || `vault/${authContext.foyerId}/${realVehicleId}/${Date.now()}_${file.name}`;
+        const fileName = vaultUpload.fileName || file.name;
+
+        const { data: docRecord, error: docError } = await (supabase as any)
+          .from("documents_sources")
+          .insert({
+            foyer_id: authContext.foyerId,
+            vehicule_id: realVehicleId,
+            nom_fichier: fileName,
+            storage_path: storagePath,
+            file_type: "facture",
+            mime_type: file.type || "application/pdf",
+            taille_octets: file.size,
+            date_document: parsedInput.dateIntervention,
+            kilometrage_document: parsedInput.kilometrage,
+            emetteur: "Achat pièces détachées (DIY)",
+            montant_ttc: parsedInput.coutTTC || null,
+            statut_ocr: "traite",
+            metadata: {
+              is_parts_invoice: true,
+              operation: parsedInput.operation,
+              reference_piece: parsedInput.referencePiece,
+              fait_par: "proprietaire",
+            },
+          })
+          .select("id")
+          .single();
+
+        if (!docError && docRecord) {
+          createdDocId = docRecord.id;
+        }
+      } catch (uploadErr) {
+        console.warn("[addManualMaintenanceAction] Échec upload justificatif pièces:", uploadErr);
+      }
+    }
+
+    // 4. Insertion dans lignes_interventions
+    let descriptionText = parsedInput.notes ? parsedInput.notes.trim() : "";
+    if (parsedInput.referencePiece) {
+      descriptionText = descriptionText
+        ? `[Fournitures: ${parsedInput.referencePiece}] ${descriptionText}`
+        : `Fournitures: ${parsedInput.referencePiece}`;
+    }
+    if (!descriptionText) {
+      descriptionText = "Entretien réalisé par le propriétaire (DIY)";
+    }
+
+    const { data: lineRecord, error: lineError } = await (supabase as any)
+      .from("lignes_interventions")
+      .insert({
+        foyer_id: authContext.foyerId,
+        vehicule_id: realVehicleId,
+        document_source_id: createdDocId,
+        categorie: parsedInput.category,
+        operation: parsedInput.operation,
+        description: descriptionText,
+        quantite: 1,
+        prix_total_ttc: parsedInput.coutTTC || 0,
+        reference_piece: parsedInput.referencePiece || null,
+        date_intervention: parsedInput.dateIntervention,
+        kilometrage_intervention: parsedInput.kilometrage,
+        emetteur: "Propriétaire (Entretien DIY)",
+        metadata: {
+          fait_par: "proprietaire",
+          is_diy: true,
+          reference_piece: parsedInput.referencePiece,
+          notes: parsedInput.notes,
+          milestone_id: parsedInput.milestoneId,
+        },
+      })
+      .select("id")
+      .single();
+
+    if (lineError) {
+      console.error("[addManualMaintenanceAction] Erreur insertion ligne intervention:", lineError);
+      return { success: false, error: lineError.message || "Erreur lors de l'enregistrement de l'intervention." };
+    }
+
+    // 5. Auto-guérison odométrique : actualiser le kilométrage actuel si supérieur
+    let newMileage = vehicle.kilometrage_actuel || 0;
+    if (parsedInput.kilometrage > newMileage) {
+      newMileage = parsedInput.kilometrage;
+      await (supabase as any)
+        .from("vehicules")
+        .update({
+          kilometrage_actuel: newMileage,
+          date_releve_kilometrage: parsedInput.dateIntervention,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", realVehicleId);
+    }
+
+    // 6. Recalibrage automatique de l'échéancier constructeur
+    try {
+      await syncVehicleManufacturerScheduleAction(realVehicleId);
+    } catch (syncErr) {
+      console.warn("[addManualMaintenanceAction] Avertissement resynchronisation plan:", syncErr);
+    }
+
+    // 7. Invalidation de cache & revalidation Next.js
+    await invalidateFoyerCache();
+
+    try {
+      revalidatePath("/dashboard");
+      revalidatePath(`/dashboard/vehicles/${parsedInput.vehicleId}`);
+      revalidatePath(`/dashboard/vehicles/${realVehicleId}`);
+    } catch {
+      // Ignore in tests
+    }
+
+    return {
+      success: true,
+      interventionId: lineRecord?.id,
+      documentId: createdDocId || undefined,
+      updatedMileage: newMileage,
+    };
+  } catch (err: any) {
+    console.error("[addManualMaintenanceAction] Exception:", err);
+    return {
+      success: false,
+      error: err.message || "Une erreur inattendue est survenue lors de l'enregistrement de l'entretien.",
+    };
+  }
+}
+
 
