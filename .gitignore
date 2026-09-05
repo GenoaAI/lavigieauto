@@ -43,3 +43,11 @@ next-env.d.ts
 PROJECT.md
 TEST_INFRA.md
 supabase/.temp/
+
+# Google Search Console credentials & Python virtualenv
+gsc-credentials.json
+*credentials*.json
+*service-account*.json
+.venv/
+__pycache__/
+*.pyc

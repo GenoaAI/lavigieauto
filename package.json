@@ -9,7 +9,12 @@
     "lint": "tsc --noEmit",
     "test": "npx tsx tests/run-all-tests.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "gsc": "python scripts/gsc_analyzer.py --overview",
+    "gsc:indexation": "python scripts/gsc_analyzer.py --indexation",
+    "gsc:opportunities": "python scripts/gsc_analyzer.py --opportunities",
+    "gsc:brands": "python scripts/gsc_analyzer.py --brands",
+    "gsc:queries": "python scripts/gsc_analyzer.py --queries"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

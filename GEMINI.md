@@ -37,3 +37,9 @@
 * **Architecture PKCE & Route de Callback Obligatoire (`/auth/callback`)** : Tout flux d'authentification (Magic Link, Google OAuth) doit obligatoirement router par `src/app/auth/callback/route.ts` via `supabase.auth.exchangeCodeForSession(code)` avant d'accéder au dashboard, accompagné d'une auto-liaison de l'entité (`foyer_members`).
 * **Alignement Strict des URLs Supabase (Site URL & Redirect URLs)** : Définir obligatoirement le `Site URL` sur le domaine officiel (`https://lavigieauto.com`) et inscrire `https://lavigieauto.com/**` dans les Redirect URLs autorisées dans Supabase Dashboard pour empêcher le renvoi parasite vers `localhost:3000`.
 * **Redondance des Modes d'Accès (Anti-Rate Limit)** : Toujours maintenir une modalité d'accès par mot de passe direct en secours du Magic Link afin de prémunir l'utilisateur des blocages liés aux quotas d'envoi d'emails (rate-limit SMTP 60s).
+
+## 8. PILOTAGE & OBSERVABILITÉ SEO (GOOGLE SEARCH CONSOLE)
+* **Sécurité Absolue des Clés de Service** : Le fichier `gsc-credentials.json` (et tout fichier `*credentials*.json` ou `.venv/`) doit rester strictement exclu du versioning Git via `.gitignore`.
+* **Décisions SEO Guidées par la Donnée Réelle** : Toute modification de `<title>`, meta description ou balisage Hn sur les pages pSEO (`/entretien/*`) doit s'appuyer sur les métriques réelles extraites de l'API Search Console (`npm run gsc` ou `npm run gsc:opportunities`), et non sur des conjectures.
+* **Vérification d'Indexation Avant Refonte** : Avant de déprécier ou modifier l'URL d'un moteur ou modèle, vérifier systématiquement son statut d'indexation Googlebot via `npm run gsc:indexation`.
+* **Outillage Standardisé** : Les analyses SEO du projet s'exécutent exclusivement via l'environnement virtuel `.venv` et le script centralisé `scripts/gsc_analyzer.py`.
