@@ -41,16 +41,16 @@ export async function testSeoMaintenanceCatalog() {
   // =========================================================================
   // TIER 1: FEATURE COVERAGE & CATALOG DATA INTEGRITY
   // =========================================================================
-  console.log('▶ [TIER 1] Couverture & Intégrité Structurelle du Référentiel Maintenance (30 JSON)...');
+  console.log('▶ [TIER 1] Couverture & Intégrité Structurelle du Référentiel Maintenance (32 JSON)...');
 
   const jsonFiles = fs.readdirSync(MAINTENANCE_DIR).filter((f) => f.endsWith('.json'));
-  if (jsonFiles.length !== 30) {
-    throw new Error(`Nombre de fichiers JSON inattendu : attendu 30, obtenu ${jsonFiles.length}`);
+  if (jsonFiles.length !== 32) {
+    throw new Error(`Nombre de fichiers JSON inattendu : attendu 32, obtenu ${jsonFiles.length}`);
   }
 
   const allData = getAllMaintenanceData();
-  if (allData.length !== 30) {
-    throw new Error(`getAllMaintenanceData() a renvoyé ${allData.length} fiches au lieu de 30.`);
+  if (allData.length !== 32) {
+    throw new Error(`getAllMaintenanceData() a renvoyé ${allData.length} fiches au lieu de 32.`);
   }
 
   const validFuelTypes = ['Essence', 'Diesel', 'Hybride', 'Electrique'];
@@ -192,10 +192,10 @@ export async function testSeoMaintenanceCatalog() {
   // Insensibilité à la casse
   const daciaUpper = getMaintenanceDataForBrand('DACIA');
   const daciaMixed = getMaintenanceDataForBrand('DaCiA');
-  if (!daciaUpper || daciaUpper.brandSlug !== 'dacia' || daciaUpper.models.length !== 4) {
+  if (!daciaUpper || daciaUpper.brandSlug !== 'dacia' || daciaUpper.models.length !== 6) {
     throw new Error('Échec de la résolution case-insensitive pour DACIA');
   }
-  if (!daciaMixed || daciaMixed.brandSlug !== 'dacia' || daciaMixed.models.length !== 4) {
+  if (!daciaMixed || daciaMixed.brandSlug !== 'dacia' || daciaMixed.models.length !== 6) {
     throw new Error('Échec de la résolution case-insensitive pour DaCiA');
   }
 
@@ -237,8 +237,8 @@ export async function testSeoMaintenanceCatalog() {
     throw new Error(`getAllBrandsSummary() a renvoyé ${summaries.length} marques au lieu de 6`);
   }
   const totalSummaryCount = summaries.reduce((acc, s) => acc + s.count, 0);
-  if (totalSummaryCount !== 30) {
-    throw new Error(`Nombre total de véhicules dans le résumé : ${totalSummaryCount} au lieu de 30`);
+  if (totalSummaryCount !== 32) {
+    throw new Error(`Nombre total de véhicules dans le résumé : ${totalSummaryCount} au lieu de 32`);
   }
   console.log('  ✔ Comportement robuste aux cas limites, insensibilité à la casse et helpers validés.');
 
@@ -358,8 +358,8 @@ export async function testSeoMaintenanceCatalog() {
 
   // getAllMaintenanceModels
   const allModels = getAllMaintenanceModels();
-  if (allModels.length !== 16) {
-    throw new Error(`getAllMaintenanceModels() attendu exactement 16 modèles canoniques, obtenu ${allModels.length}`);
+  if (allModels.length !== 17) {
+    throw new Error(`getAllMaintenanceModels() attendu exactement 17 modèles canoniques, obtenu ${allModels.length}`);
   }
 
   const expectedModelKeys = [
@@ -367,6 +367,7 @@ export async function testSeoMaintenanceCatalog() {
     'citroen/c3-aircross',
     'citroen/c4-picasso',
     'dacia/duster',
+    'dacia/jogger',
     'dacia/sandero',
     'peugeot/2008',
     'peugeot/208',
@@ -387,27 +388,27 @@ export async function testSeoMaintenanceCatalog() {
   }
 
   const totalEngineCountInModels = allModels.reduce((acc, m) => acc + m.count, 0);
-  if (totalEngineCountInModels !== 30) {
-    throw new Error(`Somme des motorisations par modèle : ${totalEngineCountInModels} au lieu de 30`);
+  if (totalEngineCountInModels !== 32) {
+    throw new Error(`Somme des motorisations par modèle : ${totalEngineCountInModels} au lieu de 32`);
   }
-  console.log('  ✔ Nouveaux data helpers validés (16 modèles canoniques, bi-mode moteur, synthèse agrégée).\n');
+  console.log('  ✔ Nouveaux data helpers validés (17 modèles canoniques, bi-mode moteur, synthèse agrégée).\n');
 
   // =========================================================================
   // TIER 3: CROSS-FEATURE COMBINATIONS & SITEMAP COHERENCE
   // =========================================================================
-  console.log('▶ [TIER 3] Cohérence Croisée : Sitemap XML (54 URLs), SSG & Maillage Interne...');
+  console.log('▶ [TIER 3] Cohérence Croisée : Sitemap XML (57 URLs), SSG & Maillage Interne...');
 
   const sitemapEntries = sitemap();
-  if (!Array.isArray(sitemapEntries) || sitemapEntries.length !== 54) {
-    throw new Error(`Sitemap XML incomplet : attendu exactement 54 URLs, obtenu ${sitemapEntries?.length}`);
+  if (!Array.isArray(sitemapEntries) || sitemapEntries.length !== 57) {
+    throw new Error(`Sitemap XML incomplet : attendu exactement 57 URLs, obtenu ${sitemapEntries?.length}`);
   }
 
   const sitemapUrls = sitemapEntries.map((e) => e.url);
 
   // Vérification de l'unicité stricte des URLs
   const uniqueUrls = new Set(sitemapUrls);
-  if (uniqueUrls.size !== 54) {
-    throw new Error(`Doublons détectés dans le sitemap XML (${uniqueUrls.size} uniques sur 54 entrées)`);
+  if (uniqueUrls.size !== 57) {
+    throw new Error(`Doublons détectés dans le sitemap XML (${uniqueUrls.size} uniques sur 57 entrées)`);
   }
 
   // 1 Racine + 1 Hub Global
@@ -463,18 +464,18 @@ export async function testSeoMaintenanceCatalog() {
   }
 
   const staticModelParams = await generateModelStaticParams();
-  if (staticModelParams.length !== 16) {
-    throw new Error(`generateStaticParams Model Hub doit renvoyer 16 entrées, obtenu ${staticModelParams.length}`);
+  if (staticModelParams.length !== 17) {
+    throw new Error(`generateStaticParams Model Hub doit renvoyer 17 entrées, obtenu ${staticModelParams.length}`);
   }
 
   const staticVehicleParams = await generateVehicleStaticParams();
-  if (staticVehicleParams.length !== 30) {
-    throw new Error(`generateStaticParams Leaf Vehicle doit renvoyer 30 entrées, obtenu ${staticVehicleParams.length}`);
+  if (staticVehicleParams.length !== 32) {
+    throw new Error(`generateStaticParams Leaf Vehicle doit renvoyer 32 entrées, obtenu ${staticVehicleParams.length}`);
   }
 
-  console.log('  ✔ Sitemap XML certifié à 54 URLs uniques (1 racine + 1 hub + 6 marques + 16 modèles + 30 véhicules).');
+  console.log('  ✔ Sitemap XML certifié à 57 URLs uniques (1 racine + 1 hub + 6 marques + 17 modèles + 32 véhicules).');
   console.log('  ✔ Priorités Sitemap validées : Racine (1.0), Hub (0.9), Marques (0.85), Modèles (0.82), Feuilles (0.80).');
-  console.log('  ✔ Génération des paramètres statiques SSG 100% alignée (6 marques, 16 modèles, 30 feuilles).\n');
+  console.log('  ✔ Génération des paramètres statiques SSG 100% alignée (6 marques, 17 modèles, 32 feuilles).\n');
 
   // =========================================================================
   // TIER 4: REAL-WORLD E2E SCENARIOS & BUSINESS SPECIFICATIONS
@@ -516,7 +517,7 @@ export async function testSeoMaintenanceCatalog() {
   // 4.2 Répartition exhaustive des modèles par hub de marque
   const brandModelCounts: Record<string, number> = {
     citroen: 3,
-    dacia: 4,
+    dacia: 6,
     peugeot: 10,
     renault: 8,
     toyota: 1,
@@ -530,7 +531,7 @@ export async function testSeoMaintenanceCatalog() {
       throw new Error(`Nombre de modèles pour ${brand} incorrect : attendu ${expectedCount}, obtenu ${data.models.length}`);
     }
   }
-  console.log('  ✔ Comptage et exhaustivité des modèles par marque certifiés (dacia:4, peugeot:10, renault:8, citroen:3, volkswagen:4, toyota:1).');
+  console.log('  ✔ Comptage et exhaustivité des modèles par marque certifiés (dacia:6, peugeot:10, renault:8, citroen:3, volkswagen:4, toyota:1).');
 
   // 4.3 Logique de détection Courroie vs Chaîne & Métadonnées Dynamiques (Snippets CTR & Fiche PDF)
   // Test moteurs à courroie (Belt)
@@ -545,17 +546,14 @@ export async function testSeoMaintenanceCatalog() {
     const meta = await generateVehicleMetadata({ params: Promise.resolve(v) });
     const title = typeof meta.title === 'string' ? meta.title : '';
     const desc = meta.description || '';
-    if (!title.startsWith("Plan d'entretien & Révision")) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Plan d'entretien & Révision" : ${title}`);
+    if (!title.startsWith("Carnet d'Entretien")) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Carnet d'Entretien" : ${title}`);
     }
-    if (!title.includes('Fréquences vidange')) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fréquences vidange' : ${title}`);
+    if (!title.includes('PDF')) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'PDF' : ${title}`);
     }
-    if (!title.includes('Courroie')) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} ${v.engine} aurait dû contenir 'Courroie' : ${title}`);
-    }
-    if (!title.includes('Fiche PDF')) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fiche PDF' : ${title}`);
+    if (title.length >= 65) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} dépasse 64 caractères (${title.length}) : ${title}`);
     }
     if (!desc.includes('Fréquences de vidange')) {
       throw new Error(`La description pour ${v.brand} ${v.model} doit inclure 'Fréquences de vidange' : ${desc}`);
@@ -584,17 +582,14 @@ export async function testSeoMaintenanceCatalog() {
     const meta = await generateVehicleMetadata({ params: Promise.resolve(v) });
     const title = typeof meta.title === 'string' ? meta.title : '';
     const desc = meta.description || '';
-    if (!title.startsWith("Plan d'entretien & Révision")) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Plan d'entretien & Révision" : ${title}`);
+    if (!title.startsWith("Carnet d'Entretien")) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit commencer par "Carnet d'Entretien" : ${title}`);
     }
-    if (!title.includes('Fréquences vidange')) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fréquences vidange' : ${title}`);
+    if (!title.includes('PDF')) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'PDF' : ${title}`);
     }
-    if (!title.includes('Chaîne')) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} ${v.engine} aurait dû contenir 'Chaîne' : ${title}`);
-    }
-    if (!title.includes('Fiche PDF')) {
-      throw new Error(`Le titre pour ${v.brand} ${v.model} doit inclure 'Fiche PDF' : ${title}`);
+    if (title.length >= 65) {
+      throw new Error(`Le titre pour ${v.brand} ${v.model} dépasse 64 caractères (${title.length}) : ${title}`);
     }
     if (!desc.includes('Fréquences de vidange')) {
       throw new Error(`La description pour ${v.brand} ${v.model} doit inclure 'Fréquences de vidange' : ${desc}`);
@@ -610,7 +605,24 @@ export async function testSeoMaintenanceCatalog() {
       throw new Error(`La description pour ${v.brand} ${v.model} doit mentionner la norme d'huile ${vehicleData.recommendedOilNorm} : ${desc}`);
     }
   }
-  console.log('  ✔ Détection dynamique de cinématique de distribution (Courroie vs Chaîne) et balises CTR enrichies validées.');
+
+  // Assertion exhaustive sur les 32 fiches feuilles (< 65 chars garanti)
+  for (const item of allData) {
+    const meta = await generateVehicleMetadata({
+      params: Promise.resolve({ brand: item.brandSlug, model: item.modelSlug, engine: item.engineSlug }),
+    });
+    const title = typeof meta.title === 'string' ? meta.title : '';
+    if (!title.startsWith("Carnet d'Entretien")) {
+      throw new Error(`Le titre pour ${item.brand} ${item.model} ${item.engine} doit commencer par "Carnet d'Entretien" : ${title}`);
+    }
+    if (!title.includes('PDF')) {
+      throw new Error(`Le titre pour ${item.brand} ${item.model} ${item.engine} doit inclure 'PDF' : ${title}`);
+    }
+    if (title.length >= 65) {
+      throw new Error(`Le titre pour ${item.brand} ${item.model} ${item.engine} dépasse 64 caractères (${title.length}) : ${title}`);
+    }
+  }
+  console.log('  ✔ Détection dynamique de cinématique de distribution et balises CTR compactes (< 65 chars) validées sur 32 fiches.');
 
   // 4.4 Métadonnées des Hubs Marques
   for (const slug of expectedSlugs) {
@@ -632,11 +644,14 @@ export async function testSeoMaintenanceCatalog() {
     const title = typeof meta.title === 'string' ? meta.title : '';
     const desc = meta.description || '';
     const canonical = meta.alternates?.canonical;
-    if (!title.startsWith("Plan d'entretien & Révision")) {
+    if (!title.startsWith("Carnet d'Entretien")) {
       throw new Error(`Titre de hub modèle non conforme pour ${model.brandSlug}/${model.modelSlug} : ${title}`);
     }
-    if (!title.includes(model.brand) || !title.includes(model.modelDisplayName)) {
-      throw new Error(`Titre de hub modèle doit inclure marque et modèle pour ${model.brandSlug}/${model.modelSlug} : ${title}`);
+    if (title.length >= 65) {
+      throw new Error(`Titre de hub modèle dépasse 64 caractères (${title.length}) pour ${model.brandSlug}/${model.modelSlug} : ${title}`);
+    }
+    if (!title.includes(model.brand)) {
+      throw new Error(`Titre de hub modèle doit inclure marque pour ${model.brandSlug}/${model.modelSlug} : ${title}`);
     }
     if (canonical !== `https://www.lavigieauto.com/entretien/${model.brandSlug}/${model.modelSlug}`) {
       throw new Error(`Canonical incorrect pour le modèle ${model.brandSlug}/${model.modelSlug} : ${canonical}`);
@@ -645,7 +660,7 @@ export async function testSeoMaintenanceCatalog() {
       throw new Error(`Description de hub modèle incorrecte pour ${model.brandSlug}/${model.modelSlug} : ${desc}`);
     }
   }
-  console.log('  ✔ Métadonnées CTR et canonical des 16 hubs modèles intermédiaires validées.');
+  console.log('  ✔ Métadonnées CTR et canonical des 17 hubs modèles intermédiaires validées (< 65 chars).');
 
   // 4.5 Absence de liens brisés (404) ou d'anciennes routes dépréciées (/app/onboarding)
   const leafPageSrc = fs.readFileSync('src/app/entretien/[brand]/[model]/[engine]/page.tsx', 'utf-8');

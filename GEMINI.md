@@ -21,7 +21,7 @@
 * Zéro logique de typage de motorisation hardcodée dans les Server Actions ou composants UI.
 
 ## 5. PROTOCOLE DE DÉPLOIEMENT VERCEL
-* Toujours exécuter et valider l'intégralité des 31 suites de tests (`npm test` et `npx tsc --noEmit`) avant tout commit.
+* Toujours exécuter et valider l'intégralité des 34 suites de tests (`npm test` et `npx tsc --noEmit`) avant tout commit.
 * Toujours inspecter le statut officiel du déploiement (`npx vercel ls` / `npx vercel inspect <url> --logs`) avant de confirmer la mise en ligne.
 * Toujours vérifier le rendu HTTP réel (`read_url_content`) en direct sur le domaine de production.
 

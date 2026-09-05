@@ -21,6 +21,40 @@ export async function generateStaticParams() {
   return getAllMaintenanceParams();
 }
 
+/**
+ * Génère un titre SEO ultra-optimisé CTR strictement inférieur à 65 caractères.
+ * Format cible : "Carnet d'Entretien [Marque] [Modèle] [Moteur] (PDF)"
+ */
+export function formatVehicleTitle(brand: string, model: string, engine: string): string {
+  // 1. Nettoyage initial : suppression du slash disgracieux dans le modèle
+  let cleanModel = model.replace(/\s*\/\s*/g, ' ');
+  let cleanEngine = engine;
+
+  let title = `Carnet d'Entretien ${brand} ${cleanModel} ${cleanEngine} (PDF)`;
+  if (title.length <= 64) {
+    return title;
+  }
+
+  // 2. Élagage de la mention " ch" si dépassement
+  cleanEngine = cleanEngine.replace(/\s*ch(?=\s|\)|$)/gi, '');
+  title = `Carnet d'Entretien ${brand} ${cleanModel} ${cleanEngine} (PDF)`;
+  if (title.length <= 64) {
+    return title;
+  }
+
+  // 3. Élagage de "Stepway" si le titre excède encore 64 caractères (ex: Sandero 3 ECO-G GPL)
+  if (cleanModel.includes('Stepway')) {
+    cleanModel = cleanModel.replace(/\s*Stepway/gi, '');
+    title = `Carnet d'Entretien ${brand} ${cleanModel} ${cleanEngine} (PDF)`;
+    if (title.length <= 64) {
+      return title;
+    }
+  }
+
+  // 4. Clamping de sécurité strict (< 65 chars absolu)
+  return title.slice(0, 64).trim();
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { brand, model, engine } = await params;
   const data = getMaintenanceData(brand, model, engine);
@@ -45,12 +79,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     )
   );
 
-  const distributionTitle = isBelt ? 'Courroie' : 'Chaîne';
   const distributionDesc = isBelt
     ? 'changement de courroie de distribution'
     : 'contrôle de distribution par chaîne';
 
-  const title = `Plan d'entretien & Révision ${data.brand} ${data.model} (${data.engine}) : Fréquences vidange, ${distributionTitle} & Fiche PDF | LaVigieAuto`;
+  const title = formatVehicleTitle(data.brand, data.model, data.engine);
   const description = `Plan d'entretien constructeur & révision pour ${data.brand} ${data.model} ${data.engine}. Fréquences de vidange, norme d'huile ${data.recommendedOilNorm}, ${distributionDesc}. Fiche PDF officielle et carnet d'entretien gratuit.`;
 
   return {

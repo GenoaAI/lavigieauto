@@ -171,6 +171,11 @@ export default function RootLayout({
                           3008 PureTech
                         </Link>
                       </li>
+                      <li>
+                        <Link href="/entretien/peugeot/208-2/1-5-bluehdi-100" className="hover:text-white transition">
+                          208 1.5 BlueHDi 100
+                        </Link>
+                      </li>
                     </ul>
                   </div>
                 </div>

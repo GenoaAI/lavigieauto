@@ -642,12 +642,45 @@ export default function LandingPage() {
                 </Link>
               ))}
             </div>
+            {/* Fiches d'entretien populaires */}
+            <div className="pt-2">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Plans d&apos;entretien les plus consultés :
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <Link
+                  href="/entretien/peugeot/208-2/1-5-bluehdi-100"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-medium border border-blue-200/70 transition"
+                >
+                  <span>Peugeot 208 1.5 BlueHDi</span>
+                  <span className="text-[10px] bg-blue-200/60 text-blue-900 px-1 py-0.2 rounded font-bold">100 ch</span>
+                </Link>
+                <Link
+                  href="/entretien/dacia/sandero-2/0-9-tce-90"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-medium transition"
+                >
+                  Dacia Sandero 2 TCe
+                </Link>
+                <Link
+                  href="/entretien/renault/clio-4/1-5-dci-90"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-medium transition"
+                >
+                  Renault Clio 4 dCi
+                </Link>
+                <Link
+                  href="/entretien/peugeot/208/1-2-puretech-82"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-medium transition"
+                >
+                  Peugeot 208 PureTech
+                </Link>
+              </div>
+            </div>
           </div>
           <Link
             href="/entretien"
             className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/20 transition shrink-0"
           >
-            <span>Explorer les 30 programmes d&apos;entretien</span>
+            <span>Explorer les 32 programmes d&apos;entretien</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

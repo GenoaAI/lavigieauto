@@ -71,8 +71,8 @@ export async function runAdversarialRoutingBoundaryTests() {
 
   // Case Insensitivity & Mixed Case Stress Testing
   const caseVariations = [
-    { input: 'DACIA', expectedSlug: 'dacia', expectedBrand: 'Dacia', expectedCount: 4 },
-    { input: 'dAcIa', expectedSlug: 'dacia', expectedBrand: 'Dacia', expectedCount: 4 },
+    { input: 'DACIA', expectedSlug: 'dacia', expectedBrand: 'Dacia', expectedCount: 6 },
+    { input: 'dAcIa', expectedSlug: 'dacia', expectedBrand: 'Dacia', expectedCount: 6 },
     { input: 'PEUGEOT', expectedSlug: 'peugeot', expectedBrand: 'Peugeot', expectedCount: 10 },
     { input: 'PeUgEoT', expectedSlug: 'peugeot', expectedBrand: 'Peugeot', expectedCount: 10 },
     { input: 'RENAULT', expectedSlug: 'renault', expectedBrand: 'Renault', expectedCount: 8 },
@@ -170,13 +170,13 @@ export async function runAdversarialRoutingBoundaryTests() {
   console.log(`  ✔ Passed ${badEngineInputs.length} adversarial inputs for getEnginesByModel and getMaintenanceDataForModel.`);
 
   // =========================================================================
-  // 2. BREADCRUMB URL RESOLUTION FOR ALL 30 VEHICLES IN CATALOG
+  // 2. BREADCRUMB URL RESOLUTION FOR ALL 32 VEHICLES IN CATALOG
   // =========================================================================
-  console.log('\n▶ [STRESS TEST 2] Breadcrumb URL Resolution for all 30 vehicles in the catalog...');
+  console.log('\n▶ [STRESS TEST 2] Breadcrumb URL Resolution for all 32 vehicles in the catalog...');
 
   const allVehicles = getAllMaintenanceData();
-  if (allVehicles.length !== 30) {
-    throw new Error(`[FAIL] Expected 30 vehicles in catalog, found ${allVehicles.length}`);
+  if (allVehicles.length !== 32) {
+    throw new Error(`[FAIL] Expected 32 vehicles in catalog, found ${allVehicles.length}`);
   }
 
   const validBrandSlugs = getAllBrandSlugs();
@@ -245,7 +245,7 @@ export async function runAdversarialRoutingBoundaryTests() {
     checkedVehicleUrls.add(leafUrl);
   }
 
-  console.log(`  ✔ Verified breadcrumb chain and URL resolution for all 30/30 catalog vehicles.`);
+  console.log(`  ✔ Verified breadcrumb chain and URL resolution for all 32/32 catalog vehicles.`);
 
   // Verify Brand Hub Breadcrumbs for all 6 brands
   for (const slug of validBrandSlugs) {
@@ -264,10 +264,10 @@ export async function runAdversarialRoutingBoundaryTests() {
   }
   console.log(`  ✔ Verified breadcrumb chain for all 6 brand hubs.`);
 
-  // Verify Model Hub Breadcrumbs for all 16 canonical models
+  // Verify Model Hub Breadcrumbs for all 17 canonical models
   const allModels = getAllMaintenanceModels();
-  if (allModels.length !== 16) {
-    throw new Error(`[FAIL] Expected 16 canonical models, got ${allModels.length}`);
+  if (allModels.length !== 17) {
+    throw new Error(`[FAIL] Expected 17 canonical models, got ${allModels.length}`);
   }
 
   const checkedModelUrls = new Set<string>();
@@ -299,20 +299,20 @@ export async function runAdversarialRoutingBoundaryTests() {
     }
     checkedModelUrls.add(modelUrl);
   }
-  console.log(`  ✔ Verified breadcrumb chain and unique URL resolution for all 16 model hubs.`);
+  console.log(`  ✔ Verified breadcrumb chain and unique URL resolution for all 17 model hubs.`);
 
   // =========================================================================
-  // 3. SITEMAP CONSISTENCY & STATIC PARAMS ALIGNMENT (54 URLs)
+  // 3. SITEMAP CONSISTENCY & STATIC PARAMS ALIGNMENT (57 URLs)
   // =========================================================================
-  console.log('\n▶ [STRESS TEST 3] Sitemap Consistency, Uniqueness & Static Params Alignment (54 URLs)...');
+  console.log('\n▶ [STRESS TEST 3] Sitemap Consistency, Uniqueness & Static Params Alignment (57 URLs)...');
 
   const sitemapList = sitemap();
   if (!Array.isArray(sitemapList)) {
     throw new Error(`[FAIL] sitemap() did not return an array.`);
   }
 
-  if (sitemapList.length !== 54) {
-    throw new Error(`[FAIL] Expected exactly 54 URLs in sitemap, got ${sitemapList.length}.`);
+  if (sitemapList.length !== 57) {
+    throw new Error(`[FAIL] Expected exactly 57 URLs in sitemap, got ${sitemapList.length}.`);
   }
 
   const urlSet = new Set<string>();
@@ -370,10 +370,10 @@ export async function runAdversarialRoutingBoundaryTests() {
     }
   }
 
-  // Cross-reference with generateStaticParams: Models (16)
+  // Cross-reference with generateStaticParams: Models (17)
   const modelParams = await generateModelStaticParams();
-  if (modelParams.length !== 16) {
-    throw new Error(`[FAIL] generateModelStaticParams returned ${modelParams.length}, expected 16`);
+  if (modelParams.length !== 17) {
+    throw new Error(`[FAIL] generateModelStaticParams returned ${modelParams.length}, expected 17`);
   }
 
   for (const mp of modelParams) {
@@ -393,10 +393,10 @@ export async function runAdversarialRoutingBoundaryTests() {
     }
   }
 
-  // Cross-reference with generateStaticParams: Leaf Vehicles (30)
+  // Cross-reference with generateStaticParams: Leaf Vehicles (32)
   const vehicleParams = await generateVehicleStaticParams();
-  if (vehicleParams.length !== 30) {
-    throw new Error(`[FAIL] generateVehicleStaticParams returned ${vehicleParams.length}, expected 30`);
+  if (vehicleParams.length !== 32) {
+    throw new Error(`[FAIL] generateVehicleStaticParams returned ${vehicleParams.length}, expected 32`);
   }
 
   for (const vp of vehicleParams) {
@@ -410,9 +410,9 @@ export async function runAdversarialRoutingBoundaryTests() {
     }
   }
 
-  console.log(`  ✔ Sitemap contains exactly 54 unique, well-formed, valid URLs.`);
-  console.log(`  ✔ All 16 model URLs present with priority 0.82 and changeFrequency 'weekly'.`);
-  console.log(`  ✔ All 6 brand static params, all 16 model static params, and all 30 leaf vehicle static params are 100% matched in sitemap.`);
+  console.log(`  ✔ Sitemap contains exactly 57 unique, well-formed, valid URLs.`);
+  console.log(`  ✔ All 17 model URLs present with priority 0.82 and changeFrequency 'weekly'.`);
+  console.log(`  ✔ All 6 brand static params, all 17 model static params, and all 32 leaf vehicle static params are 100% matched in sitemap.`);
 
   // =========================================================================
   // 4. PERFORMANCE & HIGH-VOLUME RESOLUTION BENCHMARK

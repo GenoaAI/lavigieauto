@@ -113,20 +113,24 @@
   ],
   "faqs": [
     {
-      "question": "Quand changer la courroie sur 208 II 1.5 BlueHDi ?",
-      "answer": "La courroie externe se remplace à 10 ans ou 180 000 km."
+      "question": "Quel est le problème de chaîne d'arbre à cames sur le 1.5 BlueHDi 100 de la Peugeot 208 ?",
+      "answer": "Sur le moteur 1.5 BlueHDi (DV5RD / 100 ch), la distribution externe est entraînée par courroie (180 000 km ou 10 ans), mais la synchronisation entre les deux arbres à cames est assurée par une petite chaîne interne de 7 mm sous le couvre-culasse. Cette chaîne d'origine est vulnérable à un allongement prématuré dû aux contraintes mécaniques, frottant contre le carter jusqu'à la rupture brutale. Une casse de cette chaîne provoque la collision des soupapes et des pistons, entraînant la destruction complète de la culasse et du haut moteur."
     },
     {
-      "question": "Quelle huile moteur pour le 1.5 BlueHDi 100 ch ?",
-      "answer": "Huile officielle PSA B71 2010 en grade 0W-20 (ou nouvelle spécification Stellantis FPW9.55535/03)."
+      "question": "Quels sont les symptômes d'une chaîne 1.5 BlueHDi usée ou détendue sur 208 ?",
+      "answer": "Le symptôme précurseur typique est un bruit de cliquetis métallique prononcé ou un claquement de crécelle localisé sur le haut moteur droit, particulièrement audible au ralenti à froid et lors des décélérations. Si la chaîne s'est détendue, le voyant diagnostic moteur s'allume avec l'enregistrement d'un code défaut de synchronisation arbre à cames / vilebrequin (P0016 / P0017) et des à-coups d'injection. En cas de bruit suspect au ralenti, coupez immédiatement le moteur pour éviter la casse."
     },
     {
-      "question": "Pourquoi entend-on un cliquetis sur le moteur 1.5 BlueHDi ?",
-      "answer": "Un claquement au ralenti peut signaler la fatigue de la chaîne de synchronisation 7 mm entre les arbres à cames."
+      "question": "En quoi consiste le kit de chaîne renforcée 8 mm Stellantis et quelle est la prise en charge ?",
+      "answer": "Pour fiabiliser définitivement le moteur DV5, Stellantis a développé un kit d'après-vente remplaçant la chaîne de 7 mm par une chaîne élargie à 8 mm. Cette opération lourde exige le remplacement du carter supérieur (reconnaissable à son bossage spécifique), des deux arbres à cames aux pignons élargis, des linguets et des soupapes. Stellantis applique une grille de prise en charge (jusqu'à 5 ans ou 150 000 km, totale ou partielle pour les pièces et main d'œuvre), sous réserve absolue que les vidanges aient été effectuées aux échéances prévues avec l'huile homologuée."
     },
     {
-      "question": "Combien coûte une vidange sur 208 diesel 100 ch ?",
-      "answer": "Entre 120 € et 165 € selon les ateliers."
+      "question": "Quelle huile moteur homologuée faut-il utiliser sur le 1.5 BlueHDi 100 ch ?",
+      "answer": "Depuis début 2024, Stellantis impose rétroactivement l'huile normée Stellantis FPW9.55535/03 en viscosité 0W-20 pour tous les moteurs 1.5 BlueHDi, en remplacement de l'ancienne norme PSA B71 2010. Cette formule intègre des additifs anti-usure et détergents spécifiques conçus pour limiter l'abrasion de la chaîne par les suies de combustion diesel. L'intervalle de vidange doit impérativement respecter 20 000 km ou 12 mois au maximum pour conserver la garantie constructeur."
+    },
+    {
+      "question": "Quand changer la courroie de distribution sur 208 II 1.5 BlueHDi ?",
+      "answer": "La courroie externe de distribution se remplace à 10 ans ou 180 000 km (au premier des deux termes échu). Il est fortement recommandé de changer le kit pompe à eau et galets tendeurs en même temps."
     }
   ]
 }

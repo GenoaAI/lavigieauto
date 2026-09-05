@@ -1,0 +1,172 @@
+{
+  "brand": "Dacia",
+  "brandSlug": "dacia",
+  "model": "Duster 2",
+  "modelSlug": "duster-2",
+  "generation": "II",
+  "engine": "1.0 ECO-G 100 ch (GPL)",
+  "engineSlug": "1-0-eco-g-100",
+  "engineCode": "H4Dt 480 (Bicarburation GPL)",
+  "fuelType": "Essence",
+  "powerHp": 100,
+  "productionYears": "2020-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel du Dacia Duster 2 1.0 ECO-G (100 ch bicarburation Essence/GPL) impose une vidange annuelle ou tous les 30 000 km avec une huile certifiée Renault RN17 (5W-30). Équipé d'une distribution par chaîne sans entretien, le plan d'entretien GPL prévoit le remplacement du filtre GPL état gazeux tous les 30 000 km (2 ans), du filtre phase liquide tous les 60 000 km (4 ans) et le contrôle d'étanchéité du circuit gaz.",
+  "recommendedOilNorm": "Renault RN17 (5W-30)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile 100% synthèse homologuée Renault RN17 protégeant le moteur sous les fortes chaleurs de combustion du GPL.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 155,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-gpl-gazeux",
+      "operation": "Remplacement du filtre GPL état gazeux",
+      "description": "Protection des injecteurs GPL contre les résidus huileux et impuretés en sortie du détendeur.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 45,
+      "estimatedCostMax": 70,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Purification de l'air ambiant dans l'habitacle.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "controle-circuit-gpl",
+      "operation": "Contrôle d'étanchéité circuit gaz et soupape de surpression",
+      "description": "Contrôle d'étanchéité des raccords gaz, contrôle visuel du réservoir torique sous caisse et test de la soupape.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Vital pour préserver le mélange air/carburant optimal et la puissance en tout-chemin.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 30,
+      "estimatedCostMax": 50,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-gpl-liquide",
+      "operation": "Remplacement du filtre GPL phase liquide",
+      "description": "Filtration amont à l'entrée de l'électrovanne du vapodétendeur GPL.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 80,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Bougies haute performance spécifiques pour moteur suralimenté bicarburation GPL.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 80,
+      "estimatedCostMax": 120,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Sécurité et constance du freinage hydraulique du SUV.",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Encrassement des injecteurs GPL par vieillissement du filtre gazeux",
+      "component": "Rampe d'injection GPL & Filtre gazeux",
+      "severity": "haute",
+      "description": "Si le filtre GPL phase gazeuse n'est pas remplacé à échéance, des huiles résiduelles s'accumulent dans la rampe et bloquent les injecteurs gaz, déclenchant des hésitations moteur et le retour automatique en mode essence.",
+      "symptoms": [
+        "Commutation automatique en essence avec signal sonore répété",
+        "Trous à l'accélération et instabilité du ralenti à froid en mode GPL"
+      ],
+      "preventiveAction": "Remplacer rigoureusement le filtre GPL phase gazeuse tous les 30 000 km ou 2 ans."
+    },
+    {
+      "title": "Corrosion superficielle du berceau de fixation du réservoir GPL",
+      "component": "Support de réservoir GPL sous châssis",
+      "severity": "moyenne",
+      "description": "En utilisation tout-chemin ou hivernale (sel de déneigement), le berceau et le carter de protection du réservoir GPL sous caisse peuvent subir une corrosion superficielle susceptible d'être signalée au contrôle technique.",
+      "symptoms": [
+        "Traces de rouille visibles sur les étriers de fixation du réservoir sous caisse",
+        "Remarque sans contre-visite au contrôle technique"
+      ],
+      "preventiveAction": "Appliquer un traitement anticorrosion / cire corps creux lors des inspections sous caisse."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision Complète Bicarburation GPL 60 000 km Duster 2",
+      "operationsIncluded": [
+        "Vidange moteur RN17 + filtre à huile",
+        "Filtre GPL phase gazeuse + phase liquide",
+        "Filtre à air + filtre habitacle",
+        "3 bougies d’allumage spécifiques GPL",
+        "Contrôle d'étanchéité circuit gaz et soupape"
+      ],
+      "individualEstimatedTotal": 435,
+      "bundledEstimatedTotal": 340,
+      "savingsEur": 95,
+      "garageAdvice": "Privilégiez un forfait révision GPL incluant le contrôle d'étanchéité réglementaire et les 2 filtres pour amortir la main-d'œuvre spécialisée."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "À combien de kilomètres faire la vidange d'un Dacia Duster 2 GPL ?",
+      "answer": "La vidange d'un Dacia Duster 2 1.0 ECO-G 100 ch s'effectue tous les 30 000 km ou 1 an (au premier des deux termes échu) avec de l'huile homologuée Renault RN17 5W-30."
+    },
+    {
+      "question": "Quand changer les filtres GPL sur un Duster 2 ECO-G ?",
+      "answer": "Sur le Dacia Duster 2 ECO-G, le filtre GPL phase gazeuse se remplace tous les 30 000 km (2 ans) et le filtre GPL phase liquide se remplace tous les 60 000 km (4 ans)."
+    },
+    {
+      "question": "Le Dacia Duster 2 1.0 ECO-G a-t-il une courroie ou une chaîne de distribution ?",
+      "answer": "Le moteur 1.0 ECO-G 100 ch du Duster 2 est équipé d'une chaîne de distribution sans entretien périodique prescrit (contrairement au 1.5 Blue dCi qui possède une courroie à remplacer tous les 6 ans ou 150 000 km)."
+    },
+    {
+      "question": "Quelle huile moteur pour le Duster 2 GPL 100 ch ?",
+      "answer": "Le Duster 2 ECO-G requiert une huile 100% synthèse répondant à la norme constructeur Renault RN17 en viscosité 5W-30."
+    },
+    {
+      "question": "Quelle est la périodicité de remplacement des bougies sur Duster GPL ?",
+      "answer": "Les 3 bougies d'allumage adaptées au GPL se remplacent tous les 60 000 km ou 4 ans pour prévenir toute surconsommation et préserver les bobines d'allumage."
+    },
+    {
+      "question": "Le contrôle technique est-il plus cher pour un Duster 2 GPL ?",
+      "answer": "Oui, un contrôle technique pour véhicule GPL coûte entre 20 € et 30 € de plus en raison des points de contrôle spécifiques sur l'étanchéité du réservoir, la soupape et la canalisation."
+    }
+  ]
+}

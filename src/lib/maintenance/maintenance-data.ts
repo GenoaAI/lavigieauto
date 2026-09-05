@@ -160,6 +160,7 @@ export function getModelDisplayName(famSlug: string): string {
   if (s === 'captur') return 'Captur';
   if (s === 'twingo') return 'Twingo';
   if (s === 'duster') return 'Duster';
+  if (s === 'jogger') return 'Jogger';
   if (s === 'golf') return 'Golf';
   if (s === 'polo') return 'Polo';
   if (s === 'yaris') return 'Yaris';

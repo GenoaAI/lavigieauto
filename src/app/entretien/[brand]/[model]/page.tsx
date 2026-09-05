@@ -55,7 +55,8 @@ export async function generateMetadata({ params }: ModelPageProps): Promise<Meta
       ? 'Courroie de distribution'
       : 'Distribution par chaîne';
 
-  const title = `Plan d'entretien & Révision ${data.brand} ${data.modelDisplayName} : Programme, Fréquences et Coûts | LaVigieAuto`;
+  const cleanModel = data.modelDisplayName.replace(/\s*\/\s*/g, ' ');
+  const title = `Carnet d'Entretien ${data.brand} ${cleanModel} (PDF)`;
   const description = `Consultez le plan d'entretien officiel et le programme de révision pour ${data.brand} ${data.modelDisplayName} (${data.engines.length} motorisation${data.engines.length > 1 ? 's' : ''}). Périodicités vidange, ${distributionMention.toLowerCase()}, devis et carnet numérique.`;
   const canonicalUrl = `https://www.lavigieauto.com/entretien/${data.brandSlug}/${data.modelSlug}`;
 

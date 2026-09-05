@@ -1,0 +1,173 @@
+{
+  "brand": "Dacia",
+  "brandSlug": "dacia",
+  "model": "Jogger",
+  "modelSlug": "jogger",
+  "generation": "I",
+  "engine": "1.0 ECO-G 100 ch (GPL)",
+  "engineSlug": "1-0-eco-g-100",
+  "engineCode": "H4Dt 480 (Bicarburation GPL)",
+  "fuelType": "Essence",
+  "powerHp": 100,
+  "productionYears": "2022-2024",
+  "directAnswerSummary": "Le plan d'entretien officiel du Dacia Jogger 1.0 ECO-G (100 ch bicarburation Essence/GPL) impose une vidange moteur annuelle ou tous les 30 000 km avec une huile homologuée Renault RN17 (5W-30). Doté d'une distribution par chaîne sans entretien, le programme spécifique GPL prescrit le remplacement du filtre GPL phase gazeuse tous les 30 000 km (2 ans), du filtre GPL phase liquide tous les 60 000 km (4 ans), et le contrôle d'étanchéité du circuit de gaz.",
+  "recommendedOilNorm": "Renault RN17 (5W-30)",
+  "oilViscosity": "5W-30",
+  "intervals": [
+    {
+      "id": "vidange-filtre",
+      "operation": "Vidange huile moteur et filtre à huile",
+      "description": "Huile 100% synthèse homologuée Renault RN17 adaptée aux températures de combustion élevées du GPL.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 110,
+      "estimatedCostMax": 150,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-gpl-gazeux",
+      "operation": "Remplacement du filtre GPL phase gazeuse",
+      "description": "Cartouche filtrante entre vapodétendeur et rampe d'injecteurs GPL protégeant des résidus d'huile.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 45,
+      "estimatedCostMax": 70,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-habitacle",
+      "operation": "Remplacement filtre d'habitacle",
+      "description": "Filtration des pollens et particules fines dans le grand volume intérieur 5/7 places.",
+      "intervalKm": 30000,
+      "intervalMonths": 12,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "controle-circuit-gpl",
+      "operation": "Contrôle d'étanchéité circuit gaz et soupape de surpression",
+      "description": "Vérification visuelle et électronique de l'étanchéité des canalisations, du réservoir torique et de la soupape.",
+      "intervalKm": 30000,
+      "intervalMonths": 24,
+      "criticality": "securite",
+      "estimatedCostMin": 35,
+      "estimatedCostMax": 60,
+      "category": "moteur"
+    },
+    {
+      "id": "filtre-air",
+      "operation": "Remplacement filtre à air moteur",
+      "description": "Indispensable pour maintenir le rapport stœchiométrique air/gaz optimal et éviter la surconsommation.",
+      "intervalKm": 60000,
+      "intervalMonths": 24,
+      "criticality": "recommande",
+      "estimatedCostMin": 25,
+      "estimatedCostMax": 45,
+      "category": "filtration"
+    },
+    {
+      "id": "filtre-gpl-liquide",
+      "operation": "Remplacement du filtre GPL phase liquide",
+      "description": "Cartouche filtrante intégrée à l'électrovanne à l'entrée du vapodétendeur.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 80,
+      "category": "filtration"
+    },
+    {
+      "id": "bougies-allumage",
+      "operation": "Remplacement des 3 bougies d'allumage",
+      "description": "Bougies d'allumage spécifiques moteur bicarburation GPL supportant les contraintes thermiques.",
+      "intervalKm": 60000,
+      "intervalMonths": 48,
+      "criticality": "obligatoire",
+      "estimatedCostMin": 80,
+      "estimatedCostMax": 120,
+      "category": "moteur"
+    },
+    {
+      "id": "liquide-frein",
+      "operation": "Purge liquide de frein DOT 4+",
+      "description": "Remplacement du liquide de frein préconisé tous les 3 ans pour préserver l'efficacité sous charge (5 ou 7 places).",
+      "intervalKm": 60000,
+      "intervalMonths": 36,
+      "criticality": "securite",
+      "estimatedCostMin": 50,
+      "estimatedCostMax": 75,
+      "category": "freinage"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "title": "Encrassement de la rampe d'injecteurs GPL par saturation du filtre gazeux",
+      "component": "Rampe d'injecteurs GPL & Filtre phase gazeuse",
+      "severity": "haute",
+      "description": "Le retard dans le remplacement du filtre GPL phase gazeuse entraîne l'accumulation de dépôts gras dans les injecteurs gaz, provoquant des à-coups à l'accélération et un basculement forcé et inopiné en mode essence avec alarme sonore.",
+      "symptoms": [
+        "Bip sonore d'alerte et basculement automatique au carburant essence",
+        "Ralenti instable ou ratés d'allumage perceptibles uniquement en alimentation GPL"
+      ],
+      "preventiveAction": "Remplacer impérativement le filtre GPL gazeux tous les 30 000 km ou 2 ans sans excéder l'échéance."
+    },
+    {
+      "title": "Grippage de l'électrovanne de coupure du réservoir GPL",
+      "component": "Polyvanne réservoir GPL",
+      "severity": "moyenne",
+      "description": "Sur les véhicules circulant en milieu salin ou humide, la connectique ou l'électrovanne de sécurité du réservoir sous plancher peut s'oxyder, empêchant l'ouverture du circuit gaz au démarrage.",
+      "symptoms": [
+        "Impossibilité de commuter en mode GPL (voyant clignotant)",
+        "Absence de claquement caractéristique de l'électrovanne arrière au démarrage"
+      ],
+      "preventiveAction": "Faire contrôler visuellement la protection du réservoir torique et nettoyer les connexions lors de la révision biennale."
+    }
+  ],
+  "costOptimizationBundles": [
+    {
+      "title": "Pack Révision Complète GPL 60 000 km / 4 ans Dacia Jogger",
+      "operationsIncluded": [
+        "Vidange moteur huile RN17 + remplacement filtre à huile",
+        "Remplacement filtre GPL phase gazeuse",
+        "Remplacement filtre GPL phase liquide",
+        "Remplacement filtre à air + filtre d'habitacle",
+        "Remplacement des 3 bougies d'allumage spécifiques GPL",
+        "Contrôle d'étanchéité circuit gaz et soupape de surpression"
+      ],
+      "individualEstimatedTotal": 430,
+      "bundledEstimatedTotal": 335,
+      "savingsEur": 95,
+      "garageAdvice": "Regroupez le changement des filtres gazeux et liquide avec les 3 bougies d'allumage dans un forfait révision GPL spécialisé pour économiser sur la main-d'œuvre de dépressurisation."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "À combien de kilomètres faire la vidange d'un Dacia Jogger ?",
+      "answer": "La vidange d'un Dacia Jogger 1.0 ECO-G 100 ch s'effectue tous les 30 000 km ou 1 an (au premier des deux termes échu) avec de l'huile homologuée Renault RN17 5W-30."
+    },
+    {
+      "question": "Quelle est la périodicité d'entretien du circuit GPL sur Dacia Jogger ?",
+      "answer": "Sur le Dacia Jogger ECO-G, le cycle d'entretien GPL spécifique comprend le remplacement du filtre GPL phase gazeuse tous les 30 000 km (2 ans), du filtre GPL phase liquide tous les 60 000 km (4 ans), des 3 bougies d'allumage spécifiques tous les 60 000 km (4 ans), et le contrôle d'étanchéité du circuit gaz et de la soupape à chaque révision."
+    },
+    {
+      "question": "Le Dacia Jogger 1.0 ECO-G a-t-il une courroie ou une chaîne de distribution ?",
+      "answer": "Le moteur 1.0 ECO-G 100 ch du Dacia Jogger est équipé d'une distribution par chaîne robuste sans remplacement périodique prescrit."
+    },
+    {
+      "question": "Quelle huile moteur mettre dans un Dacia Jogger GPL ?",
+      "answer": "Le constructeur préconise exclusivement une huile de synthèse homologuée Renault RN17 en viscosité 5W-30, formulée pour résister aux contraintes thermiques de la combustion GPL."
+    },
+    {
+      "question": "Quand changer les bougies sur Dacia Jogger 1.0 Eco-G ?",
+      "answer": "Les 3 bougies d'allumage doivent être remplacées tous les 60 000 km ou 4 ans. Il est impératif d'utiliser la référence spécifique pour moteur GPL afin d'éviter les ratés d'allumage."
+    },
+    {
+      "question": "Le contrôle technique d'un Jogger GPL coûte-t-il plus cher ?",
+      "answer": "Oui, comptez un surcoût d'environ 20 € à 30 € lors du contrôle technique périodique pour la vérification réglementaire de l'étanchéité du réservoir, des canalisations et de la soupape de sécurité."
+    }
+  ]
+}
