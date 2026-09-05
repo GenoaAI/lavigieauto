@@ -53,7 +53,9 @@ import {
   Edit3,
   Bell,
   BellOff,
+  CheckCircle2,
 } from "lucide-react";
+import { ManualMaintenanceModal } from "@/components/vehicles/ManualMaintenanceModal";
 
 interface VehicleDetailClientViewProps {
   initialVehicleData: any;
@@ -78,9 +80,16 @@ export function VehicleDetailClientView({
   const [isCarnetModalOpen, setIsCarnetModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [selectedMilestoneForManual, setSelectedMilestoneForManual] = useState<any | null>(null);
   const [isStatusToggling, setIsStatusToggling] = useState(false);
   const [mutingMilestoneId, setMutingMilestoneId] = useState<string | null>(null);
   const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const handleOpenManualModal = (milestone?: any) => {
+    setSelectedMilestoneForManual(milestone || null);
+    setIsManualModalOpen(true);
+  };
 
   const loadVehicle = async () => {
     setLoading(true);
@@ -331,6 +340,12 @@ export function VehicleDetailClientView({
   // 2. Rapprocher les lignes d'interventions avec leur document ou créer une entrée d'intervention manuelle
   (v.lignes_interventions || []).forEach((l: any) => {
     const docKey = l.document_source_id ? `doc_${l.document_source_id}` : `int_${l.id || Math.random()}`;
+    const isLineDIY =
+      l.metadata?.is_diy === true ||
+      l.metadata?.fait_par === "proprietaire" ||
+      (l.emetteur || "").toLowerCase().includes("propriétaire") ||
+      (l.emetteur || "").toLowerCase().includes("diy");
+
     if (!groupedInterventionsMap.has(docKey)) {
       groupedInterventionsMap.set(docKey, {
         date: l.date_intervention,
@@ -341,9 +356,14 @@ export function VehicleDetailClientView({
         documentSourceId: l.document_source_id || null,
         storagePath: null,
         interventionIds: [],
+        isDIY: isLineDIY,
+        referencePiece: l.reference_piece || null,
       });
     }
     const group = groupedInterventionsMap.get(docKey);
+    if (isLineDIY) group.isDIY = true;
+    if (l.reference_piece && !group.referencePiece) group.referencePiece = l.reference_piece;
+
     const itemDesc = l.operation || l.description || "Prestation d'entretien";
     if (!group.items.includes(itemDesc)) {
       group.items.push(itemDesc);
@@ -856,18 +876,31 @@ export function VehicleDetailClientView({
                   </div>
                 }
                 actions={
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSyncOfficialPlan();
-                    }}
-                    disabled={syncingPlan}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-indigo-100"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${syncingPlan ? "animate-spin" : ""}`} />
-                    <span>Actualiser IA</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenManualModal(null);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-emerald-200"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>+ J'ai fait un entretien</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSyncOfficialPlan();
+                      }}
+                      disabled={syncingPlan}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-indigo-100"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${syncingPlan ? "animate-spin" : ""}`} />
+                      <span>Actualiser IA</span>
+                    </button>
+                  </div>
                 }
                 bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-5"
               >
@@ -999,6 +1032,20 @@ export function VehicleDetailClientView({
                             </button>
                           </div>
 
+                          <div className="pt-1.5 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenManualModal(ech)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition active:scale-95 shadow-sm"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>J'ai fait cet entretien</span>
+                            </button>
+                            <span className="text-[11px] font-semibold text-slate-500 truncate">
+                              {ech.date_preconisee ? `Prévu : ${ech.date_preconisee}` : "À planifier"}
+                            </span>
+                          </div>
+
                           {isExpanded && (
                             <div className="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-200">
                               <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-1">
@@ -1099,6 +1146,19 @@ export function VehicleDetailClientView({
                     </span>
                   </div>
                 }
+                actions={
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenManualModal(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-emerald-200"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>+ J'ai fait un entretien</span>
+                  </button>
+                }
                 bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-5"
               >
                 {interventions.length === 0 ? (
@@ -1111,7 +1171,7 @@ export function VehicleDetailClientView({
 
                       return (
                         <div key={idx} className="relative space-y-1.5 text-xs group">
-                          <div className="absolute -left-[29px] top-1.5 w-4 h-4 rounded-full bg-blue-600 border-4 border-white shadow" />
+                          <div className={`absolute -left-[29px] top-1.5 w-4 h-4 rounded-full border-4 border-white shadow ${item.isDIY ? "bg-emerald-600" : "bg-blue-600"}`} />
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                             <span className="font-bold text-slate-900">
                               {item.date} • {(item.kilometrage || 0).toLocaleString("fr-FR")} km
@@ -1133,7 +1193,19 @@ export function VehicleDetailClientView({
                               </button>
                             </div>
                           </div>
-                          <p className="text-slate-500 font-medium">{item.garage}</p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {item.isDIY ? (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200 flex items-center gap-1">
+                                <Wrench className="w-3 h-3 text-emerald-600" />
+                                <span>Réalisé par le propriétaire (DIY)</span>
+                              </span>
+                            ) : (
+                              <p className="text-slate-500 font-medium">{item.garage}</p>
+                            )}
+                            {item.referencePiece && (
+                              <span className="text-[10px] text-slate-500 italic">({item.referencePiece})</span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-1 pt-1">
                             {item.items.map((op: string, i: number) => (
                               <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
@@ -1389,18 +1461,31 @@ export function VehicleDetailClientView({
               </div>
             }
             actions={
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSyncOfficialPlan();
-                }}
-                disabled={syncingPlan}
-                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-indigo-100"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${syncingPlan ? "animate-spin" : ""}`} />
-                <span>Actualiser via IA en ligne</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenManualModal(null);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-emerald-200"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>+ J'ai fait un entretien</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSyncOfficialPlan();
+                  }}
+                  disabled={syncingPlan}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-indigo-100"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncingPlan ? "animate-spin" : ""}`} />
+                  <span>Actualiser via IA en ligne</span>
+                </button>
+              </div>
             }
             bodyClassName="pt-5 border-t border-slate-100 mt-2 space-y-6"
           >
@@ -1604,16 +1689,22 @@ export function VehicleDetailClientView({
                         </span>
                       </div>
 
-                      {/* Action de mise en sourdine / réactivation de l'alerte */}
-                      <div className="pt-2 flex items-center justify-between border-t border-slate-100 gap-2">
-                        <span className="text-[11px] text-slate-500 italic">
-                          {isSuspended ? "Rappel désactivé pour cette échéance" : "Alerte active dans le suivi"}
-                        </span>
+                      {/* Action de validation manuelle et mise en sourdine / réactivation */}
+                      <div className="pt-2 flex flex-wrap sm:flex-nowrap items-center justify-between border-t border-slate-100 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenManualModal(ech)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition active:scale-95 shadow-sm shrink-0"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>J'ai fait cet entretien</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleToggleMilestoneAlert(ech.id || ech.libelle, isSuspended)}
                           disabled={mutingMilestoneId === (ech.id || ech.libelle)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 shrink-0 ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 shrink-0 ml-auto ${
                             isSuspended
                               ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-sm"
                               : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
@@ -1957,6 +2048,18 @@ export function VehicleDetailClientView({
           router.push("/dashboard");
           router.refresh();
         }}
+      />
+
+      {/* MODALE DE VALIDATION MANUELLE D'ENTRETIEN (DIY) */}
+      <ManualMaintenanceModal
+        isOpen={isManualModalOpen}
+        onClose={() => {
+          setIsManualModalOpen(false);
+          setSelectedMilestoneForManual(null);
+        }}
+        vehicle={v}
+        initialMilestone={selectedMilestoneForManual}
+        onSuccess={loadVehicle}
       />
     </div>
   );
