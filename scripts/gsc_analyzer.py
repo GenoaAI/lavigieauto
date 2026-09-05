@@ -607,15 +607,24 @@ def run_brands_breakdown(service, site_url: str, days: int = 28):
     print(tabulate(table, headers=["Marque", "Clics", "Impressions", "CTR", "Pages vues"], tablefmt="rounded_grid"))
 
 
-def run_top_queries(service, site_url: str, days: int = 28, limit: int = 50):
+def run_top_queries(service, site_url: str, days: int = 28, limit: int = 50, sort_by: str = "impressions"):
     """Affiche la liste détaillée des requêtes de recherche Google."""
-    print(f"\n🔍 \033[1mTOP {limit} REQUÊTES DE RECHERCHE GOOGLE\033[0m")
+    print(f"\n🔍 \033[1mTOP {limit} REQUÊTES DE RECHERCHE GOOGLE (Tri : {sort_by})\033[0m")
     print(f"Propriété : \033[36m{site_url}\033[0m | Période : {days} derniers jours\n")
-    query_rows = get_search_analytics(service, site_url, days=days, dimensions=["query"], row_limit=limit)
+    query_rows = get_search_analytics(service, site_url, days=days, dimensions=["query"], row_limit=1000)
 
     if not query_rows:
         print("  Aucune requête enregistrée sur cette période.")
         return
+
+    if sort_by == "position":
+        query_rows = sorted(query_rows, key=lambda x: x.get("position", 100))
+    elif sort_by == "clicks":
+        query_rows = sorted(query_rows, key=lambda x: x.get("clicks", 0), reverse=True)
+    else:
+        query_rows = sorted(query_rows, key=lambda x: x.get("impressions", 0), reverse=True)
+
+    query_rows = query_rows[:limit]
 
     table = []
     for r in query_rows:
@@ -637,6 +646,8 @@ def main():
     parser.add_argument("--opportunities", action="store_true", help="Détection des mots-clés en zone de frappe et opportunités CTR")
     parser.add_argument("--brands", action="store_true", help="Ventilation des métriques par constructeur automobile")
     parser.add_argument("--queries", action="store_true", help="Liste complète des requêtes de recherche Google")
+    parser.add_argument("--sort", choices=["impressions", "clicks", "position"], default="impressions", help="Critère de tri pour --queries")
+    parser.add_argument("--limit", type=int, default=50, help="Nombre de lignes à afficher")
     parser.add_argument("--list-urls", action="store_true", help="Lister les 54 URLs du catalogue pSEO sans appel API")
     parser.add_argument("--days", type=int, default=28, help="Période d'analyse en jours (défaut : 28)")
     parser.add_argument("--site", type=str, default=None, help="URL de la propriété GSC (ex: sc-domain:lavigieauto.com)")
@@ -665,7 +676,7 @@ def main():
     if args.brands:
         run_brands_breakdown(service, site_url, days=args.days)
     if args.queries:
-        run_top_queries(service, site_url, days=args.days)
+        run_top_queries(service, site_url, days=args.days, limit=args.limit, sort_by=args.sort)
     if args.indexation:
         run_indexation_audit(service, site_url, limit=args.limit_indexation)
 
