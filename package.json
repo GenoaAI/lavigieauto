@@ -14,7 +14,10 @@
     "gsc:indexation": "python scripts/gsc_analyzer.py --indexation",
     "gsc:opportunities": "python scripts/gsc_analyzer.py --opportunities",
     "gsc:brands": "python scripts/gsc_analyzer.py --brands",
-    "gsc:queries": "python scripts/gsc_analyzer.py --queries"
+    "gsc:queries": "python scripts/gsc_analyzer.py --queries",
+    "gsc:notify": "python scripts/gsc_analyzer.py --discord --telegram --days 7",
+    "gsc:discord": "python scripts/gsc_analyzer.py --discord --days 7",
+    "gsc:telegram": "python scripts/gsc_analyzer.py --telegram --days 7"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

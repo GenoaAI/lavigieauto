@@ -10,6 +10,7 @@ et détection algorithmique des opportunités de croissance SEO.
 import os
 import sys
 import json
+import html
 import argparse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -24,14 +25,31 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+# Chargement transparent de .env.local et .env si présents à la racine du projet
+project_root = Path(__file__).resolve().parent.parent
+for env_filename in [".env.local", ".env"]:
+    env_file = project_root / env_filename
+    if env_file.exists():
+        try:
+            with open(env_file, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        _k, _v = _k.strip(), _v.strip().strip("'\"")
+                        if _k and _k not in os.environ:
+                            os.environ[_k] = _v
+        except Exception:
+            pass
+
 try:
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
     from tabulate import tabulate
+    import requests
 except ImportError:
     # Auto re-exec dans .venv si disponible
-    project_root = Path(__file__).resolve().parent.parent
     venv_python = project_root / ".venv" / ("Scripts" if sys.platform == "win32" else "bin") / ("python.exe" if sys.platform == "win32" else "python")
     if venv_python.exists() and sys.executable.lower() != str(venv_python).lower():
         import subprocess
@@ -638,6 +656,205 @@ def run_top_queries(service, site_url: str, days: int = 28, limit: int = 50, sor
     print(tabulate(table, headers=["Requête", "Clics", "Impressions", "CTR", "Position"], tablefmt="psql"))
 
 
+def send_discord_notification(
+    service,
+    site_url: str,
+    webhook_url: Optional[str] = None,
+    days: int = 7
+) -> bool:
+    """Génère et envoie un embed Discord riche sur les performances SEO de LaVigieAuto."""
+    if not webhook_url:
+        webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+    if not webhook_url:
+        print("❌ Aucun DISCORD_WEBHOOK_URL configuré.")
+        print("👉 Renseignez-le dans .env ou via l'option --webhook.")
+        return False
+
+    page_rows = get_search_analytics(service, site_url, days=days, dimensions=["page"], row_limit=500)
+    query_rows = get_search_analytics(service, site_url, days=days, dimensions=["query"], row_limit=500)
+
+    clicks = sum(r.get("clicks", 0) for r in page_rows)
+    impressions = sum(r.get("impressions", 0) for r in page_rows)
+    ctr = (clicks / impressions * 100) if impressions > 0 else 0.0
+    pos = (
+        sum(r.get("position", 0) * r.get("impressions", 0) for r in page_rows) / impressions
+        if impressions > 0 else 0.0
+    )
+
+    # Répartition par marque
+    brands_data = analyze_brands(page_rows)
+    top_brands = [b for b in brands_data if b["brand"] != "Autres / Global" and (b["impressions"] > 0 or b["clicks"] > 0)][:3]
+    brands_lines = []
+    for b in top_brands:
+        brands_lines.append(f"• **{b['brand']} :** `{b['impressions']} imp` (`{b['clicks']} clics`)")
+    brands_str = "\n".join(brands_lines) if brands_lines else "• Données en cours d'accumulation"
+
+    # Top 3 pages pSEO
+    top_pages_lines = []
+    for r in page_rows[:3]:
+        p = r["keys"][0].replace(BASE_URL_PRODUCTION, "").replace(FALLBACK_BASE_URL, "") or "/"
+        top_pages_lines.append(f"• `{p}`\n  └ `{r.get('impressions', 0)} imp` • `{r.get('clicks', 0)} clics` • `pos {r.get('position', 0.0):.1f}`")
+    top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "Aucune page active sur la période"
+
+    # Opportunités Striking Distance (positions 4 à 15)
+    opps = analyze_opportunities(query_rows, page_rows)
+    striking = opps.get("striking_distance", [])
+    striking_lines = []
+    for s in striking[:3]:
+        striking_lines.append(f"• `{s['query'][:38]}` (Pos `{s['position']}`, `{s['impressions']} imp`)")
+    striking_str = "\n".join(striking_lines) if striking_lines else "Aucun mot-clé en zone 4-15"
+
+    embed = {
+        "title": "📊 Rapport SEO Hebdomadaire — LaVigieAuto",
+        "url": BASE_URL_PRODUCTION,
+        "description": f"Performances consolidées de **lavigieauto.com** sur les **{days} derniers jours** (Google Search Console API).",
+        "color": 2450411,  # #2563eb Bleu LaVigieAuto
+        "fields": [
+            {
+                "name": "📈 Performances Globales",
+                "value": f"• **Impressions :** `{impressions:,}`\n• **Clics :** `{clicks:,}`\n• **CTR Moyen :** `{ctr:.2f}%`\n• **Position Moyenne :** `{pos:.1f}`",
+                "inline": True,
+            },
+            {
+                "name": "🚗 Pénétration Marques (Top 3)",
+                "value": brands_str,
+                "inline": True,
+            },
+            {
+                "name": "🏆 Top Pages du Catalogue",
+                "value": top_pages_str,
+                "inline": False,
+            },
+            {
+                "name": "⚡ Mots-Clés en Zone de Frappe (Positions 4 à 15)",
+                "value": striking_str,
+                "inline": False,
+            },
+            {
+                "name": "🔍 Catalogue & Indexation",
+                "value": f"• **Catalogue pSEO :** `54 URLs canoniques` (Hubs, Modèles, Moteurs)\n• **Propriété Search Console :** `{site_url}`",
+                "inline": False,
+            },
+        ],
+        "footer": {
+            "text": "LaVigieAuto SEO Automation • Google Search Console API",
+            "icon_url": f"{BASE_URL_PRODUCTION}/favicon.ico",
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    payload = {
+        "username": "LaVigieAuto SEO Bot",
+        "avatar_url": f"{BASE_URL_PRODUCTION}/favicon.ico",
+        "embeds": [embed],
+    }
+
+    try:
+        res = requests.post(webhook_url, json=payload, timeout=10)
+        if res.status_code in (200, 204):
+            print("✅ Notification Discord envoyée avec succès !")
+            return True
+        else:
+            print(f"⚠️ Erreur Discord HTTP {res.status_code} : {res.text}")
+            return False
+    except Exception as e:
+        print(f"⚠️ Échec d'envoi Discord : {e}")
+        return False
+
+
+def send_telegram_notification(
+    service,
+    site_url: str,
+    bot_token: Optional[str] = None,
+    chat_id: Optional[str] = None,
+    days: int = 7
+) -> bool:
+    """Génère et envoie un message Telegram formaté sur les performances SEO de LaVigieAuto."""
+    if not bot_token:
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not chat_id:
+        chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    if not bot_token or not chat_id:
+        print("❌ TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID manquant.")
+        print("👉 Renseignez-les dans .env ou via --bot-token / --chat-id.")
+        return False
+
+    page_rows = get_search_analytics(service, site_url, days=days, dimensions=["page"], row_limit=500)
+    query_rows = get_search_analytics(service, site_url, days=days, dimensions=["query"], row_limit=500)
+
+    clicks = sum(r.get("clicks", 0) for r in page_rows)
+    impressions = sum(r.get("impressions", 0) for r in page_rows)
+    ctr = (clicks / impressions * 100) if impressions > 0 else 0.0
+    pos = (
+        sum(r.get("position", 0) * r.get("impressions", 0) for r in page_rows) / impressions
+        if impressions > 0 else 0.0
+    )
+
+    # Marques
+    brands_data = analyze_brands(page_rows)
+    top_brands = [b for b in brands_data if b["brand"] != "Autres / Global" and (b["impressions"] > 0 or b["clicks"] > 0)][:3]
+    brands_lines = []
+    for b in top_brands:
+        brands_lines.append(f"• {html.escape(b['brand'])} : <code>{b['impressions']} imp, {b['clicks']} clics</code>")
+    brands_str = "\n".join(brands_lines) if brands_lines else "• Données en cours d'accumulation"
+
+    # Top pages
+    top_pages_lines = []
+    for r in page_rows[:3]:
+        p = r["keys"][0].replace(BASE_URL_PRODUCTION, "").replace(FALLBACK_BASE_URL, "") or "/"
+        top_pages_lines.append(f"• <code>{html.escape(p)}</code> ({r.get('impressions', 0)} imp, {r.get('clicks', 0)} clics, pos {r.get('position', 0.0):.1f})")
+    top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "Aucune page active sur la période"
+
+    # Striking distance
+    opps = analyze_opportunities(query_rows, page_rows)
+    striking = opps.get("striking_distance", [])
+    striking_lines = []
+    for s in striking[:3]:
+        striking_lines.append(f"• <code>{html.escape(s['query'][:38])}</code> (Pos {s['position']}, {s['impressions']} imp)")
+    striking_str = "\n".join(striking_lines) if striking_lines else "Aucun mot-clé en zone 4-15"
+
+    text = (
+        "📊 <b>Rapport SEO Hebdomadaire — LaVigieAuto</b>\n"
+        f"🌐 <i>lavigieauto.com</i> ({days} derniers jours)\n\n"
+        "📈 <b>Performances Globales</b>\n"
+        f"• Impressions : <b>{impressions:,}</b>\n"
+        f"• Clics : <b>{clicks:,}</b>\n"
+        f"• CTR Moyen : <b>{ctr:.2f}%</b>\n"
+        f"• Position Moyenne : <b>{pos:.1f}</b>\n"
+        f"• Pages Actives : <b>{len(page_rows)}</b>\n\n"
+        "🚗 <b>Ventilation par Marque</b>\n"
+        f"{brands_str}\n\n"
+        "🏆 <b>Top Pages du Catalogue :</b>\n"
+        f"{top_pages_str}\n\n"
+        "⚡ <b>Zone de Frappe (Positions 4 à 15) :</b>\n"
+        f"{striking_str}\n\n"
+        "🔍 <b>Catalogue & Indexation :</b>\n"
+        "• Catalogue pSEO : <code>54 URLs canoniques</code>\n"
+        f"• Propriété Search Console : <code>{html.escape(site_url)}</code>"
+    )
+
+    telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+
+    try:
+        res = requests.post(telegram_url, json=payload, timeout=10)
+        if res.status_code == 200:
+            print("✅ Notification Telegram envoyée avec succès !")
+            return True
+        else:
+            print(f"⚠️ Erreur Telegram HTTP {res.status_code} : {res.text}")
+            return False
+    except Exception as e:
+        print(f"⚠️ Échec d'envoi Telegram : {e}")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="LaVigieAuto Google Search Console Analyzer")
     parser.add_argument("--overview", action="store_true", help="Vue d'ensemble des KPIs, top requêtes et top pages")
@@ -652,6 +869,11 @@ def main():
     parser.add_argument("--days", type=int, default=28, help="Période d'analyse en jours (défaut : 28)")
     parser.add_argument("--site", type=str, default=None, help="URL de la propriété GSC (ex: sc-domain:lavigieauto.com)")
     parser.add_argument("--credentials", type=str, default=None, help="Chemin du fichier de clé de compte de service JSON")
+    parser.add_argument("--discord", action="store_true", help="Envoie le rapport formaté sur le webhook Discord")
+    parser.add_argument("--webhook", type=str, default=None, help="URL du Webhook Discord")
+    parser.add_argument("--telegram", action="store_true", help="Envoie le rapport formaté sur Telegram")
+    parser.add_argument("--bot-token", type=str, default=None, help="Token du bot Telegram")
+    parser.add_argument("--chat-id", type=str, default=None, help="Chat ID Telegram")
 
     args = parser.parse_args()
 
@@ -663,7 +885,7 @@ def main():
         return
 
     # Si aucun argument spécifique n'est passé, lancer l'overview par défaut
-    if not (args.overview or args.indexation or args.opportunities or args.brands or args.queries):
+    if not (args.overview or args.indexation or args.opportunities or args.brands or args.queries or args.discord or args.telegram):
         args.overview = True
 
     service = get_gsc_service(credentials_path=args.credentials)
@@ -679,8 +901,13 @@ def main():
         run_top_queries(service, site_url, days=args.days, limit=args.limit, sort_by=args.sort)
     if args.indexation:
         run_indexation_audit(service, site_url, limit=args.limit_indexation)
+    if args.discord:
+        send_discord_notification(service, site_url, webhook_url=args.webhook, days=args.days)
+    if args.telegram:
+        send_telegram_notification(service, site_url, bot_token=args.bot_token, chat_id=args.chat_id, days=args.days)
 
 
 if __name__ == "__main__":
     main()
+
 

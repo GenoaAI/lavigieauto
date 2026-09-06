@@ -1,0 +1,74 @@
+name: Weekly SEO Report (Google Search Console)
+
+on:
+  schedule:
+    # Chaque lundi à 06:35 UTC (soit 08:35 heure de Paris en heure d'été CEST / UTC+2)
+    - cron: '35 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seo-analysis:
+    name: GSC Weekly Performance & pSEO Audit
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth google-auth-httplib2 tabulate requests
+
+      - name: Run GSC Analytics & Generate Summary
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
+        run: |
+          echo "### 📊 Rapport Hebdomadaire Google Search Console — LaVigieAuto" >> $GITHUB_STEP_SUMMARY
+          echo "_Généré automatiquement le $(date '+%d/%m/%Y à %H:%M UTC')_" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "#### 1. Synthèse Globale (7 derniers jours)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          python scripts/gsc_analyzer.py --overview --days 7 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "#### 2. Pénétration par Marque Automobile" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          python scripts/gsc_analyzer.py --brands --days 7 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "#### 3. Opportunités SEO (Positions 4 à 15 & CTR)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          python scripts/gsc_analyzer.py --opportunities --days 7 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Discord Notification
+        if: env.DISCORD_WEBHOOK_URL != ''
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
+        run: |
+          python scripts/gsc_analyzer.py --discord --days 7
+
+      - name: Send Telegram Notification
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
+        run: |
+          python scripts/gsc_analyzer.py --telegram --days 7
