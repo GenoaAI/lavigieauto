@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText, BookOpen } from "lucide-react";
+import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText, BookOpen, LayoutDashboard } from "lucide-react";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { UserNavHeader } from "@/components/layout/UserNavHeader";
 import { FeedbackDrawer } from "@/components/feedback/FeedbackDrawer";
@@ -36,7 +36,17 @@ export default function RootLayout({
             </Link>
 
             {/* Navigation Links */}
-            <nav className="hidden md:flex items-center gap-7 lg:gap-9 text-sm font-medium text-slate-600">
+            <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium text-slate-600">
+              <Link
+                href="/dashboard"
+                prefetch={true}
+                className="hover:text-blue-600 transition flex items-center gap-1.5 text-slate-700 font-semibold"
+                title="Accéder au tableau de bord du foyer"
+              >
+                <LayoutDashboard className="w-4 h-4 text-blue-600" />
+                <span className="hidden xl:inline">Tableau de bord du foyer</span>
+                <span className="inline xl:hidden">Tableau de bord</span>
+              </Link>
               <Link href="/#methode-2-gestes" className="hover:text-blue-600 transition">
                 Comment ça marche
               </Link>

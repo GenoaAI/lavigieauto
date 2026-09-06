@@ -154,15 +154,18 @@ export function DashboardSidebar({ foyer, vehicles, members }: DashboardSidebarP
             )}
           </div>
 
-          <Link
-            href="/#scan-first"
-            prefetch={true}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              window.dispatchEvent(new CustomEvent("openQuickScanner"));
+            }}
             title="Scanner une facture (Geste 2)"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 hover:text-slate-900 transition"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 hover:text-slate-900 transition text-left cursor-pointer"
           >
             <Upload className="w-4 h-4 text-blue-600 shrink-0" />
             {!isCollapsed && <span className="truncate">Scanner une facture (Geste 2)</span>}
-          </Link>
+          </button>
 
           {vehicles.length > 0 && (
             <Link

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Pencil, Check, X, Loader2, Home, Sparkles } from "lucide-react";
 import { updateHouseholdNameAction } from "@/app/actions/foyer";
 
@@ -175,19 +176,27 @@ export function FoyerNameEditor({
   if (variant === "header") {
     return (
       <div className={`inline-flex items-center gap-1.5 group ${className}`}>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/90 rounded-xl transition cursor-pointer" onClick={handleStartEdit}>
-          {showIcon && <Home className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
-          <span className="text-xs font-bold text-slate-800 tracking-tight truncate max-w-[130px] sm:max-w-[200px]">
-            {name}
-          </span>
+        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/90 rounded-xl transition">
+          <Link
+            href="/dashboard"
+            prefetch={true}
+            title="Accéder au tableau de bord du foyer"
+            className="flex items-center gap-1.5 hover:text-blue-600 transition"
+          >
+            {showIcon && <Home className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+            <span className="text-xs font-bold text-slate-800 hover:text-blue-600 tracking-tight truncate max-w-[130px] sm:max-w-[200px]">
+              {name}
+            </span>
+          </Link>
           <button
             type="button"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               handleStartEdit();
             }}
             title="Modifier le nom du foyer"
-            className="text-slate-400 group-hover:text-blue-600 p-0.5 rounded hover:bg-white transition"
+            className="text-slate-400 hover:text-blue-600 p-0.5 rounded hover:bg-white transition ml-0.5 cursor-pointer"
           >
             <Pencil className="w-3 h-3" />
           </button>
