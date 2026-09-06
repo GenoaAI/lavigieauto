@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { ensureUserHousehold } from "@/lib/security/auth-context";
 
 /**
  * Route de callback d'authentification Supabase (Magic Link & OAuth).
@@ -8,7 +9,9 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const rawNext = searchParams.get("next") ?? "/dashboard";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
 
   if (code) {
     const supabase = await createClient();
@@ -20,44 +23,11 @@ export async function GET(request: Request) {
           data: { user },
         } = await supabase.auth.getUser();
 
-        if (user?.id && user.email) {
-          const adminSupabase = createAdminClient();
-          const cleanEmail = user.email.toLowerCase().trim();
-
-          // Vérifier si le membre est déjà rattaché
-          const { data: existingMember } = await (adminSupabase as any)
-            .from("foyer_members")
-            .select("id, foyer_id")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          if (!existingMember) {
-            // Recherche par email dans les foyers existants
-            const { data: foyers } = await (adminSupabase as any)
-              .from("foyers")
-              .select("id, metadata");
-
-            const matchedFoyer = (foyers || []).find(
-              (f: any) =>
-                (f.metadata as any)?.user_email?.toLowerCase() === cleanEmail
-            );
-
-            if (matchedFoyer) {
-              await (adminSupabase as any)
-                .from("foyer_members")
-                .upsert(
-                  {
-                    user_id: user.id,
-                    foyer_id: matchedFoyer.id,
-                    role: "owner",
-                  },
-                  { onConflict: "foyer_id,user_id" }
-                );
-            }
-          }
+        if (user?.id) {
+          await ensureUserHousehold(user);
         }
       } catch (linkErr) {
-        console.warn("Erreur auto-liaison foyer dans auth callback:", linkErr);
+        console.warn("Erreur auto-provisioning foyer dans auth callback:", linkErr);
       }
 
       const forwardedHost = request.headers.get("x-forwarded-host");

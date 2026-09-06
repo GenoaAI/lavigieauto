@@ -20,9 +20,19 @@ interface MaintenanceDropzoneProps {
   brand: string;
   model: string;
   engine: string;
+  brandSlug?: string;
+  modelSlug?: string;
+  engineSlug?: string;
 }
 
-export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzoneProps) {
+export function MaintenanceDropzone({
+  brand,
+  model,
+  engine,
+  brandSlug,
+  modelSlug,
+  engineSlug,
+}: MaintenanceDropzoneProps) {
   const router = useRouter();
   const [isDragging, setIsDragging] = useState(false);
   const [analysisState, setAnalysisState] = useState<'idle' | 'analyzing' | 'completed'>('idle');
@@ -98,12 +108,22 @@ export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzon
       destination: '/dashboard',
     });
 
+    const targetBrandSlug = brandSlug || brand;
+    const targetModelSlug = modelSlug || model;
+    const targetEngineSlug = engineSlug || engine || '';
+
     // Mémorisation dans le sessionStorage pour pré-remplissage immédiat
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(
           'lavigie_selected_vehicle',
-          JSON.stringify({ brand, model, engine, source: 'seo_landing', timestamp: Date.now() })
+          JSON.stringify({
+            brand: targetBrandSlug,
+            model: targetModelSlug,
+            engine: targetEngineSlug,
+            source: 'seo_landing',
+            timestamp: Date.now(),
+          })
         );
       }
     } catch {
@@ -112,9 +132,9 @@ export function MaintenanceDropzone({ brand, model, engine }: MaintenanceDropzon
 
     // Redirection vers le flux d'onboarding / tableau de bord avec contexte véhicule pré-rempli
     router.push(
-      `/dashboard?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(
-        model
-      )}&engine=${encodeURIComponent(engine)}&src=seo_landing`
+      `/dashboard?brand=${encodeURIComponent(targetBrandSlug)}&model=${encodeURIComponent(
+        targetModelSlug
+      )}&engine=${encodeURIComponent(targetEngineSlug)}&src=seo_landing`
     );
   };
 

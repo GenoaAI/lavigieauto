@@ -4,6 +4,8 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { signUpCredentialsSchema } from "@/lib/security/schemas";
+import { ensureUserHousehold } from "@/lib/security/auth-context";
 
 export interface CurrentUserSummary {
   isAuthenticated: boolean;
@@ -12,6 +14,15 @@ export interface CurrentUserSummary {
   name?: string;
   picture?: string;
   googleConnected: boolean;
+}
+
+export interface SignUpActionResult {
+  success: boolean;
+  error?: string;
+  code?: "user_already_exists" | "weak_password" | "invalid_email" | "generic_error";
+  requiresEmailConfirmation?: boolean;
+  sessionCreated?: boolean;
+  user?: any;
 }
 
 /**
@@ -52,10 +63,112 @@ export async function getCurrentUserAction(): Promise<CurrentUserSummary> {
 }
 
 /**
+ * Inscription par Email et Mot de passe (avec auto-provisioning de foyer)
+ */
+export async function signUpWithPasswordAction(
+  email: string,
+  password: string,
+  name?: string
+): Promise<SignUpActionResult> {
+  try {
+    const parseResult = signUpCredentialsSchema.safeParse({ email, password, name });
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      const field = firstIssue.path[0];
+      const code =
+        field === "email"
+          ? "invalid_email"
+          : field === "password"
+          ? "weak_password"
+          : "generic_error";
+      return {
+        success: false,
+        code,
+        error: firstIssue.message,
+      };
+    }
+
+    const cleanEmail = parseResult.data.email;
+    const cleanPassword = parseResult.data.password;
+    const cleanName = parseResult.data.name?.trim() || cleanEmail.split("@")[0];
+
+    const supabase = await createClient();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password: cleanPassword,
+      options: {
+        data: {
+          full_name: cleanName,
+        },
+        emailRedirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+      },
+    });
+
+    if (error) {
+      const msg = error.message?.toLowerCase() || "";
+      if (
+        msg.includes("already registered") ||
+        msg.includes("already in use") ||
+        msg.includes("user already exists") ||
+        error.status === 422 ||
+        (error.status === 400 && msg.includes("already"))
+      ) {
+        return {
+          success: false,
+          code: "user_already_exists",
+          error: "Un compte existe déjà avec cette adresse email. Veuillez vous connecter.",
+        };
+      }
+      return {
+        success: false,
+        code: "generic_error",
+        error: error.message || "Erreur lors de la création du compte.",
+      };
+    }
+
+    // GoTrue anti-enumeration: status 200, but identities array is empty
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return {
+        success: false,
+        code: "user_already_exists",
+        error: "Un compte existe déjà avec cette adresse email. Veuillez vous connecter.",
+      };
+    }
+
+    if (data?.user?.id) {
+      try {
+        await ensureUserHousehold(data.user);
+      } catch (householdErr) {
+        console.warn("Erreur auto-provisioning foyer lors de l'inscription:", householdErr);
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      sessionCreated: !!data?.session,
+      requiresEmailConfirmation: !data?.session,
+      user: data?.user,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      code: "generic_error",
+      error: err.message || "Erreur lors de l'inscription.",
+    };
+  }
+}
+
+/**
  * Connexion par Email (Magic Link / OTP)
  */
 export async function signInWithEmailAction(
-  email: string
+  email: string,
+  redirectToPath?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!email || !email.includes("@")) {
@@ -65,11 +178,15 @@ export async function signInWithEmailAction(
     const cleanEmail = email.trim().toLowerCase();
     const supabase = await createClient();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const safeNext =
+      redirectToPath && redirectToPath.startsWith("/") && !redirectToPath.startsWith("//")
+        ? redirectToPath
+        : "/dashboard";
 
     const { error } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
       options: {
-        emailRedirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+        emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(safeNext)}`,
       },
     });
 
@@ -112,37 +229,8 @@ export async function signInWithPasswordAction(
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user?.id && user.email) {
-        const adminSupabase = createAdminClient();
-        const { data: existingMember } = await (adminSupabase as any)
-          .from("foyer_members")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (!existingMember) {
-          const { data: foyers } = await (adminSupabase as any)
-            .from("foyers")
-            .select("id, metadata");
-
-          const matchedFoyer = (foyers || []).find(
-            (f: any) =>
-              (f.metadata as any)?.user_email?.toLowerCase() === user.email!.toLowerCase()
-          );
-
-          if (matchedFoyer) {
-            await (adminSupabase as any)
-              .from("foyer_members")
-              .upsert(
-                {
-                  user_id: user.id,
-                  foyer_id: matchedFoyer.id,
-                  role: "owner",
-                },
-                { onConflict: "foyer_id,user_id" }
-              );
-          }
-        }
+      if (user?.id) {
+        await ensureUserHousehold(user);
       }
     } catch (linkErr) {
       console.warn("Auto-link foyer error:", linkErr);
@@ -159,15 +247,21 @@ export async function signInWithPasswordAction(
 /**
  * Initialisation de la connexion Google OAuth (Supabase Auth)
  */
-export async function signInWithGoogleAction(): Promise<{ url?: string; error?: string }> {
+export async function signInWithGoogleAction(
+  redirectToPath?: string
+): Promise<{ url?: string; error?: string }> {
   try {
     const supabase = await createClient();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const safeNext =
+      redirectToPath && redirectToPath.startsWith("/") && !redirectToPath.startsWith("//")
+        ? redirectToPath
+        : "/dashboard";
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+        redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(safeNext)}`,
       },
     });
 

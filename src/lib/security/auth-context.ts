@@ -9,6 +9,101 @@ export interface AuthenticatedSecurityContext {
 }
 
 /**
+ * Garantit l'existence d'un foyer et l'affiliation de l'utilisateur en tant que 'owner'.
+ * Fonction idempotente et auto-réparatrice (Self-Healing).
+ */
+export async function ensureUserHousehold(user: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, any>;
+}): Promise<{ foyerId: string; role: "owner" | "admin" | "member" }> {
+  if (!user?.id) {
+    throw new Error("Identifiant utilisateur requis pour le rattachement foyer.");
+  }
+
+  const cleanEmail = user.email?.trim().toLowerCase() || "";
+  const adminSupabase = createAdminClient();
+
+  // 1. Vérifier si l'utilisateur a déjà un enregistrement dans foyer_members
+  const { data: existingMember } = await (adminSupabase as any)
+    .from("foyer_members")
+    .select("id, foyer_id, role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingMember?.foyer_id) {
+    return {
+      foyerId: existingMember.foyer_id,
+      role: (existingMember.role as "owner" | "admin" | "member") || "owner",
+    };
+  }
+
+  // 2. Vérifier si un foyer existant correspond à l'adresse email
+  let targetFoyerId: string | null = null;
+  if (cleanEmail) {
+    const { data: foyers } = await (adminSupabase as any)
+      .from("foyers")
+      .select("id, metadata");
+
+    const matchedFoyer = (foyers || []).find(
+      (f: any) => (f.metadata as any)?.user_email?.toLowerCase() === cleanEmail
+    );
+
+    if (matchedFoyer) {
+      targetFoyerId = matchedFoyer.id;
+    }
+  }
+
+  // 3. Si aucun foyer trouvé, création physique dans PostgreSQL (public.foyers)
+  if (!targetFoyerId) {
+    targetFoyerId = crypto.randomUUID();
+    const rawOwnerName =
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      (cleanEmail ? cleanEmail.split("@")[0] : "Conducteur");
+
+    const ownerName = rawOwnerName.charAt(0).toUpperCase() + rawOwnerName.slice(1);
+
+    const { error: foyerErr } = await (adminSupabase as any)
+      .from("foyers")
+      .insert({
+        id: targetFoyerId,
+        nom: `Foyer ${ownerName}`,
+        description: `Espace automobile personnel de ${ownerName}`,
+        metadata: {
+          user_email: cleanEmail || null,
+          owner_name: ownerName,
+          picture: user.user_metadata?.avatar_url || null,
+          plan: "foyer_decouverte",
+          auto_provisioned: true,
+          created_at: new Date().toISOString(),
+        },
+      });
+
+    if (foyerErr) {
+      throw new Error(`Échec de création du foyer: ${foyerErr.message}`);
+    }
+  }
+
+  // 4. Rattachement du propriétaire dans foyer_members
+  await (adminSupabase as any)
+    .from("foyer_members")
+    .upsert(
+      {
+        foyer_id: targetFoyerId,
+        user_id: user.id,
+        role: "owner",
+      },
+      { onConflict: "foyer_id,user_id" }
+    );
+
+  return {
+    foyerId: targetFoyerId,
+    role: "owner",
+  };
+}
+
+/**
  * Valide cryptographiquement la session de l'utilisateur actif via Supabase Auth.
  * Lève une exception si l'utilisateur n'est pas authentifié ou n'a aucun foyer associé.
  */
@@ -71,6 +166,17 @@ export async function requireUserHouseholdContext(): Promise<AuthenticatedSecuri
   );
 
   if (matched) {
+    await (adminSupabase as any)
+      .from("foyer_members")
+      .upsert(
+        {
+          user_id: user.id,
+          foyer_id: matched.id,
+          role: "owner",
+        },
+        { onConflict: "foyer_id,user_id" }
+      );
+
     return {
       userId: user.id,
       email: user.email,
@@ -79,7 +185,14 @@ export async function requireUserHouseholdContext(): Promise<AuthenticatedSecuri
     };
   }
 
-  throw new Error("Accès refusé : aucun foyer automobile associé à ce compte.");
+  // 3. Filet de sécurité ultime : auto-provisioning résilient sans exception
+  const provisioned = await ensureUserHousehold(user);
+  return {
+    userId: user.id,
+    email: user.email,
+    foyerId: provisioned.foyerId,
+    role: provisioned.role,
+  };
 }
 
 /**

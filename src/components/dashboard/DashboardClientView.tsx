@@ -15,6 +15,7 @@ import { getFoyerOverviewAction } from "@/app/actions/foyer";
 import {
   getVehicleDetailsAction,
   toggleVehicleTrackingStatusAction,
+  initializeContextualVehicleAction,
 } from "@/app/actions/vehicles";
 import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
 import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
@@ -77,33 +78,83 @@ export function DashboardClientView({
   } | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const src = params.get("src");
-      const brand = params.get("brand");
-      const model = params.get("model");
-      const engine = params.get("engine");
-      if (src === "seo_landing" && brand && model) {
-        setSeoWelcomeContext({ brand, model, engine: engine || "" });
-      } else {
-        const stored = sessionStorage.getItem("lavigie_selected_vehicle");
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            if (parsed?.brand && parsed?.model) {
-              setSeoWelcomeContext({
-                brand: parsed.brand,
-                model: parsed.model,
-                engine: parsed.engine || "",
-              });
-            }
-          } catch {
-            // Silencieux
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const urlSrc = params.get("src");
+    const urlBrand = params.get("brand");
+    const urlModel = params.get("model");
+    const urlEngine = params.get("engine");
+
+    let activeBrand = urlBrand;
+    let activeModel = urlModel;
+    let activeEngine = urlEngine || "";
+    let activeSrc = urlSrc || "";
+
+    if (!activeBrand || !activeModel) {
+      const stored = sessionStorage.getItem("lavigie_selected_vehicle");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed?.brand && parsed?.model) {
+            activeBrand = parsed.brand;
+            activeModel = parsed.model;
+            activeEngine = parsed.engine || "";
+            activeSrc = parsed.source || parsed.src || "";
           }
+        } catch {
+          // Silencieux
         }
       }
     }
+
+    if (activeBrand && activeModel) {
+      setSeoWelcomeContext({
+        brand: activeBrand,
+        model: activeModel,
+        engine: activeEngine,
+      });
+
+      // Vérifier si le véhicule est déjà présent dans la liste locale
+      const alreadyPresent = vehicles.some((v) => {
+        const vMarque = (v.marque || "").trim().toLowerCase();
+        const vModele = (v.modele || "").trim().toLowerCase().replace(/-/g, " ");
+        const targetMarque = activeBrand!.trim().toLowerCase();
+        const targetModele = activeModel!.trim().toLowerCase().replace(/-/g, " ");
+        return (
+          vMarque === targetMarque &&
+          (vModele === targetModele ||
+            vModele === activeModel!.trim().toLowerCase() ||
+            vModele.startsWith(targetModele) ||
+            targetModele.startsWith(vModele))
+        );
+      });
+
+      if (!alreadyPresent) {
+        initializeContextualVehicleAction({
+          brand: activeBrand,
+          model: activeModel,
+          engine: activeEngine || undefined,
+          src: activeSrc || undefined,
+        })
+          .then((res) => {
+            if (res.success) {
+              loadData();
+            }
+          })
+          .catch((err) => {
+            console.error("[DashboardClientView] Erreur auto-initialisation véhicule:", err);
+          });
+      }
+    }
+
+    // Nettoyage de l'URL via window.history.replaceState pour éviter de re-déclencher au rechargement F5
+    if (urlBrand || urlModel || urlEngine || urlSrc) {
+      const cleanPath = window.location.pathname;
+      window.history.replaceState(null, "", cleanPath);
+    }
   }, []);
+
 
   const loadData = async () => {
     setLoading(true);

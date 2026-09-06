@@ -270,4 +270,44 @@ export const addManualMaintenanceSchema = z.object({
 
 export type AddManualMaintenanceInput = z.infer<typeof addManualMaintenanceSchema>;
 
+/**
+ * Schéma de validation pour l'inscription d'un nouvel utilisateur par email et mot de passe
+ */
+export const signUpCredentialsSchema = z.object({
+  email: z
+    .string({ required_error: "L'adresse email est requise." })
+    .trim()
+    .toLowerCase()
+    .email("Veuillez saisir une adresse email valide (ex: conducteur@gmail.com).")
+    .max(255, "L'adresse email ne peut pas dépasser 255 caractères."),
+  password: z
+    .string({ required_error: "Le mot de passe est requis." })
+    .min(8, "Le mot de passe doit comporter au moins 8 caractères.")
+    .max(72, "Le mot de passe ne peut pas dépasser 72 caractères."),
+  name: z
+    .string()
+    .trim()
+    .max(100, "Le nom ne peut pas dépasser 100 caractères.")
+    .optional(),
+});
+
+export type SignUpCredentialsInput = z.infer<typeof signUpCredentialsSchema>;
+
+/**
+ * Schéma de validation pour la connexion par email et mot de passe
+ */
+export const signInCredentialsSchema = z.object({
+  email: z
+    .string({ required_error: "L'adresse email est requise." })
+    .trim()
+    .toLowerCase()
+    .email("Veuillez saisir une adresse email valide."),
+  password: z
+    .string({ required_error: "Le mot de passe est requis." })
+    .min(1, "Veuillez saisir votre mot de passe."),
+});
+
+export type SignInCredentialsInput = z.infer<typeof signInCredentialsSchema>;
+
+
 

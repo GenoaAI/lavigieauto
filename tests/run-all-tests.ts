@@ -34,6 +34,9 @@ import { testSeoMaintenanceCatalog } from "./seo-maintenance-catalog.test";
 import { runAdversarialRoutingBoundaryTests } from "./adversarial-routing-boundary.test";
 import { testManualMaintenanceManagement } from "./manual-maintenance.test";
 import { testCertificateVehicleSwitcher } from "./certificate-vehicle-switcher.test";
+import { testAuthOnboardingFunnel } from "./auth-onboarding-funnel.test";
+import { runAdversarialAuthChallengerTests } from "./adversarial-auth-challenger.test";
+import { runAdversarialOnboardingChallenger2Tests } from "./adversarial-onboarding-challenger-2.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -81,6 +84,9 @@ async function runAllTests() {
     { name: "Tests Adversariaux Routing, Cas Limites & Fil d'Ariane (Challenger 1 - 38 URLs, Slugs & Boundaries)", fn: runAdversarialRoutingBoundaryTests },
     { name: "Saisie et Validation Manuelle d'Entretien Propriétaire ('J'ai fait cet entretien' / DIY)", fn: testManualMaintenanceManagement },
     { name: "Bascule Rapide de Véhicule sur la Page de Certificat (Sans Repasser par le Foyer)", fn: testCertificateVehicleSwitcher },
+    { name: "Parcours d'Acquisition, Inscription Sécurisée & Auto-Provisioning Anti-BOLA (R1-R5)", fn: testAuthOnboardingFunnel },
+    { name: "Tests Adversariaux Auth, Schémas & Auto-Provisioning Anti-BOLA (Challenger 1)", fn: runAdversarialAuthChallengerTests },
+    { name: "Tests Adversariaux Middleware, Idempotence & Catalogue Véhicules (Challenger 2)", fn: runAdversarialOnboardingChallenger2Tests },
   ];
 
 

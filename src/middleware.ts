@@ -69,7 +69,18 @@ export async function middleware(request: NextRequest) {
   if (isDashboardRoute && !user) {
     // Si l'utilisateur n'est pas connecté et accède à /dashboard, rediriger vers /login
     const redirectUrl = new URL("/login", request.url);
-    redirectUrl.searchParams.set("redirect_to", request.nextUrl.pathname);
+
+    // Transférer tous les paramètres de recherche (brand, model, engine, src, etc.) vers la redirection
+    request.nextUrl.searchParams.forEach((val, key) => {
+      if (key !== "redirect_to") {
+        redirectUrl.searchParams.set(key, val);
+      }
+    });
+
+    // Mémoriser l'URL relative complète d'origine dans redirect_to
+    const fullOriginalPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+    redirectUrl.searchParams.set("redirect_to", fullOriginalPath);
+
     return NextResponse.redirect(redirectUrl);
   }
 
