@@ -3,7 +3,12 @@ import { ShieldCheck, CheckCircle2, Award, Calendar, Wrench, ArrowRight, Car, Fi
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVehicleDetailsAction, EnrichedVehicle } from "@/app/actions/vehicles";
+import { getFoyerOverviewAction } from "@/app/actions/foyer";
 import { CertificateExportToolbar } from "@/components/certificate/CertificateExportToolbar";
+import {
+  CertificateVehicleSwitcher,
+  CertificateVehicleSummary,
+} from "@/components/certificate/CertificateVehicleSwitcher";
 
 export default async function PublicResaleReportPage({
   params,
@@ -28,6 +33,25 @@ export default async function PublicResaleReportPage({
   const hasOverdueMilestones = (result.forecast?.projectedMilestones || []).some(
     (m) => m.urgency === "OVERDUE" || m.urgency === "CRITICAL"
   );
+
+  // Charger les véhicules du foyer si l'utilisateur est authentifié pour permettre la bascule directe
+  const foyerOverview = await getFoyerOverviewAction();
+  const foyerVehicles: CertificateVehicleSummary[] = (foyerOverview?.vehicles || []).map((v) => ({
+    id: v.id,
+    marque: v.marque,
+    modele: v.modele,
+    immatriculation: v.immatriculation,
+    kilometrage_actuel: v.kilometrage_actuel,
+    image_url: (v.metadata as any)?.image_url || v.image_url || null,
+  }));
+
+  const cleanCurrentId = (vehicle.id || "").toUpperCase().replace(/[\s-]/g, "");
+  const cleanCurrentPlate = (vehicle.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
+  const otherVehicles = foyerVehicles.filter((v) => {
+    const vId = (v.id || "").toUpperCase().replace(/[\s-]/g, "");
+    const vPlate = (v.immatriculation || "").toUpperCase().replace(/[\s-]/g, "");
+    return (!cleanCurrentId || vId !== cleanCurrentId) && (!cleanCurrentPlate || vPlate !== cleanCurrentPlate);
+  });
 
   // Groupement des lignes d'intervention par date et garage (facture complète)
   const groupedMap = new Map<string, any>();
@@ -106,6 +130,14 @@ export default async function PublicResaleReportPage({
           vehicleName={`${vehicle.marque} ${vehicle.modele}`}
           licensePlate={vehicle.immatriculation}
           vehicleId={vehicle.id}
+          vehicles={foyerVehicles}
+        />
+
+        {/* SÉLECTEUR DE VÉHICULE DU FOYER (Navigation directe sans repasser par le foyer) */}
+        <CertificateVehicleSwitcher
+          vehicles={foyerVehicles}
+          currentVehicleId={vehicle.id}
+          currentPlate={vehicle.immatriculation}
         />
 
         {/* EXPLICATION DU DOCUMENT (Masqué à l'impression PDF) */}
@@ -315,10 +347,28 @@ export default async function PublicResaleReportPage({
         </div>
 
         {/* FOOTER */}
-        <div className="text-center pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <Link href="/dashboard" className="print:hidden hover:text-blue-600 font-semibold transition">
-            ← Retourner à l'Espace Foyer
-          </Link>
+        <div className="text-center pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 print:hidden">
+            <Link href="/dashboard" className="hover:text-blue-600 font-semibold transition">
+              ← Espace Foyer
+            </Link>
+            {otherVehicles.length > 0 && (
+              <>
+                <span className="text-slate-300">•</span>
+                <span className="text-slate-400">Autre véhicule :</span>
+                {otherVehicles.map((v) => (
+                  <Link
+                    key={v.id}
+                    href={`/v/${encodeURIComponent(v.id)}`}
+                    className="font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                    title={`Consulter le certificat de la ${v.marque} ${v.modele}`}
+                  >
+                    {v.marque} {v.modele}
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
           <p>Délivré par LaVigieAuto • Certifié conforme aux normes constructeur</p>
         </div>
       </div>

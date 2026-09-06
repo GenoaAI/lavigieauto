@@ -33,6 +33,7 @@ import { testMilestoneAlertStatusManagement } from "./milestone-alert-status.tes
 import { testSeoMaintenanceCatalog } from "./seo-maintenance-catalog.test";
 import { runAdversarialRoutingBoundaryTests } from "./adversarial-routing-boundary.test";
 import { testManualMaintenanceManagement } from "./manual-maintenance.test";
+import { testCertificateVehicleSwitcher } from "./certificate-vehicle-switcher.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -79,6 +80,7 @@ async function runAllTests() {
     { name: "Référentiel SEO & Catalogue Maintenance Constructeur (30 JSON, Hubs Marques, Position 0 & Sitemap)", fn: testSeoMaintenanceCatalog },
     { name: "Tests Adversariaux Routing, Cas Limites & Fil d'Ariane (Challenger 1 - 38 URLs, Slugs & Boundaries)", fn: runAdversarialRoutingBoundaryTests },
     { name: "Saisie et Validation Manuelle d'Entretien Propriétaire ('J'ai fait cet entretien' / DIY)", fn: testManualMaintenanceManagement },
+    { name: "Bascule Rapide de Véhicule sur la Page de Certificat (Sans Repasser par le Foyer)", fn: testCertificateVehicleSwitcher },
   ];
 
 
