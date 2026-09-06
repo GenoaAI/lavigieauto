@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { STORAGE_CONFIG } from '../src/config/storage.config';
 import { VaultStorageService, vaultStorageService } from '../src/lib/storage/vault-service';
 
@@ -90,6 +92,18 @@ export async function testVaultStorageConfiguration() {
     throw new Error('deleteFromVault doit renvoyer false pour un chemin vide.');
   }
   console.log('  ✔ Résilience aux chemins vides et sécurité d\'exception validées.');
+
+  // 8. Test de la politique de sécurité CSP pour la prévisualisation PDF (frame-src & object-src)
+  console.log('\n▶ [TEST] Coffre-fort : Validation de la CSP pour prévisualisation sécurisée...');
+  const middlewarePath = path.resolve(__dirname, '../src/middleware.ts');
+  const middlewareContent = fs.readFileSync(middlewarePath, 'utf8');
+  if (!middlewareContent.includes('frame-src') || !middlewareContent.includes('https://*.supabase.co')) {
+    throw new Error('La CSP dans src/middleware.ts doit contenir une directive frame-src autorisant https://*.supabase.co pour afficher les PDF.');
+  }
+  if (!middlewareContent.includes('object-src') || !middlewareContent.includes('https://*.supabase.co')) {
+    throw new Error('La CSP dans src/middleware.ts doit autoriser https://*.supabase.co dans object-src pour le moteur de rendu PDF.');
+  }
+  console.log('  ✔ Directives CSP (frame-src & object-src) validées pour Supabase Storage.');
 }
 
 if (require.main === module) {

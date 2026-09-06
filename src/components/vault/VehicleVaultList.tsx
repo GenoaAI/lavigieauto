@@ -409,9 +409,13 @@ export function VehicleVaultList({
             {/* Modal Content */}
             <div className="flex-1 overflow-auto p-4 bg-slate-900/5 flex items-center justify-center min-h-[500px]">
               {loadingPreview ? (
-                <p className="text-xs text-slate-500">Génération de l&apos;accès sécurisé...</p>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-slate-500 font-medium">Génération de l&apos;accès sécurisé...</p>
+                </div>
               ) : previewUrl ? (
-                previewDoc.mimeType?.includes("image") || previewDoc.fileName.endsWith(".jpg") || previewDoc.fileName.endsWith(".png") ? (
+                (previewDoc.mimeType?.startsWith("image/") ||
+                 /\.(jpe?g|png|webp|heic|gif)$/i.test(previewDoc.fileName)) ? (
                   <img
                     src={previewUrl}
                     alt={previewDoc.fileName}
@@ -421,13 +425,13 @@ export function VehicleVaultList({
                   <iframe
                     src={previewUrl}
                     title={previewDoc.fileName}
-                    className="w-full h-[70vh] rounded-xl border border-slate-200 bg-white"
+                    className="w-full h-[70vh] rounded-xl border border-slate-200 bg-white shadow-xs"
                   />
                 )
               ) : (
                 <div className="text-center p-8 space-y-2">
                   <p className="text-sm font-bold text-slate-700">Aperçu direct non disponible</p>
-                  <p className="text-xs text-slate-500">Vous pouvez télécharger le fichier pour le consulter.</p>
+                  <p className="text-xs text-slate-500">Vous pouvez ouvrir ou télécharger le fichier pour le consulter.</p>
                 </div>
               )}
             </div>
