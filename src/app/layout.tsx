@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText, BookOpen, LayoutDashboard } from "lucide-react";
+import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText, BookOpen } from "lucide-react";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { UserNavHeader } from "@/components/layout/UserNavHeader";
 import { FeedbackDrawer } from "@/components/feedback/FeedbackDrawer";
@@ -40,17 +40,20 @@ export default function RootLayout({
               <Link
                 href="/dashboard"
                 prefetch={true}
-                className="hover:text-blue-600 transition flex items-center gap-1.5 text-slate-700 font-semibold"
-                title="Accéder au tableau de bord du foyer"
+                className="hover:text-blue-600 transition whitespace-nowrap"
               >
-                <LayoutDashboard className="w-4 h-4 text-blue-600" />
-                <span className="hidden xl:inline">Tableau de bord du foyer</span>
-                <span className="inline xl:hidden">Tableau de bord</span>
+                Tableau de bord
               </Link>
-              <Link href="/#methode-2-gestes" className="hover:text-blue-600 transition">
+              <Link
+                href="/#methode-2-gestes"
+                className="hover:text-blue-600 transition whitespace-nowrap"
+              >
                 Comment ça marche
               </Link>
-              <Link href="/entretien" className="hover:text-blue-600 transition flex items-center gap-1.5">
+              <Link
+                href="/entretien"
+                className="hover:text-blue-600 transition flex items-center gap-1.5 whitespace-nowrap"
+              >
                 <BookOpen className="w-4 h-4 text-blue-500" />
                 <span>Plans d&apos;entretien</span>
               </Link>

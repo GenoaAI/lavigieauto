@@ -176,15 +176,15 @@ export function FoyerNameEditor({
   if (variant === "header") {
     return (
       <div className={`inline-flex items-center gap-1.5 group ${className}`}>
-        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/90 rounded-xl transition">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/80 hover:bg-slate-200/70 border border-slate-200/80 rounded-xl transition whitespace-nowrap">
           <Link
             href="/dashboard"
             prefetch={true}
             title="Accéder au tableau de bord du foyer"
-            className="flex items-center gap-1.5 hover:text-blue-600 transition"
+            className="flex items-center gap-1.5 text-slate-700 hover:text-blue-600 transition"
           >
             {showIcon && <Home className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
-            <span className="text-xs font-bold text-slate-800 hover:text-blue-600 tracking-tight truncate max-w-[130px] sm:max-w-[200px]">
+            <span className="text-xs font-semibold text-slate-800 hover:text-blue-600 tracking-tight truncate max-w-[130px] sm:max-w-[180px]">
               {name}
             </span>
           </Link>
