@@ -208,6 +208,15 @@ export function GoogleCalendarSyncCard() {
                 </span>
               </button>
 
+              <a
+                href="/api/auth/google"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/10 hover:bg-white/15 text-slate-200 rounded-xl text-xs font-semibold border border-white/10 transition"
+                title="Rafraîchir ou réautoriser l'accès Google Agenda"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-indigo-300" />
+                <span>Reconnecter</span>
+              </a>
+
               <button
                 type="button"
                 onClick={handleDisconnect}
@@ -470,18 +479,29 @@ export function GoogleCalendarSyncCard() {
               <span className="text-white text-xs">{syncFeedback.message}</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <a
-                href="https://calendar.google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 hover:text-white underline"
-              >
-                <span>Ouvrir Google Agenda</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              {!syncFeedback.success && (
+                <a
+                  href="/api/auth/google"
+                  className="px-3 py-1.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-[11px] shadow transition inline-flex items-center gap-1.5 shrink-0"
+                >
+                  <RefreshCw className="w-3 h-3 text-indigo-600" />
+                  <span>Se reconnecter à Google</span>
+                </a>
+              )}
+              {syncFeedback.success && (
+                <a
+                  href="https://calendar.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 hover:text-white underline"
+                >
+                  <span>Ouvrir Google Agenda</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
               <button
                 onClick={() => setSyncFeedback(null)}
-                className="text-[11px] text-slate-400 hover:text-white"
+                className="text-[11px] text-slate-400 hover:text-white px-1 py-0.5"
               >
                 Fermer
               </button>
