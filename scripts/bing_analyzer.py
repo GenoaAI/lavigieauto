@@ -268,6 +268,34 @@ def cmd_submit_all(client: BingWebmasterClient):
         print(f"❌ Erreur lors de la soumission de lot : {e}")
 
 
+def get_bing_summary(api_key: Optional[str] = None, site_url: str = DEFAULT_SITE_URL) -> Optional[Dict[str, Any]]:
+    """Récupère une synthèse des métriques Bing Webmaster pour l'inclusion dans les rapports hebdomadaires."""
+    key = api_key or find_api_key()
+    if not key:
+        return None
+    try:
+        client = BingWebmasterClient(api_key=key, site_url=site_url)
+        feeds = client.get_feeds()
+        quota = client.get_quota()
+        queries = client.get_query_stats()
+        sites = client.get_user_sites()
+        matched = next((s for s in sites if client.site_url.rstrip("/") in s.get("Url", "")), None)
+        return {
+            "verified": bool(matched and matched.get("IsVerified")),
+            "sitemaps_count": len(feeds),
+            "urls_count": sum(f.get("UrlCount", 0) for f in feeds),
+            "feed_status": feeds[0].get("Status", "-") if feeds else "-",
+            "last_crawl": parse_bing_date(feeds[0].get("LastCrawled")) if feeds else "-",
+            "daily_quota": quota.get("DailyQuota", "-"),
+            "monthly_quota": quota.get("MonthlyQuota", "-"),
+            "queries_count": len(queries),
+            "impressions": sum(q.get("Impressions", 0) for q in queries),
+            "clicks": sum(q.get("Clicks", 0) for q in queries),
+        }
+    except Exception:
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Bing Webmaster Tools & ChatGPT Search Analyzer")
     parser.add_argument("--overview", action="store_true", help="Afficher le tableau de bord général")

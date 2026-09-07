@@ -704,40 +704,61 @@ def send_discord_notification(
         striking_lines.append(f"• `{s['query'][:38]}` (Pos `{s['position']}`, `{s['impressions']} imp`)")
     striking_str = "\n".join(striking_lines) if striking_lines else "Aucun mot-clé en zone 4-15"
 
+    embed_fields = [
+        {
+            "name": "📈 Performances Globales",
+            "value": f"• **Impressions :** `{impressions:,}`\n• **Clics :** `{clicks:,}`\n• **CTR Moyen :** `{ctr:.2f}%`\n• **Position Moyenne :** `{pos:.1f}`",
+            "inline": True,
+        },
+        {
+            "name": "🚗 Pénétration Marques (Top 3)",
+            "value": brands_str,
+            "inline": True,
+        },
+        {
+            "name": "🏆 Top Pages du Catalogue",
+            "value": top_pages_str,
+            "inline": False,
+        },
+        {
+            "name": "⚡ Mots-Clés en Zone de Frappe (Positions 4 à 15)",
+            "value": striking_str,
+            "inline": False,
+        },
+        {
+            "name": "🔍 Catalogue & Indexation",
+            "value": f"• **Catalogue pSEO :** `57 URLs canoniques` (Hubs, Modèles, Moteurs)\n• **Propriété Search Console :** `{site_url}`",
+            "inline": False,
+        },
+    ]
+
+    # Enrichissement Bing Webmaster & ChatGPT Search si configuré
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from bing_analyzer import get_bing_summary
+        bing_data = get_bing_summary()
+        if bing_data:
+            embed_fields.append({
+                "name": "🌐 Bing Webmaster & ChatGPT Search",
+                "value": (
+                    f"• **Sitemap Bing :** `{bing_data['urls_count']} URLs` (Statut: `{bing_data['feed_status']}`)\n"
+                    f"• **Dernier Crawl Bingbot :** `{bing_data['last_crawl']}`\n"
+                    f"• **Recherche Bing / Copilot :** `{bing_data['impressions']} imp` • `{bing_data['clicks']} clics`\n"
+                    f"• **Quota d'indexation directe :** `{bing_data['daily_quota']}/jour` (Restant : `{bing_data['monthly_quota']}`)"
+                ),
+                "inline": False,
+            })
+    except Exception:
+        pass
+
     embed = {
         "title": "📊 Rapport SEO Hebdomadaire — LaVigieAuto",
         "url": BASE_URL_PRODUCTION,
-        "description": f"Performances consolidées de **lavigieauto.com** sur les **{days} derniers jours** (Google Search Console API).",
+        "description": f"Performances consolidées de **lavigieauto.com** sur les **{days} derniers jours** (Google Search Console & Bing Webmaster API).",
         "color": 2450411,  # #2563eb Bleu LaVigieAuto
-        "fields": [
-            {
-                "name": "📈 Performances Globales",
-                "value": f"• **Impressions :** `{impressions:,}`\n• **Clics :** `{clicks:,}`\n• **CTR Moyen :** `{ctr:.2f}%`\n• **Position Moyenne :** `{pos:.1f}`",
-                "inline": True,
-            },
-            {
-                "name": "🚗 Pénétration Marques (Top 3)",
-                "value": brands_str,
-                "inline": True,
-            },
-            {
-                "name": "🏆 Top Pages du Catalogue",
-                "value": top_pages_str,
-                "inline": False,
-            },
-            {
-                "name": "⚡ Mots-Clés en Zone de Frappe (Positions 4 à 15)",
-                "value": striking_str,
-                "inline": False,
-            },
-            {
-                "name": "🔍 Catalogue & Indexation",
-                "value": f"• **Catalogue pSEO :** `54 URLs canoniques` (Hubs, Modèles, Moteurs)\n• **Propriété Search Console :** `{site_url}`",
-                "inline": False,
-            },
-        ],
+        "fields": embed_fields,
         "footer": {
-            "text": "LaVigieAuto SEO Automation • Google Search Console API",
+            "text": "LaVigieAuto SEO & GEO Automation • Google Search Console & Bing API",
             "icon_url": f"{BASE_URL_PRODUCTION}/favicon.ico",
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -830,9 +851,25 @@ def send_telegram_notification(
         "⚡ <b>Zone de Frappe (Positions 4 à 15) :</b>\n"
         f"{striking_str}\n\n"
         "🔍 <b>Catalogue & Indexation :</b>\n"
-        "• Catalogue pSEO : <code>54 URLs canoniques</code>\n"
+        "• Catalogue pSEO : <code>57 URLs canoniques</code>\n"
         f"• Propriété Search Console : <code>{html.escape(site_url)}</code>"
     )
+
+    # Enrichissement Bing Webmaster & ChatGPT Search si configuré
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from bing_analyzer import get_bing_summary
+        bing_data = get_bing_summary()
+        if bing_data:
+            text += (
+                "\n\n🌐 <b>Bing Webmaster & ChatGPT Search :</b>\n"
+                f"• Sitemap : <code>{bing_data['urls_count']} URLs ({bing_data['feed_status']})</code>\n"
+                f"• Dernier crawl : <code>{bing_data['last_crawl']}</code>\n"
+                f"• Recherche Bing : <code>{bing_data['impressions']} imp, {bing_data['clicks']} clics</code>\n"
+                f"• Quota journalier restant : <code>{bing_data['daily_quota']}/jour</code>"
+            )
+    except Exception:
+        pass
 
     telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {

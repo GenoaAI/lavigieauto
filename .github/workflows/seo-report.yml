@@ -1,4 +1,4 @@
-name: Weekly SEO Report (Google Search Console)
+name: Weekly SEO & GEO Report (Google Search Console & Bing)
 
 on:
   schedule:
@@ -11,12 +11,13 @@ permissions:
 
 jobs:
   seo-analysis:
-    name: GSC Weekly Performance & pSEO Audit
+    name: GSC & Bing Weekly Performance & pSEO Audit
     runs-on: ubuntu-latest
     env:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      BING_API_KEY: ${{ secrets.BING_API_KEY }}
 
     steps:
       - name: Checkout repository
@@ -33,16 +34,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-api-python-client google-auth google-auth-httplib2 tabulate requests
 
-      - name: Run GSC Analytics & Generate Summary
+      - name: Run GSC & Bing Analytics & Generate Summary
         env:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
         run: |
-          echo "### 📊 Rapport Hebdomadaire Google Search Console — LaVigieAuto" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Rapport Hebdomadaire SEO & GEO — LaVigieAuto" >> $GITHUB_STEP_SUMMARY
           echo "_Généré automatiquement le $(date '+%d/%m/%Y à %H:%M UTC')_" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          echo "#### 1. Synthèse Globale (7 derniers jours)" >> $GITHUB_STEP_SUMMARY
+          echo "#### 1. Synthèse Globale Google Search Console (7 derniers jours)" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
           python scripts/gsc_analyzer.py --overview --days 7 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -57,11 +59,17 @@ jobs:
           python scripts/gsc_analyzer.py --opportunities --days 7 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+          echo "#### 4. Référencement Bing & ChatGPT Search" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          python scripts/bing_analyzer.py --overview >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Send Discord Notification
         if: env.DISCORD_WEBHOOK_URL != ''
         env:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
         run: |
           python scripts/gsc_analyzer.py --discord --days 7
 
@@ -70,5 +78,6 @@ jobs:
         env:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
         run: |
           python scripts/gsc_analyzer.py --telegram --days 7
