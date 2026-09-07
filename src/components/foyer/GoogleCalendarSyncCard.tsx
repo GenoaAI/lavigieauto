@@ -34,6 +34,8 @@ export function GoogleCalendarSyncCard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<SyncCalendarResult | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const [justConnected, setJustConnected] = useState(false);
 
   const loadState = async () => {
     setLoading(true);
@@ -41,15 +43,52 @@ export function GoogleCalendarSyncCard() {
       const res = await getGoogleCalendarStateAction();
       setState(res);
       setSelectedVehicleIds(res.syncedVehicleIds || []);
+      return res;
     } catch {
-      // Ignore
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadState();
+    loadState().then(async (freshState) => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("error");
+      const msg = params.get("msg");
+      const calendarConnected = params.get("calendar_connected");
+
+      if (err) {
+        let errorText = "Échec de l'autorisation avec Google Agenda.";
+        if (err === "oauth_failed" && msg) {
+          errorText = `Erreur Google OAuth : ${decodeURIComponent(msg)}`;
+        } else if (err === "missing_code") {
+          errorText = "Code d'autorisation manquant lors du retour de Google.";
+        } else if (err === "invalid_oauth_state") {
+          errorText = "Session de sécurité expirée. Veuillez relancer la connexion.";
+        }
+        setOauthError(errorText);
+        window.history.replaceState({}, "", window.location.pathname);
+      } else if (calendarConnected === "true") {
+        setJustConnected(true);
+        window.history.replaceState({}, "", window.location.pathname);
+        // Déclencher automatiquement la première synchronisation
+        setSyncing(true);
+        try {
+          const vIds = freshState?.syncedVehicleIds?.length ? freshState.syncedVehicleIds : undefined;
+          const res = await syncGoogleCalendarAction(vIds, freshState?.targetCalendarType);
+          setSyncFeedback(res);
+          const updated = await getGoogleCalendarStateAction();
+          setState(updated);
+          setSelectedVehicleIds(updated.syncedVehicleIds || []);
+        } catch (syncErr: any) {
+          console.warn("Échec auto-sync après connexion Google:", syncErr);
+        } finally {
+          setSyncing(false);
+        }
+      }
+    });
   }, []);
 
   const handleToggleCalendarTarget = async (newTarget: "dedicated" | "primary") => {
@@ -165,6 +204,58 @@ export function GoogleCalendarSyncCard() {
     <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-indigo-500/20 space-y-5 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+
+      {/* Alerte Erreur OAuth */}
+      {oauthError && (
+        <div className="p-4 bg-rose-500/20 border border-rose-400/40 rounded-2xl text-xs text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in relative z-10">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white">Échec de liaison Google Agenda</p>
+              <p className="text-rose-200/90 text-[11.5px] mt-0.5">{oauthError}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="/api/auth/google"
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition active:scale-95"
+            >
+              Réessayer la connexion
+            </a>
+            <button
+              type="button"
+              onClick={() => setOauthError(null)}
+              className="text-rose-300 hover:text-white px-2 py-1 text-xs"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Succès Connexion */}
+      {justConnected && (
+        <div className="p-4 bg-emerald-500/20 border border-emerald-400/40 rounded-2xl text-xs text-emerald-200 flex items-center justify-between gap-3 animate-fade-in relative z-10">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white">Google Agenda connecté avec succès !</p>
+              <p className="text-emerald-200/90 text-[11.5px] mt-0.5">
+                {syncing
+                  ? "Synchronisation automatique des rendez-vous en cours..."
+                  : "Vos rendez-vous d'entretien et rappels sont prêts et synchronisés."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setJustConnected(false)}
+            className="text-emerald-300 hover:text-white px-2 py-1 text-xs shrink-0"
+          >
+            Fermer
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 relative">

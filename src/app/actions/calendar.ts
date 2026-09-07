@@ -295,8 +295,9 @@ export async function syncGoogleCalendarAction(
       }
     }
 
-    // Si le token est potentiellement manquant ou expiré et qu'on a un refresh token, le rafraîchir
-    if (refreshToken && (!accessToken || accessToken.length < 10)) {
+    // Fonction helper pour rafraîchir le token Google via le refresh_token
+    const refreshCurrentToken = async (): Promise<string | null> => {
+      if (!refreshToken) return null;
       try {
         const newTokens = await refreshGoogleAccessToken(refreshToken);
         if (newTokens.access_token) {
@@ -325,10 +326,17 @@ export async function syncGoogleCalendarAction(
               })
               .eq("id", currentFoyerId);
           }
+          return newTokens.access_token;
         }
       } catch (refreshErr) {
         console.warn("Avertissement rafraîchissement token Google:", refreshErr);
       }
+      return null;
+    };
+
+    // Si le token est potentiellement manquant et qu'on a un refresh token, le rafraîchir
+    if (refreshToken && (!accessToken || accessToken.length < 10)) {
+      await refreshCurrentToken();
     }
 
     // Si toujours aucun jeton d'accès valide, refuser poliment et inviter à reconnecter (ZÉRO FAUX POSITIF)
@@ -343,7 +351,7 @@ export async function syncGoogleCalendarAction(
       };
     }
 
-    const calendarService = new GoogleCalendarService(accessToken);
+    let calendarService = new GoogleCalendarService(accessToken);
 
     // Résolution de l'agenda cible (Dédié vs Principal)
     let effectiveCalendarId = targetType === "primary" ? "primary" : targetCalendarId;
@@ -356,9 +364,29 @@ export async function syncGoogleCalendarAction(
           path: "/",
           maxAge: 30 * 24 * 3600,
         });
-      } catch (calErr) {
-        console.warn("Repli sur le calendrier primary:", calErr);
-        effectiveCalendarId = "primary";
+      } catch (calErr: any) {
+        // En cas d'erreur 401 (token expiré en base), tenter un rafraîchissement transparent
+        if (refreshToken) {
+          const freshToken = await refreshCurrentToken();
+          if (freshToken) {
+            calendarService = new GoogleCalendarService(freshToken);
+            try {
+              effectiveCalendarId = await calendarService.getOrCreateLaVigieAutoCalendar();
+              cookieStore.set("gcal_calendar_id", effectiveCalendarId, {
+                httpOnly: true,
+                path: "/",
+                maxAge: 30 * 24 * 3600,
+              });
+            } catch {
+              effectiveCalendarId = "primary";
+            }
+          } else {
+            effectiveCalendarId = "primary";
+          }
+        } else {
+          console.warn("Repli sur le calendrier primary:", calErr);
+          effectiveCalendarId = "primary";
+        }
       }
     }
 

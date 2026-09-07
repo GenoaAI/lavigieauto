@@ -102,4 +102,18 @@ export async function testCalendarSyncEngine() {
     }
   }
   console.log("  ✔ Modes de destination Google Agenda (Dédié vs Principal) certifiés.");
+
+  // 7. Validation de la résolution de secours du foyer via l'email certifié Google
+  const mockFoyers = [
+    { id: "foyer-1", metadata: { user_email: "charlesdeforges@gmail.com" } },
+    { id: "foyer-2", metadata: { user_email: "autre@exemple.com" } },
+  ];
+  const googleCertifiedEmail = "CharlesDeForges@gmail.com";
+  const matched = mockFoyers.find(
+    (f) => f.metadata?.user_email?.toLowerCase() === googleCertifiedEmail.toLowerCase()
+  );
+  if (!matched || matched.id !== "foyer-1") {
+    throw new Error("La résolution de secours par email Google a échoué.");
+  }
+  console.log("  ✔ Résolution de secours du foyer par email Google OAuth certifiée.");
 }

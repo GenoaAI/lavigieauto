@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
     };
 
     try {
+      let resolvedFoyerId: string | null = null;
       if (user?.id) {
         // L'utilisateur est connecté -> association à son profil foyer via foyers.metadata
         const { data: existingMember } = await (adminSupabase as any)
@@ -78,41 +79,57 @@ export async function GET(req: NextRequest) {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        const foyerId = existingMember?.foyer_id;
-        if (foyerId) {
-          const { data: existingFoyer } = await (adminSupabase as any)
-            .from("foyers")
-            .select("metadata")
-            .eq("id", foyerId)
-            .maybeSingle();
+        resolvedFoyerId = existingMember?.foyer_id || null;
+      }
 
-          const currentMeta = existingFoyer?.metadata || {};
-          const prevGcal = currentMeta.google_calendar || {};
-
-          await (adminSupabase as any)
-            .from("foyers")
-            .update({
-              metadata: {
-                ...currentMeta,
-                calendar_synced: true,
-                google_calendar_connected: true,
-                google_calendar: {
-                  ...prevGcal,
-                  connected: true,
-                  calendar_id: calendarId,
-                  access_token: tokens.access_token,
-                  refresh_token: tokens.refresh_token || prevGcal.refresh_token,
-                  user_email: resolvedEmail,
-                  user_name: resolvedName,
-                  picture: user?.user_metadata?.avatar_url || googleProfile.picture,
-                  last_synced_at: new Date().toISOString(),
-                  target_type: prevGcal.target_type || "dedicated",
-                },
-              },
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", foyerId);
+      // Secours Red Team : si la session Supabase est absente sur le domaine de retour,
+      // résolution déterministe via l'email certifié Google OAuth
+      if (!resolvedFoyerId && resolvedEmail) {
+        const { data: matchedFoyers } = await (adminSupabase as any)
+          .from("foyers")
+          .select("id, metadata");
+        const matched = (matchedFoyers || []).find((f: any) =>
+          f.metadata?.user_email?.toLowerCase() === resolvedEmail.toLowerCase() ||
+          f.metadata?.owner_email?.toLowerCase() === resolvedEmail.toLowerCase()
+        );
+        if (matched) {
+          resolvedFoyerId = matched.id;
         }
+      }
+
+      if (resolvedFoyerId) {
+        const { data: existingFoyer } = await (adminSupabase as any)
+          .from("foyers")
+          .select("metadata")
+          .eq("id", resolvedFoyerId)
+          .maybeSingle();
+
+        const currentMeta = existingFoyer?.metadata || {};
+        const prevGcal = currentMeta.google_calendar || {};
+
+        await (adminSupabase as any)
+          .from("foyers")
+          .update({
+            metadata: {
+              ...currentMeta,
+              calendar_synced: true,
+              google_calendar_connected: true,
+              google_calendar: {
+                ...prevGcal,
+                connected: true,
+                calendar_id: calendarId,
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token || prevGcal.refresh_token,
+                user_email: resolvedEmail,
+                user_name: resolvedName,
+                picture: user?.user_metadata?.avatar_url || googleProfile.picture,
+                last_synced_at: new Date().toISOString(),
+                target_type: prevGcal.target_type || "dedicated",
+              },
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", resolvedFoyerId);
       }
     } catch (dbErr) {
       console.warn("Avertissement synchronisation base de données OAuth:", dbErr);
@@ -138,6 +155,14 @@ export async function GET(req: NextRequest) {
     }
 
     cookieStore.set("gcal_calendar_id", calendarId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 3600,
+      path: "/",
+    });
+
+    cookieStore.set("gcal_user_email", resolvedEmail, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
