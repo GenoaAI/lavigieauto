@@ -71,35 +71,47 @@ export async function GET(req: NextRequest) {
 
     try {
       if (user?.id) {
-        // L'utilisateur est connecté -> association à son profil foyer
+        // L'utilisateur est connecté -> association à son profil foyer via foyers.metadata
         const { data: existingMember } = await (adminSupabase as any)
           .from("foyer_members")
-          .select("id, foyer_id, metadata")
+          .select("id, foyer_id")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (existingMember) {
-          await (adminSupabase as any)
-            .from("foyer_members")
-            .update({
-              metadata: {
-                ...(existingMember.metadata || {}),
-                ...memberMetadata,
-              },
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existingMember.id);
+        const foyerId = existingMember?.foyer_id;
+        if (foyerId) {
+          const { data: existingFoyer } = await (adminSupabase as any)
+            .from("foyers")
+            .select("metadata")
+            .eq("id", foyerId)
+            .maybeSingle();
+
+          const currentMeta = existingFoyer?.metadata || {};
+          const prevGcal = currentMeta.google_calendar || {};
 
           await (adminSupabase as any)
             .from("foyers")
             .update({
               metadata: {
+                ...currentMeta,
                 calendar_synced: true,
                 google_calendar_connected: true,
+                google_calendar: {
+                  ...prevGcal,
+                  connected: true,
+                  calendar_id: calendarId,
+                  access_token: tokens.access_token,
+                  refresh_token: tokens.refresh_token || prevGcal.refresh_token,
+                  user_email: resolvedEmail,
+                  user_name: resolvedName,
+                  picture: user?.user_metadata?.avatar_url || googleProfile.picture,
+                  last_synced_at: new Date().toISOString(),
+                  target_type: prevGcal.target_type || "dedicated",
+                },
               },
               updated_at: new Date().toISOString(),
             })
-            .eq("id", existingMember.foyer_id);
+            .eq("id", foyerId);
         }
       }
     } catch (dbErr) {

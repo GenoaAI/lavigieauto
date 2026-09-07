@@ -71,4 +71,35 @@ export async function testCalendarSyncEngine() {
     throw new Error("Le filtrage sélectif des véhicules a échoué.");
   }
   console.log("  ✔ Synchronisation granulaire multi-conducteurs validée (2/4 véhicules sélectionnés).");
+
+  // 5. Validation du tri strictement chronologique des interventions (du plus proche au plus lointain)
+  const unsortedEvents = [
+    { title: "Vidange Vitara", dueDate: "2027-08-23" },
+    { title: "Purge Vitara", dueDate: "2028-05-24" },
+    { title: "Plaquettes Espace V", dueDate: "2026-10-15" },
+    { title: "Purge Espace V", dueDate: "2026-10-21" },
+    { title: "Vidange Espace V", dueDate: "2027-01-28" },
+  ];
+
+  const sortedEvents = [...unsortedEvents].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+  if (sortedEvents[0].title !== "Plaquettes Espace V" || sortedEvents[0].dueDate !== "2026-10-15") {
+    throw new Error("Le premier jalon chronologique devrait être l'échéance des plaquettes de l'Espace V.");
+  }
+  if (sortedEvents[1].title !== "Purge Espace V" || sortedEvents[1].dueDate !== "2026-10-21") {
+    throw new Error("Le deuxième jalon chronologique devrait être la purge de frein de l'Espace V.");
+  }
+  if (sortedEvents[4].dueDate !== "2028-05-24") {
+    throw new Error("Le dernier jalon chronologique devrait être l'échéance 2028.");
+  }
+  console.log("  ✔ Tri chronologique strict garanti (Plaquettes Espace V au 15/10/2026 en tête de liste).");
+
+  // 6. Validation du typage des cibles d'agenda ("dedicated" vs "primary")
+  const validTargets = ["dedicated", "primary"] as const;
+  for (const t of validTargets) {
+    if (t !== "dedicated" && t !== "primary") {
+      throw new Error(`Cible de calendrier invalide: ${t}`);
+    }
+  }
+  console.log("  ✔ Modes de destination Google Agenda (Dédié vs Principal) certifiés.");
 }

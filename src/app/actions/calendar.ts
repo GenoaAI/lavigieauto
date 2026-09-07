@@ -10,6 +10,7 @@ export interface GoogleCalendarState {
   hasOAuthConfig: boolean;
   calendarName: string;
   calendarId: string | null;
+  targetCalendarType: "dedicated" | "primary";
   lastSyncedAt: string | null;
   syncedEventsCount: number;
   userEmail?: string;
@@ -59,6 +60,7 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
   const cookieCalendarId = cookieStore.get("gcal_calendar_id")?.value;
   const cookieEmail = cookieStore.get("gcal_user_email")?.value;
   const cookieSyncedVehiclesRaw = cookieStore.get("gcal_synced_vehicles")?.value;
+  const cookieTargetType = (cookieStore.get("gcal_target_type")?.value as any) || "dedicated";
 
   let isConnected = cookieConnected;
   let lastSyncedAt: string | null = null;
@@ -66,24 +68,37 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
   let calendarId = cookieCalendarId || null;
   let userEmail = user?.email || cookieEmail || undefined;
   let syncedVehicleIds: string[] = cookieSyncedVehiclesRaw ? JSON.parse(cookieSyncedVehiclesRaw) : [];
+  let targetCalendarType: "dedicated" | "primary" = cookieTargetType;
 
   if (user) {
     const { data: member } = await (adminSupabase as any)
       .from("foyer_members")
-      .select("metadata")
+      .select("foyer_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (member?.metadata) {
-      if (member.metadata.google_calendar_connected !== undefined) {
-        isConnected = member.metadata.google_calendar_connected === true;
-      }
-      lastSyncedAt = member.metadata.last_synced_at || null;
-      syncedEventsCount = member.metadata.synced_events_count || 0;
-      calendarId = member.metadata.google_calendar_id || calendarId;
-      userEmail = member.metadata.email || userEmail;
-      if (Array.isArray(member.metadata.synced_vehicle_ids)) {
-        syncedVehicleIds = member.metadata.synced_vehicle_ids;
+    if (member?.foyer_id) {
+      const { data: foyer } = await (adminSupabase as any)
+        .from("foyers")
+        .select("metadata")
+        .eq("id", member.foyer_id)
+        .maybeSingle();
+
+      const gcal = foyer?.metadata?.google_calendar;
+      if (gcal) {
+        if (gcal.connected !== undefined) {
+          isConnected = gcal.connected === true;
+        }
+        lastSyncedAt = gcal.last_synced_at || lastSyncedAt;
+        syncedEventsCount = gcal.synced_events_count ?? syncedEventsCount;
+        calendarId = gcal.calendar_id || calendarId;
+        userEmail = gcal.user_email || userEmail;
+        if (gcal.target_type) {
+          targetCalendarType = gcal.target_type;
+        }
+        if (Array.isArray(gcal.synced_vehicle_ids)) {
+          syncedVehicleIds = gcal.synced_vehicle_ids;
+        }
       }
     }
   }
@@ -110,14 +125,64 @@ export async function getGoogleCalendarStateAction(): Promise<GoogleCalendarStat
   return {
     isConnected,
     hasOAuthConfig,
-    calendarName: "🚗 Entretien Véhicules (LaVigieAuto)",
+    calendarName: targetCalendarType === "primary" ? "Agenda Principal" : "🚗 Entretien Véhicules (LaVigieAuto)",
     calendarId: isConnected ? (calendarId || "primary") : null,
+    targetCalendarType,
     lastSyncedAt,
     syncedEventsCount,
     userEmail,
     syncedVehicleIds,
     allVehicles,
   };
+}
+
+/**
+ * Met à jour le type d'agenda cible (dédié vs principal)
+ */
+export async function updateCalendarTargetAction(targetType: "dedicated" | "primary"): Promise<{ success: boolean }> {
+  const cookieStore = await cookies();
+  cookieStore.set("gcal_target_type", targetType, {
+    maxAge: 30 * 24 * 3600,
+    path: "/",
+  });
+
+  const adminSupabase = createAdminClient();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: member } = await (adminSupabase as any)
+      .from("foyer_members")
+      .select("foyer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (member?.foyer_id) {
+      const { data: foyer } = await (adminSupabase as any)
+        .from("foyers")
+        .select("metadata")
+        .eq("id", member.foyer_id)
+        .maybeSingle();
+
+      const existingMeta = foyer?.metadata || {};
+      await (adminSupabase as any)
+        .from("foyers")
+        .update({
+          metadata: {
+            ...existingMeta,
+            google_calendar: {
+              ...(existingMeta.google_calendar || {}),
+              target_type: targetType,
+            },
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", member.foyer_id);
+    }
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
 }
 
 /**
@@ -141,20 +206,32 @@ export async function updateUserSyncedVehiclesAction(vehicleIds: string[]): Prom
   if (user) {
     const { data: member } = await (adminSupabase as any)
       .from("foyer_members")
-      .select("metadata")
+      .select("foyer_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const existingMeta = member?.metadata || {};
-    await (adminSupabase as any)
-      .from("foyer_members")
-      .update({
-        metadata: {
-          ...existingMeta,
-          synced_vehicle_ids: sanitizedVehicleIds,
-        },
-      })
-      .eq("user_id", user.id);
+    if (member?.foyer_id) {
+      const { data: foyer } = await (adminSupabase as any)
+        .from("foyers")
+        .select("metadata")
+        .eq("id", member.foyer_id)
+        .maybeSingle();
+
+      const existingMeta = foyer?.metadata || {};
+      await (adminSupabase as any)
+        .from("foyers")
+        .update({
+          metadata: {
+            ...existingMeta,
+            google_calendar: {
+              ...(existingMeta.google_calendar || {}),
+              synced_vehicle_ids: sanitizedVehicleIds,
+            },
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", member.foyer_id);
+    }
   }
 
   revalidatePath("/dashboard");
@@ -168,7 +245,10 @@ import { isVehicleTrackingSuspended } from "@/lib/types/database.types";
 /**
  * Synchronise les véhicules choisis par l'utilisateur dans son Google Calendar sous forme de RDV d'atelier groupés
  */
-export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Promise<SyncCalendarResult> {
+export async function syncGoogleCalendarAction(
+  targetVehicleIds?: string[],
+  overrideTargetType?: "dedicated" | "primary"
+): Promise<SyncCalendarResult> {
   try {
     const foyerRes = await getFoyerOverviewAction();
     let vehicles = foyerRes.vehicles || [];
@@ -176,28 +256,47 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
     const cookieStore = await cookies();
     let accessToken = cookieStore.get("gcal_access_token")?.value;
     let targetCalendarId = cookieStore.get("gcal_calendar_id")?.value;
+    let refreshToken = cookieStore.get("gcal_refresh_token")?.value;
+    let targetType: "dedicated" | "primary" =
+      overrideTargetType ||
+      (cookieStore.get("gcal_target_type")?.value as any) ||
+      "dedicated";
 
+    const supabase = await createClient();
     const adminSupabase = createAdminClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Si pas de token en cookie, chercher dans la base de données
-    const { data: member } = await (adminSupabase as any)
-      .from("foyer_members")
-      .select("metadata")
-      .not("metadata->google_access_token", "is", null)
-      .limit(1)
-      .single();
+    let currentFoyerId: string | null = null;
+    let existingFoyerMeta: any = null;
 
-    if (!accessToken && member?.metadata?.google_access_token) {
-      accessToken = member.metadata.google_access_token;
+    if (user) {
+      const { data: member } = await (adminSupabase as any)
+        .from("foyer_members")
+        .select("foyer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (member?.foyer_id) {
+        currentFoyerId = member.foyer_id;
+        const { data: foyer } = await (adminSupabase as any)
+          .from("foyers")
+          .select("metadata")
+          .eq("id", member.foyer_id)
+          .maybeSingle();
+
+        existingFoyerMeta = foyer?.metadata || {};
+        const gcal = existingFoyerMeta.google_calendar;
+        if (gcal) {
+          if (!accessToken && gcal.access_token) accessToken = gcal.access_token;
+          if (!refreshToken && gcal.refresh_token) refreshToken = gcal.refresh_token;
+          if (!targetCalendarId && gcal.calendar_id) targetCalendarId = gcal.calendar_id;
+          if (!overrideTargetType && gcal.target_type) targetType = gcal.target_type;
+        }
+      }
     }
-    if (!targetCalendarId && member?.metadata?.google_calendar_id) {
-      targetCalendarId = member.metadata.google_calendar_id;
-    }
 
-    const refreshToken = cookieStore.get("gcal_refresh_token")?.value || member?.metadata?.google_refresh_token;
-
-    // 2. Si le token est potentiellement expiré et qu'on a un refresh token, le rafraîchir
-    if (refreshToken) {
+    // Si le token est potentiellement manquant ou expiré et qu'on a un refresh token, le rafraîchir
+    if (refreshToken && (!accessToken || accessToken.length < 10)) {
       try {
         const newTokens = await refreshGoogleAccessToken(refreshToken);
         if (newTokens.access_token) {
@@ -211,14 +310,60 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
           } catch {
             // Ignore
           }
+          if (currentFoyerId && existingFoyerMeta) {
+            await (adminSupabase as any)
+              .from("foyers")
+              .update({
+                metadata: {
+                  ...existingFoyerMeta,
+                  google_calendar: {
+                    ...(existingFoyerMeta.google_calendar || {}),
+                    access_token: newTokens.access_token,
+                  },
+                },
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", currentFoyerId);
+          }
         }
       } catch (refreshErr) {
         console.warn("Avertissement rafraîchissement token Google:", refreshErr);
       }
     }
 
-    if (!targetCalendarId) {
-      targetCalendarId = "primary";
+    // Si toujours aucun jeton d'accès valide, refuser poliment et inviter à reconnecter (ZÉRO FAUX POSITIF)
+    if (!accessToken) {
+      return {
+        success: false,
+        message: "Votre session Google Agenda a expiré ou n'est pas encore connectée. Veuillez cliquer sur 'Se connecter à Google Agenda' pour autoriser l'accès.",
+        syncedCount: 0,
+        calendarName: targetType === "primary" ? "Agenda Principal" : "🚗 Entretien Véhicules (LaVigieAuto)",
+        events: [],
+        error: "Jeton d'accès Google introuvable ou expiré.",
+      };
+    }
+
+    const calendarService = new GoogleCalendarService(accessToken);
+
+    // Résolution de l'agenda cible (Dédié vs Principal)
+    let effectiveCalendarId = targetType === "primary" ? "primary" : targetCalendarId;
+
+    if (targetType === "dedicated" && (!effectiveCalendarId || effectiveCalendarId === "primary")) {
+      try {
+        effectiveCalendarId = await calendarService.getOrCreateLaVigieAutoCalendar();
+        cookieStore.set("gcal_calendar_id", effectiveCalendarId, {
+          httpOnly: true,
+          path: "/",
+          maxAge: 30 * 24 * 3600,
+        });
+      } catch (calErr) {
+        console.warn("Repli sur le calendrier primary:", calErr);
+        effectiveCalendarId = "primary";
+      }
+    }
+
+    if (!effectiveCalendarId) {
+      effectiveCalendarId = "primary";
     }
 
     // Filtrer selon la sélection personnalisée
@@ -237,21 +382,19 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
       vehicles = vehicles.filter((v) => selectedIds!.includes(v.id));
     }
 
-    const calendarService = accessToken ? new GoogleCalendarService(accessToken) : null;
-
-    // 3. Nettoyer les anciens événements pour éviter les doublons et remplacer les 4 RDV éclatés par 1 seul RDV groupé
-    if (calendarService) {
-      try {
-        await calendarService.clearLaVigieAutoCalendarEvents(targetCalendarId);
-        if (targetCalendarId !== "primary") {
-          await calendarService.clearLaVigieAutoCalendarEvents("primary");
-        }
-      } catch (clearErr) {
-        console.warn("Avertissement nettoyage agenda Google Calendar:", clearErr);
+    // Nettoyer les anciens événements pour éviter les doublons
+    try {
+      await calendarService.clearLaVigieAutoCalendarEvents(effectiveCalendarId);
+      if (effectiveCalendarId !== "primary") {
+        await calendarService.clearLaVigieAutoCalendarEvents("primary");
       }
+    } catch (clearErr) {
+      console.warn("Avertissement nettoyage agenda Google Calendar:", clearErr);
     }
 
     const syncedEvents: SyncCalendarResult["events"] = [];
+    let successfulInjections = 0;
+    let lastInjectionError: string | null = null;
 
     for (const v of vehicles) {
       const details = await getVehicleDetailsAction(v.id);
@@ -282,17 +425,16 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
           phoneScript: bundle.garagePhoneScript,
         });
 
-        // Injecter 1 SEUL événement complet exclusivement dans l'agenda dédié "Entretien Véhicules"
-        if (calendarService) {
-          try {
-            await calendarService.injectBundleEvent({
-              calendarId: targetCalendarId,
-              bundle,
-              vehicle: vehicleContext,
-            });
-          } catch (injectErr) {
-            console.warn("Avertissement injection calendrier dédié:", injectErr);
-          }
+        try {
+          await calendarService.injectBundleEvent({
+            calendarId: effectiveCalendarId,
+            bundle,
+            vehicle: vehicleContext,
+          });
+          successfulInjections++;
+        } catch (injectErr: any) {
+          lastInjectionError = injectErr.message;
+          console.warn("Avertissement injection calendrier dédié:", injectErr);
         }
       }
 
@@ -323,17 +465,17 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
           phoneScript: `Devis pneus ${details.tires.frontAxle.dimension} pour ${v.marque} ${v.modele}`,
         });
 
-        if (calendarService) {
-          try {
-            await calendarService.injectCustomMaintenanceEvent({
-              calendarId: targetCalendarId,
-              summary: tireSummary,
-              description: tireDesc,
-              startDate: details.tires.nextReplacementDate,
-            });
-          } catch (tireErr) {
-            console.warn("Avertissement injection événement pneus:", tireErr);
-          }
+        try {
+          await calendarService.injectCustomMaintenanceEvent({
+            calendarId: effectiveCalendarId,
+            summary: tireSummary,
+            description: tireDesc,
+            startDate: details.tires.nextReplacementDate,
+          });
+          successfulInjections++;
+        } catch (tireErr: any) {
+          lastInjectionError = tireErr.message;
+          console.warn("Avertissement injection événement pneus:", tireErr);
         }
       }
 
@@ -364,44 +506,71 @@ export async function syncGoogleCalendarAction(targetVehicleIds?: string[]): Pro
           phoneScript: `Devis plaquettes de frein pour ${v.marque} ${v.modele}`,
         });
 
-        if (calendarService) {
-          try {
-            await calendarService.injectCustomMaintenanceEvent({
-              calendarId: targetCalendarId,
-              summary: brakeSummary,
-              description: brakeDesc,
-              startDate: brakeNextAxle.projectedReplacementDate,
-            });
-          } catch (brakeErr) {
-            console.warn("Avertissement injection événement freinage:", brakeErr);
-          }
+        try {
+          await calendarService.injectCustomMaintenanceEvent({
+            calendarId: effectiveCalendarId,
+            summary: brakeSummary,
+            description: brakeDesc,
+            startDate: brakeNextAxle.projectedReplacementDate,
+          });
+          successfulInjections++;
+        } catch (brakeErr: any) {
+          lastInjectionError = brakeErr.message;
+          console.warn("Avertissement injection événement freinage:", brakeErr);
         }
       }
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // Si aucune injection n'a réussi alors qu'il y avait des événements à injecter, signaler l'erreur réelle
+    if (syncedEvents.length > 0 && successfulInjections === 0 && lastInjectionError) {
+      return {
+        success: false,
+        message: `Échec de l'injection dans Google Agenda (${lastInjectionError}). Veuillez reconnecter votre compte Google.`,
+        syncedCount: 0,
+        calendarName: targetType === "primary" ? "Agenda Principal" : "🚗 Entretien Véhicules (LaVigieAuto)",
+        events: [],
+        error: lastInjectionError,
+      };
+    }
 
-    if (user) {
+    // TRI STRICTEMENT CHRONOLOGIQUE DES ÉCHÉANCES (du plus proche au plus lointain)
+    syncedEvents.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+    // Mémoriser la date de dernière synchronisation dans les métadonnées du foyer
+    if (currentFoyerId && existingFoyerMeta) {
       await (adminSupabase as any)
-        .from("foyer_members")
+        .from("foyers")
         .update({
           metadata: {
+            ...existingFoyerMeta,
+            calendar_synced: true,
             google_calendar_connected: true,
-            last_synced_at: new Date().toISOString(),
-            synced_events_count: syncedEvents.length,
+            google_calendar: {
+              ...(existingFoyerMeta.google_calendar || {}),
+              connected: true,
+              calendar_id: effectiveCalendarId,
+              target_type: targetType,
+              last_synced_at: new Date().toISOString(),
+              synced_events_count: syncedEvents.length,
+            },
           },
+          updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id);
+        .eq("id", currentFoyerId);
     }
 
     revalidatePath("/dashboard");
 
+    const targetDisplayName =
+      targetType === "primary"
+        ? "votre Agenda Principal"
+        : "l'agenda dédié « 🚗 Entretien Véhicules »";
+
     return {
       success: true,
-      message: `Synchronisation réussie : ${syncedEvents.length} intervention(s) planifiée(s) dans Google Calendar.`,
+      message: `Synchronisation réussie : ${syncedEvents.length} intervention(s) planifiée(s) par ordre chronologique dans ${targetDisplayName}.`,
       syncedCount: syncedEvents.length,
-      calendarName: "🚗 Entretien Véhicules (LaVigieAuto)",
+      calendarName: targetType === "primary" ? "Agenda Principal" : "🚗 Entretien Véhicules (LaVigieAuto)",
       events: syncedEvents,
     };
   } catch (err: any) {
@@ -429,18 +598,39 @@ export async function disconnectGoogleCalendarAction(): Promise<{ success: boole
   cookieStore.delete("gcal_refresh_token");
   cookieStore.delete("gcal_calendar_id");
   cookieStore.delete("gcal_connected");
+  cookieStore.delete("gcal_user_email");
+  cookieStore.delete("gcal_synced_vehicles");
+  cookieStore.delete("gcal_target_type");
 
   if (user) {
-    await (adminSupabase as any)
+    const { data: member } = await (adminSupabase as any)
       .from("foyer_members")
-      .update({
-        metadata: {
-          google_calendar_connected: false,
-          last_synced_at: null,
-          synced_events_count: 0,
-        },
-      })
-      .eq("user_id", user.id);
+      .select("foyer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (member?.foyer_id) {
+      const { data: foyer } = await (adminSupabase as any)
+        .from("foyers")
+        .select("metadata")
+        .eq("id", member.foyer_id)
+        .maybeSingle();
+
+      const currentMeta = foyer?.metadata || {};
+      const { google_calendar, ...remainingMeta } = currentMeta;
+
+      await (adminSupabase as any)
+        .from("foyers")
+        .update({
+          metadata: {
+            ...remainingMeta,
+            calendar_synced: false,
+            google_calendar_connected: false,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", member.foyer_id);
+    }
   }
 
   revalidatePath("/dashboard");

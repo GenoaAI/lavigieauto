@@ -21,6 +21,7 @@ import {
   syncGoogleCalendarAction,
   disconnectGoogleCalendarAction,
   updateUserSyncedVehiclesAction,
+  updateCalendarTargetAction,
   GoogleCalendarState,
   SyncCalendarResult,
 } from "@/app/actions/calendar";
@@ -50,6 +51,16 @@ export function GoogleCalendarSyncCard() {
   useEffect(() => {
     loadState();
   }, []);
+
+  const handleToggleCalendarTarget = async (newTarget: "dedicated" | "primary") => {
+    if (!state) return;
+    setState({ ...state, targetCalendarType: newTarget });
+    try {
+      await updateCalendarTargetAction(newTarget);
+    } catch (err) {
+      console.warn("Erreur mise à jour calendrier cible:", err);
+    }
+  };
 
   const handleToggleVehicle = async (vehicleId: string) => {
     const validIds = new Set(allVehicles.map((v) => v.id));
@@ -85,7 +96,7 @@ export function GoogleCalendarSyncCard() {
         success: false,
         message: "Veuillez sélectionner au moins un véhicule à synchroniser.",
         syncedCount: 0,
-        calendarName: "🚗 Entretien Véhicules (LaVigieAuto)",
+        calendarName: state?.calendarName || "🚗 Entretien Véhicules (LaVigieAuto)",
         events: [],
       });
       return;
@@ -94,7 +105,7 @@ export function GoogleCalendarSyncCard() {
     setSyncing(true);
     setSyncFeedback(null);
     try {
-      const res = await syncGoogleCalendarAction(selectedVehicleIds);
+      const res = await syncGoogleCalendarAction(selectedVehicleIds, state?.targetCalendarType);
       setSyncFeedback(res);
       await loadState();
     } catch (err: any) {
@@ -102,7 +113,7 @@ export function GoogleCalendarSyncCard() {
         success: false,
         message: "Échec de synchronisation",
         syncedCount: 0,
-        calendarName: "🚗 Entretien Véhicules (LaVigieAuto)",
+        calendarName: state?.calendarName || "🚗 Entretien Véhicules (LaVigieAuto)",
         events: [],
         error: err.message,
       });
@@ -254,6 +265,71 @@ export function GoogleCalendarSyncCard() {
         </div>
       </div>
 
+      {/* SÉLECTION DU CALENDRIER CIBLE & ASTUCE GOOGLE AGENDA */}
+      {isConnected && (
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white/5 rounded-2xl border border-white/10 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-400/20">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-white text-xs">
+                  Destination dans Google Agenda :
+                </p>
+                <p className="text-[11px] text-slate-300">
+                  {state?.targetCalendarType === "primary"
+                    ? "Vos rendez-vous s'injectent directement dans votre agenda personnel principal."
+                    : "Vos rendez-vous sont isolés dans le calendrier dédié « 🚗 Entretien Véhicules »."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleToggleCalendarTarget("dedicated")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  state?.targetCalendarType !== "primary"
+                    ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/40"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🚗 Agenda Dédié
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleCalendarTarget("primary")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  state?.targetCalendarType === "primary"
+                    ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/40"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                📅 Agenda Principal
+              </button>
+            </div>
+          </div>
+
+          {/* Guide visibilité si agenda dédié */}
+          {state?.targetCalendarType !== "primary" && (
+            <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-xs text-amber-200 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-amber-100 text-[11.5px]">
+                  Astuce : Vos rendez-vous n'apparaissent pas sur votre téléphone ?
+                </p>
+                <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                  • <strong>Sur Smartphone (app Google Agenda)</strong> : Google ne synchronise pas les nouveaux agendas par défaut. Allez dans <em>Menu ☰ &gt; Paramètres &gt; Votre compte Google &gt; « 🚗 Entretien Véhicules » &gt; Activer le commutateur « Synchroniser »</em>.<br />
+                  • <strong>Sur Ordinateur</strong> : Vérifiez que l'agenda <em>« 🚗 Entretien Véhicules »</em> est bien coché dans la colonne de gauche sur <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-white">calendar.google.com</a>.<br />
+                  • <em>Vous pouvez aussi choisir <strong>« 📅 Agenda Principal »</strong> ci-dessus pour les recevoir directement au milieu de vos journées sans manipulation.</em>
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* SÉLECTION GRANULAIRE DES VÉHICULES DU CONDUCTEUR */}
       {isConnected && (
         <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3 text-xs">
@@ -377,41 +453,111 @@ export function GoogleCalendarSyncCard() {
         </div>
       )}
 
-      {/* Notification de synchronisation réussie */}
+      {/* Notification de synchronisation réussie avec vue chronologique */}
       {syncFeedback && (
-        <div className={`p-4 rounded-2xl text-xs space-y-2 border animate-in fade-in duration-200 ${
+        <div className={`p-4 rounded-2xl text-xs space-y-3 border animate-in fade-in duration-200 ${
           syncFeedback.success
-            ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-100"
+            ? "bg-emerald-500/15 border-emerald-400/30 text-emerald-100"
             : "bg-rose-500/20 border-rose-400/40 text-rose-100"
         }`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2 font-bold">
-              {syncFeedback.success ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
-              <span>{syncFeedback.message}</span>
+              {syncFeedback.success ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              )}
+              <span className="text-white text-xs">{syncFeedback.message}</span>
             </div>
-            <button
-              onClick={() => setSyncFeedback(null)}
-              className="text-[10px] text-slate-300 hover:text-white underline"
-            >
-              Fermer
-            </button>
+            <div className="flex items-center gap-2.5">
+              <a
+                href="https://calendar.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 hover:text-white underline"
+              >
+                <span>Ouvrir Google Agenda</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <button
+                onClick={() => setSyncFeedback(null)}
+                className="text-[11px] text-slate-400 hover:text-white"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
 
           {syncFeedback.events.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              {syncFeedback.events.map((ev, i) => (
-                <div key={i} className="p-2.5 bg-black/30 rounded-xl border border-white/10 flex items-center justify-between gap-3 text-[11px] overflow-hidden">
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-white block truncate">{ev.vehicle}</span>
-                    <p className="text-slate-300 truncate text-[10.5px] mt-0.5" title={ev.title}>
-                      {ev.title}
-                    </p>
-                  </div>
-                  <span className="px-2.5 py-1 bg-blue-500/30 text-blue-200 font-mono text-[10px] rounded-lg font-semibold shrink-0 border border-blue-400/20 shadow-sm">
-                    {ev.dueDate}
-                  </span>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-300">
+                <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                  Ordre chronologique des rendez-vous ({syncFeedback.events.length}) :
+                </span>
+                <span className="text-[10px] text-slate-400">Classé du plus proche au plus lointain</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                {syncFeedback.events.map((ev, i) => {
+                  const isEspace = ev.vehicle.toLowerCase().includes("espace");
+                  const dateParts = ev.dueDate.split("-");
+                  let formattedDate = ev.dueDate;
+                  if (dateParts.length === 3) {
+                    try {
+                      const d = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+                      formattedDate = d.toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      });
+                    } catch {
+                      formattedDate = ev.dueDate;
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={i}
+                      className="p-2.5 bg-black/40 rounded-xl border border-white/10 flex items-center justify-between gap-3 text-[11px] hover:border-white/20 transition group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="w-5 h-5 rounded-lg bg-white/10 text-slate-300 font-mono text-[10px] font-bold flex items-center justify-center shrink-0 border border-white/5">
+                          #{i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold tracking-tight uppercase shrink-0 ${
+                              isEspace
+                                ? "bg-indigo-500/30 text-indigo-200 border border-indigo-400/20"
+                                : "bg-emerald-500/30 text-emerald-200 border border-emerald-400/20"
+                            }`}>
+                              {ev.vehicle}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 truncate">
+                              {ev.licensePlate}
+                            </span>
+                          </div>
+                          <p className="text-slate-200 font-medium truncate text-[11px] mt-0.5" title={ev.title}>
+                            {ev.title}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="px-2.5 py-1 bg-blue-500/20 text-blue-200 font-mono text-[10.5px] rounded-lg font-bold border border-blue-400/30 shadow-sm block">
+                          {formattedDate}
+                        </span>
+                        {ev.estimatedCost > 0 && (
+                          <span className="text-[9.5px] text-slate-400 block mt-0.5 font-mono">
+                            ~{ev.estimatedCost} €
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
