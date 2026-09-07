@@ -17,7 +17,10 @@
     "gsc:queries": "python scripts/gsc_analyzer.py --queries",
     "gsc:notify": "python scripts/gsc_analyzer.py --discord --telegram --days 7",
     "gsc:discord": "python scripts/gsc_analyzer.py --discord --days 7",
-    "gsc:telegram": "python scripts/gsc_analyzer.py --telegram --days 7"
+    "gsc:telegram": "python scripts/gsc_analyzer.py --telegram --days 7",
+    "bing": "python scripts/bing_analyzer.py --overview",
+    "bing:submit": "python scripts/bing_analyzer.py --submit",
+    "seo:all": "npm run gsc && npm run bing"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
