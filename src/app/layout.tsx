@@ -4,6 +4,7 @@ import { ShieldCheck, Car, Sparkles, ArrowRight, CheckCircle2, Phone, FileText, 
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { UserNavHeader } from "@/components/layout/UserNavHeader";
 import { FeedbackDrawer } from "@/components/feedback/FeedbackDrawer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -75,6 +76,8 @@ export default function RootLayout({
         {/* Barre de navigation basse pour mobile */}
         <MobileBottomNav />
 
+        {/* Vercel Speed Insights */}
+        <SpeedInsights />
 
         {/* Footer */}
         <footer className="bg-slate-900 text-white py-12 border-t border-slate-800">

@@ -17,11 +17,11 @@ export async function middleware(request: NextRequest) {
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
     "Content-Security-Policy": [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://accounts.google.com https://apis.google.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com",
       "font-src 'self'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://www.googleapis.com https://api.stripe.com https://generativelanguage.googleapis.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://www.googleapis.com https://api.stripe.com https://generativelanguage.googleapis.com https://vitals.vercel-insights.com",
       "frame-ancestors 'none'",
       "frame-src 'self' https://*.supabase.co blob: data:",
       "object-src 'self' https://*.supabase.co blob:",
