@@ -421,6 +421,7 @@ export async function syncGoogleCalendarAction(
     }
 
     const syncedEvents: SyncCalendarResult["events"] = [];
+    const injectionTasks: Array<() => Promise<void>> = [];
     let successfulInjections = 0;
     let lastInjectionError: string | null = null;
 
@@ -453,17 +454,13 @@ export async function syncGoogleCalendarAction(
           phoneScript: bundle.garagePhoneScript,
         });
 
-        try {
+        injectionTasks.push(async () => {
           await calendarService.injectBundleEvent({
             calendarId: effectiveCalendarId,
             bundle,
             vehicle: vehicleContext,
           });
-          successfulInjections++;
-        } catch (injectErr: any) {
-          lastInjectionError = injectErr.message;
-          console.warn("Avertissement injection calendrier dédié:", injectErr);
-        }
+        });
       }
 
       // ÉCHÉANCE PNEUMATIQUES : Synchronisation dans Google Calendar
@@ -493,18 +490,14 @@ export async function syncGoogleCalendarAction(
           phoneScript: `Devis pneus ${details.tires.frontAxle.dimension} pour ${v.marque} ${v.modele}`,
         });
 
-        try {
+        injectionTasks.push(async () => {
           await calendarService.injectCustomMaintenanceEvent({
             calendarId: effectiveCalendarId,
             summary: tireSummary,
             description: tireDesc,
             startDate: details.tires.nextReplacementDate,
           });
-          successfulInjections++;
-        } catch (tireErr: any) {
-          lastInjectionError = tireErr.message;
-          console.warn("Avertissement injection événement pneus:", tireErr);
-        }
+        });
       }
 
       // ÉCHÉANCE FREINAGE (PLAQUETTES & DISQUES) : Synchronisation dans Google Calendar
@@ -534,20 +527,29 @@ export async function syncGoogleCalendarAction(
           phoneScript: `Devis plaquettes de frein pour ${v.marque} ${v.modele}`,
         });
 
-        try {
+        injectionTasks.push(async () => {
           await calendarService.injectCustomMaintenanceEvent({
             calendarId: effectiveCalendarId,
             summary: brakeSummary,
             description: brakeDesc,
             startDate: brakeNextAxle.projectedReplacementDate,
           });
-          successfulInjections++;
-        } catch (brakeErr: any) {
-          lastInjectionError = brakeErr.message;
-          console.warn("Avertissement injection événement freinage:", brakeErr);
-        }
+        });
       }
     }
+
+    // Exécution concurrente ultra-rapide des injections Google Calendar
+    await Promise.all(
+      injectionTasks.map(async (task) => {
+        try {
+          await task();
+          successfulInjections++;
+        } catch (taskErr: any) {
+          lastInjectionError = taskErr.message;
+          console.warn("Avertissement injection événement Google:", taskErr);
+        }
+      })
+    );
 
     // Si aucune injection n'a réussi alors qu'il y avait des événements à injecter, signaler l'erreur réelle
     if (syncedEvents.length > 0 && successfulInjections === 0 && lastInjectionError) {
