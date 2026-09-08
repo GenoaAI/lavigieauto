@@ -38,8 +38,9 @@
 * **Alignement Strict des URLs Supabase (Site URL & Redirect URLs)** : Définir obligatoirement le `Site URL` sur le domaine officiel (`https://lavigieauto.com`) et inscrire `https://lavigieauto.com/**` dans les Redirect URLs autorisées dans Supabase Dashboard pour empêcher le renvoi parasite vers `localhost:3000`.
 * **Redondance des Modes d'Accès (Anti-Rate Limit)** : Toujours maintenir une modalité d'accès par mot de passe direct en secours du Magic Link afin de prémunir l'utilisateur des blocages liés aux quotas d'envoi d'emails (rate-limit SMTP 60s).
 
-## 8. PILOTAGE & OBSERVABILITÉ SEO (GOOGLE SEARCH CONSOLE)
-* **Sécurité Absolue des Clés de Service** : Le fichier `gsc-credentials.json` (et tout fichier `*credentials*.json` ou `.venv/`) doit rester strictement exclu du versioning Git via `.gitignore`.
-* **Décisions SEO Guidées par la Donnée Réelle** : Toute modification de `<title>`, meta description ou balisage Hn sur les pages pSEO (`/entretien/*`) doit s'appuyer sur les métriques réelles extraites de l'API Search Console (`npm run gsc` ou `npm run gsc:opportunities`), et non sur des conjectures.
-* **Vérification d'Indexation Avant Refonte** : Avant de déprécier ou modifier l'URL d'un moteur ou modèle, vérifier systématiquement son statut d'indexation Googlebot via `npm run gsc:indexation`.
-* **Outillage Standardisé** : Les analyses SEO du projet s'exécutent exclusivement via l'environnement virtuel `.venv` et le script centralisé `scripts/gsc_analyzer.py`.
+## 8. PILOTAGE MULTI-MOTEURS & GEO (GOOGLE, BING / CHATGPT, BRAVE / CLAUDE)
+* **Sécurité Absolue des Clés d'API & Identifiants** : Les fichiers `gsc-credentials.json`, `*credentials*.json`, ainsi que les variables d'environnement locales (`BING_WEBMASTER_API_KEY`, `.env.local`, `.venv/`) doivent rester strictement exclus du versioning Git via `.gitignore`.
+* **Décisions SEO & GEO Guidées par la Donnée Réelle** : Toute modification de `<title>`, meta description ou balisage Hn sur les pages pSEO (`/entretien/*`) doit s'appuyer sur les métriques réelles extraites de l'API Search Console (`npm run gsc`) ou de Bing Webmaster (`npm run bing`), et non sur des conjectures.
+* **Soumission d'Indexation Systématique** : À chaque ajout de nouvelle fiche d'entretien dans `src/data/maintenance/`, soumettre immédiatement les URLs générées à Bing (`npm run bing:submit`) pour indexation instantanée dans Bing et ChatGPT Search, et sur Brave Search (`https://search.brave.com/submit-url`) pour la couverture Claude.
+* **Intégrité de la Base IA (`/llms.txt`)** : Maintenir le point de terminaison `/llms.txt` strictement synchronisé avec les fiches réelles via `getAllMaintenanceData()`, sans jamais injecter de fausses caractéristiques.
+* **Outillage Standardisé** : Les analyses de visibilité s'exécutent exclusivement via l'environnement virtuel `.venv` et les scripts centralisés `scripts/gsc_analyzer.py` et `scripts/bing_analyzer.py`.
