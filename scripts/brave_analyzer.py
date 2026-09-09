@@ -77,8 +77,8 @@ def find_api_key() -> Optional[str]:
     """Récupère la clé API Brave Search depuis l'environnement ou les fichiers .env."""
     for env_var in ["BRAVE_SEARCH_API_KEY", "BRAVE_API_KEY"]:
         val = os.getenv(env_var)
-        if val and len(val.strip()) > 10:
-            return val.strip()
+        if val and len(val.strip().strip('"\'')) > 10:
+            return val.strip().strip('"\'')
 
     project_root = Path(__file__).resolve().parent.parent
     env_files = [project_root / ".env.local", project_root / ".env"]
@@ -90,7 +90,8 @@ def find_api_key() -> Optional[str]:
                     if line.startswith("#") or "=" not in line:
                         continue
                     k, v = line.split("=", 1)
-                    k, v = k.strip(), v.strip().strip('"\'')
+                    k = k.strip()
+                    v = v.strip().strip('"\'').strip()
                     if k in ("BRAVE_SEARCH_API_KEY", "BRAVE_API_KEY") and len(v) > 10:
                         return v
             except Exception:
@@ -196,10 +197,11 @@ class BraveSearchClient:
             return json.loads(raw.decode("utf-8"))
 
     def web_search(self, query: str, count: int = 20, offset: int = 0, country: str = "fr") -> Dict[str, Any]:
-        """Interroge l'API Web Search de Brave."""
+        """Interroge l'API Web Search de Brave (count plafonné à 20 par l'API)."""
+        safe_count = min(max(1, count), 20)
         return self._call("web/search", {
             "q": query,
-            "count": count,
+            "count": safe_count,
             "offset": offset,
             "country": country,
             "search_lang": "fr",
@@ -207,10 +209,21 @@ class BraveSearchClient:
         })
 
     def site_search(self, domain: str = DEFAULT_DOMAIN, count: int = 20) -> List[Dict[str, Any]]:
-        """Recherche toutes les pages indexées pour le domaine dans Brave."""
-        res = self.web_search(f"site:{domain}", count=count)
-        web_results = res.get("web", {}).get("results", [])
-        return web_results
+        """Recherche toutes les pages indexées pour le domaine dans Brave avec pagination."""
+        all_results: List[Dict[str, Any]] = []
+        target_count = count
+        offset = 0
+        batch_size = 20
+        while offset < target_count:
+            res = self.web_search(f"site:{domain}", count=batch_size, offset=offset)
+            web_results = res.get("web", {}).get("results", [])
+            if not web_results:
+                break
+            all_results.extend(web_results)
+            if len(web_results) < batch_size:
+                break
+            offset += batch_size
+        return all_results
 
     def test_query(self, query: str, target_domain: str = DEFAULT_DOMAIN) -> Dict[str, Any]:
         """Teste le classement de target_domain sur une requête donnée."""
