@@ -51,3 +51,4 @@ gsc-credentials.json
 .venv/
 __pycache__/
 *.pyc
+scripts/data/

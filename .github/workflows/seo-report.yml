@@ -18,6 +18,7 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       BING_API_KEY: ${{ secrets.BING_API_KEY }}
+      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
 
     steps:
       - name: Checkout repository
@@ -34,11 +35,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-api-python-client google-auth google-auth-httplib2 tabulate requests
 
-      - name: Run GSC & Bing Analytics & Generate Summary
+      - name: Run GSC, Bing & Brave Analytics & Generate Summary
         env:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
           BING_API_KEY: ${{ secrets.BING_API_KEY }}
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
         run: |
           echo "### 📊 Rapport Hebdomadaire SEO & GEO — LaVigieAuto" >> $GITHUB_STEP_SUMMARY
           echo "_Généré automatiquement le $(date '+%d/%m/%Y à %H:%M UTC')_" >> $GITHUB_STEP_SUMMARY
@@ -64,12 +66,18 @@ jobs:
           python scripts/bing_analyzer.py --overview >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+          echo "#### 5. Visibilité Brave Search & Claude (GEO)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          python scripts/brave_analyzer.py --overview >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Send Discord Notification
         if: env.DISCORD_WEBHOOK_URL != ''
         env:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
           BING_API_KEY: ${{ secrets.BING_API_KEY }}
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
         run: |
           python scripts/gsc_analyzer.py --discord --days 7
 
@@ -79,5 +87,6 @@ jobs:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_SITE_URL: ${{ secrets.GSC_SITE_URL || 'https://www.lavigieauto.com/' }}
           BING_API_KEY: ${{ secrets.BING_API_KEY }}
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
         run: |
           python scripts/gsc_analyzer.py --telegram --days 7

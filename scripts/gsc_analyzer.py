@@ -751,14 +751,33 @@ def send_discord_notification(
     except Exception:
         pass
 
+    # Enrichissement Brave Search & Claude (GEO) si configuré ou en cache
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from brave_analyzer import get_brave_summary
+        brave_data = get_brave_summary()
+        if brave_data:
+            embed_fields.append({
+                "name": "🦁 Brave Search & Claude (GEO)",
+                "value": (
+                    f"• **Index Brave :** `{brave_data['indexed_count']} / {brave_data['total_urls']} URLs` ({brave_data['coverage_percent']}%)\n"
+                    f"• **Statut :** `{brave_data['status_str']}`\n"
+                    f"• **Sourçage IA :** `Index indépendant pour Claude & Perplexity`\n"
+                    f"• **Dernière analyse :** `{brave_data['last_audit']}`"
+                ),
+                "inline": False,
+            })
+    except Exception:
+        pass
+
     embed = {
         "title": "📊 Rapport SEO Hebdomadaire — LaVigieAuto",
         "url": BASE_URL_PRODUCTION,
-        "description": f"Performances consolidées de **lavigieauto.com** sur les **{days} derniers jours** (Google Search Console & Bing Webmaster API).",
+        "description": f"Performances consolidées de **lavigieauto.com** sur les **{days} derniers jours** (Google Search Console, Bing Webmaster & Brave Search / Claude).",
         "color": 2450411,  # #2563eb Bleu LaVigieAuto
         "fields": embed_fields,
         "footer": {
-            "text": "LaVigieAuto SEO & GEO Automation • Google Search Console & Bing API",
+            "text": "LaVigieAuto SEO & GEO Automation • Google, Bing & Brave Search",
             "icon_url": f"{BASE_URL_PRODUCTION}/favicon.ico",
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -867,6 +886,21 @@ def send_telegram_notification(
                 f"• Dernier crawl : <code>{bing_data['last_crawl']}</code>\n"
                 f"• Recherche Bing : <code>{bing_data['impressions']} imp, {bing_data['clicks']} clics</code>\n"
                 f"• Quota journalier restant : <code>{bing_data['daily_quota']}/jour</code>"
+            )
+    except Exception:
+        pass
+
+    # Enrichissement Brave Search & Claude (GEO) si configuré
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from brave_analyzer import get_brave_summary
+        brave_data = get_brave_summary()
+        if brave_data:
+            text += (
+                "\n\n🦁 <b>Brave Search & Claude (GEO) :</b>\n"
+                f"• Indexation : <code>{brave_data['indexed_count']} / {brave_data['total_urls']} URLs ({brave_data['coverage_percent']}%)</code>\n"
+                f"• Statut : <code>{brave_data['status_str']}</code>\n"
+                f"• Sourçage IA : <code>Claude (Anthropic) & Perplexity</code>"
             )
     except Exception:
         pass

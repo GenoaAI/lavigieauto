@@ -20,7 +20,12 @@
     "gsc:telegram": "python scripts/gsc_analyzer.py --telegram --days 7",
     "bing": "python scripts/bing_analyzer.py --overview",
     "bing:submit": "python scripts/bing_analyzer.py --submit",
-    "seo:all": "npm run gsc && npm run bing"
+    "brave": "python scripts/brave_analyzer.py --overview",
+    "brave:audit": "python scripts/brave_analyzer.py --audit",
+    "brave:queries": "python scripts/brave_analyzer.py --queries",
+    "brave:submit": "python scripts/brave_analyzer.py --submit",
+    "brave:wdp": "python scripts/brave_analyzer.py --wdp",
+    "seo:all": "npm run gsc && npm run bing && npm run brave"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
