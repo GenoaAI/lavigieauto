@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: BrandPageProps): Promise<Meta
     };
   }
 
-  const title = `Plan d'entretien officiel ${data.brand} : Intervalles, Révisions & Carnet | LaVigieAuto`;
+  const title = `Plan d'entretien officiel ${data.brand} : Révisions (PDF)`;
   const description = `Consultez le calendrier d'entretien officiel pour tous les modèles ${data.brand}. Périodicités vidange, révision, distribution et estimation des coûts.`;
   const canonicalUrl = `https://www.lavigieauto.com/entretien/${data.brandSlug}`;
 

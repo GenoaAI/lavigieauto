@@ -56,9 +56,10 @@ DEFAULT_SITE_URL = "https://www.lavigieauto.com/"
 
 def find_api_key() -> Optional[str]:
     """Récupère la clé API Bing depuis l'environnement ou .env.local."""
-    key = os.getenv("BING_API_KEY")
-    if key and len(key.strip()) > 10:
-        return key.strip()
+    for env_var in ["BING_API_KEY", "BING_WEBMASTER_API_KEY"]:
+        key = os.getenv(env_var)
+        if key and len(key.strip()) > 10:
+            return key.strip()
 
     project_root = Path(__file__).resolve().parent.parent
     env_files = [project_root / ".env.local", project_root / ".env"]
@@ -67,10 +68,11 @@ def find_api_key() -> Optional[str]:
             try:
                 for line in env_file.read_text(encoding="utf-8").splitlines():
                     line = line.strip()
-                    if line.startswith("BING_API_KEY="):
-                        val = line.split("=", 1)[1].strip().strip('"\'')
-                        if len(val) > 10:
-                            return val
+                    for prefix in ["BING_API_KEY=", "BING_WEBMASTER_API_KEY="]:
+                        if line.startswith(prefix):
+                            val = line.split("=", 1)[1].strip().strip('"\'')
+                            if len(val) > 10:
+                                return val
             except Exception:
                 pass
     return None
@@ -234,36 +236,73 @@ def cmd_overview(client: BingWebmasterClient):
         print("   (L'indexation initiale prend généralement 24 à 48 heures après la première soumission).")
 
 
-def cmd_submit_all(client: BingWebmasterClient):
-    """Soumet les URLs phares au robot Bingbot pour forcer le crawl immédiat."""
-    print(f"\n🚀 SOUMISSION INSTANTANÉE D'URLS À BING (QUOTA JOURNALIER) :")
-    priority_urls = [
-        "https://www.lavigieauto.com/",
-        "https://www.lavigieauto.com/entretien",
-        "https://www.lavigieauto.com/entretien/peugeot",
-        "https://www.lavigieauto.com/entretien/dacia",
-        "https://www.lavigieauto.com/entretien/renault",
-        "https://www.lavigieauto.com/entretien/peugeot/208-2/1-5-bluehdi-100",
-        "https://www.lavigieauto.com/entretien/dacia/sandero-2/0-9-tce-90",
-        "https://www.lavigieauto.com/entretien/dacia/sandero-3/1-0-eco-g-100",
-        "https://www.lavigieauto.com/entretien/dacia/jogger/1-0-eco-g-100",
-        "https://www.lavigieauto.com/entretien/dacia/duster-2/1-0-eco-g-100",
-        "https://www.lavigieauto.com/entretien/renault/clio-4/0-9-tce-90",
-        "https://www.lavigieauto.com/entretien/renault/clio-4/1-5-dci-90",
-        "https://www.lavigieauto.com/llms.txt",
-    ]
-
+def get_catalog_urls_for_submission(base_url: str = DEFAULT_SITE_URL) -> List[str]:
+    """Extrait dynamiquement l'ensemble des URLs du catalogue pSEO pour soumission à Bing."""
+    clean_base = base_url.rstrip("/")
     try:
-        quota = client.get_quota()
-        print(f"Quota disponible : {quota.get('DailyQuota')} URLs aujourd'hui.\n")
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from brave_analyzer import get_local_catalog_urls
+        catalog = get_local_catalog_urls(base_url=clean_base)
+        if catalog:
+            return [item["url"] for item in catalog]
     except Exception:
         pass
 
     try:
-        client.submit_url_batch(priority_urls)
-        print(f"✅ {len(priority_urls)} URLs prioritaires soumises avec succès à Bingbot (dont /llms.txt) !")
-        for u in priority_urls:
+        from gsc_analyzer import load_sitemap_urls
+        urls = [item["url"] for item in load_sitemap_urls(base_url=clean_base)]
+        llms_url = f"{clean_base}/llms.txt"
+        if llms_url not in urls:
+            urls.append(llms_url)
+        return urls
+    except Exception:
+        pass
+
+    # Repli statique si l'introspection locale échoue
+    return [
+        f"{clean_base}/",
+        f"{clean_base}/entretien",
+        f"{clean_base}/llms.txt",
+        f"{clean_base}/entretien/peugeot",
+        f"{clean_base}/entretien/dacia",
+        f"{clean_base}/entretien/renault",
+        f"{clean_base}/entretien/citroen",
+        f"{clean_base}/entretien/volkswagen",
+        f"{clean_base}/entretien/toyota",
+        f"{clean_base}/entretien/peugeot/208-2/1-5-bluehdi-100",
+        f"{clean_base}/entretien/dacia/sandero-3/1-0-eco-g-100",
+        f"{clean_base}/entretien/dacia/jogger/1-0-eco-g-100",
+        f"{clean_base}/entretien/dacia/duster-2/1-0-eco-g-100",
+        f"{clean_base}/entretien/renault/clio-4/0-9-tce-90",
+        f"{clean_base}/entretien/renault/clio-5/1-0-tce-100",
+    ]
+
+
+def cmd_submit_all(client: BingWebmasterClient):
+    """Soumet dynamiquement l'intégralité du catalogue pSEO à Bingbot et ChatGPT Search."""
+    print(f"\n🚀 SOUMISSION INSTANTANÉE D'URLS À BING & CHATGPT SEARCH :")
+    all_urls = get_catalog_urls_for_submission(base_url=client.site_url)
+
+    daily_quota = 100
+    try:
+        quota = client.get_quota()
+        raw_dq = quota.get("DailyQuota")
+        if raw_dq:
+            daily_quota = int(raw_dq)
+        print(f"Quota journalier disponible : {daily_quota} URLs (Restant mois : {quota.get('MonthlyQuota')}).\n")
+    except Exception:
+        pass
+
+    # Soumettre dans la limite du quota quotidien
+    batch = all_urls[:daily_quota]
+
+    try:
+        client.submit_url_batch(batch)
+        print(f"✅ {len(batch)} URLs du catalogue soumises avec succès à Bingbot & ChatGPT Search (dont /llms.txt) !")
+        for u in batch[:15]:
             print(f"  ✔ {u}")
+        if len(batch) > 15:
+            print(f"  ... et {len(batch) - 15} autres URLs du catalogue pSEO.")
     except Exception as e:
         print(f"❌ Erreur lors de la soumission de lot : {e}")
 

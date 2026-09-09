@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { getMaintenanceDataByBrand, getAllMaintenanceData } from '@/lib/maintenance/maintenance-data';
 
 export const metadata: Metadata = {
-  title: "Plans d'Entretien Constructeur & Carnets Numériques par Modèle | LaVigieAuto",
+  title: "Carnet d'Entretien Constructeur : Plans & Révisions (PDF)",
   description:
     "Consultez les calendriers d'entretien officiels, périodicités de vidange, changement de courroie de distribution et estimations de devis par marque et modèle. Transparent et certifié.",
   alternates: {
     canonical: 'https://www.lavigieauto.com/entretien',
   },
   openGraph: {
-    title: "Plans d'Entretien Constructeur & Carnets Numériques par Modèle | LaVigieAuto",
+    title: "Carnet d'Entretien Constructeur : Plans & Révisions (PDF)",
     description:
       "Consultez les calendriers d'entretien officiels, périodicités de vidange et de courroie par marque et modèle.",
     type: 'website',

@@ -398,17 +398,22 @@ def analyze_brands(rows_by_page: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def analyze_opportunities(
     query_rows: List[Dict[str, Any]],
-    page_rows: List[Dict[str, Any]]
+    page_rows: List[Dict[str, Any]],
+    days: int = 28
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Détecte les opportunités SEO prioritaires :
     1. Striking Distance (positions 4 à 15 avec fort potentiel de top 3).
     2. CTR Sub-optimal (fortes impressions mais CTR faible, titre à retravailler).
-    3. Moteurs à forte vulnérabilité (PureTech, BlueHDi, TCe).
+    3. Moteurs à forte vulnérabilité & requêtes sensibles (PureTech, BlueHDi, TCe, GPL, Courroie).
     """
     striking_distance = []
     ctr_opportunities = []
     engine_vulnerabilities = []
+
+    # Seuils adaptés selon la granularité temporelle (7 jours vs 28 jours)
+    min_query_impressions = 1 if days <= 7 else 3
+    min_page_impressions = 10 if days <= 7 else 20
 
     # 1. Striking Distance Queries
     for r in query_rows:
@@ -418,10 +423,11 @@ def analyze_opportunities(
         ctr = r.get("ctr", 0.0) * 100
         position = r.get("position", 0.0)
 
-        if 4.0 <= position <= 15.0 and impressions >= 5:
+        if 4.0 <= position <= 15.0 and impressions >= min_query_impressions:
             striking_distance.append({
                 "query": query,
                 "position": f"{position:.1f}",
+                "position_float": position,
                 "impressions": impressions,
                 "clicks": clicks,
                 "ctr": f"{ctr:.2f}%",
@@ -438,6 +444,11 @@ def analyze_opportunities(
                 "ctr": f"{ctr:.2f}%",
             })
 
+    # Trier la striking distance par proximité au Top 3 (position croissante)
+    striking_distance = sorted(striking_distance, key=lambda x: x.get("position_float", 99.0))
+    # Trier les vulnérabilités mécaniques par volume d'impressions décroissant
+    engine_vulnerabilities = sorted(engine_vulnerabilities, key=lambda x: x.get("impressions", 0), reverse=True)
+
     # 2. Pages avec fort volume mais CTR < 3%
     for r in page_rows:
         page = r.get("keys", [""])[0]
@@ -446,7 +457,7 @@ def analyze_opportunities(
         ctr = r.get("ctr", 0.0) * 100
         position = r.get("position", 0.0)
 
-        if impressions >= 20 and ctr < 3.0:
+        if impressions >= min_page_impressions and ctr < 3.0:
             short_url = page.replace(BASE_URL_PRODUCTION, "").replace(FALLBACK_BASE_URL, "")
             ctr_opportunities.append({
                 "page": short_url or "/",
@@ -586,7 +597,7 @@ def run_opportunities_audit(service, site_url: str, days: int = 28):
     page_rows = get_search_analytics(service, site_url, days=days, dimensions=["page"], row_limit=1000)
     query_rows = get_search_analytics(service, site_url, days=days, dimensions=["query"], row_limit=1000)
 
-    opps = analyze_opportunities(query_rows, page_rows)
+    opps = analyze_opportunities(query_rows, page_rows, days=days)
 
     # 1. Striking distance
     print("⚡ \033[1;33mMOTS-CLÉS EN ZONE DE FRAPPE (Positions 4 à 15)\033[0m")
@@ -696,8 +707,11 @@ def send_discord_notification(
         top_pages_lines.append(f"• `{p}`\n  └ `{r.get('impressions', 0)} imp` • `{r.get('clicks', 0)} clics` • `pos {r.get('position', 0.0):.1f}`")
     top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "Aucune page active sur la période"
 
+    catalog_urls = load_sitemap_urls(base_url=BASE_URL_PRODUCTION)
+    total_catalog_count = len(catalog_urls) + 1  # Inclut /llms.txt
+
     # Opportunités Striking Distance (positions 4 à 15)
-    opps = analyze_opportunities(query_rows, page_rows)
+    opps = analyze_opportunities(query_rows, page_rows, days=days)
     striking = opps.get("striking_distance", [])
     striking_lines = []
     for s in striking[:3]:
@@ -725,12 +739,25 @@ def send_discord_notification(
             "value": striking_str,
             "inline": False,
         },
-        {
-            "name": "🔍 Catalogue & Indexation",
-            "value": f"• **Catalogue pSEO :** `57 URLs canoniques` (Hubs, Modèles, Moteurs)\n• **Propriété Search Console :** `{site_url}`",
-            "inline": False,
-        },
     ]
+
+    # Ajout du bloc Requêtes GPL & Distribution Sensibles si détectées
+    engine_vulns = opps.get("engine_vulnerabilities", [])
+    if engine_vulns:
+        vuln_lines = []
+        for v in engine_vulns[:3]:
+            vuln_lines.append(f"• `{v['query'][:38]}` (Pos `{v['position']}`, `{v['impressions']} imp`)")
+        embed_fields.append({
+            "name": "🔧 Requêtes GPL & Distribution Sensibles",
+            "value": "\n".join(vuln_lines),
+            "inline": False,
+        })
+
+    embed_fields.append({
+        "name": "🔍 Catalogue & Indexation",
+        "value": f"• **Catalogue pSEO :** `{total_catalog_count} URLs canoniques` (Hubs, Modèles, Moteurs + /llms.txt)\n• **Propriété Search Console :** `{site_url}`",
+        "inline": False,
+    })
 
     # Enrichissement Bing Webmaster & ChatGPT Search si configuré
     try:
@@ -846,8 +873,11 @@ def send_telegram_notification(
         top_pages_lines.append(f"• <code>{html.escape(p)}</code> ({r.get('impressions', 0)} imp, {r.get('clicks', 0)} clics, pos {r.get('position', 0.0):.1f})")
     top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "Aucune page active sur la période"
 
+    catalog_urls = load_sitemap_urls(base_url=BASE_URL_PRODUCTION)
+    total_catalog_count = len(catalog_urls) + 1
+
     # Striking distance
-    opps = analyze_opportunities(query_rows, page_rows)
+    opps = analyze_opportunities(query_rows, page_rows, days=days)
     striking = opps.get("striking_distance", [])
     striking_lines = []
     for s in striking[:3]:
@@ -868,9 +898,21 @@ def send_telegram_notification(
         "🏆 <b>Top Pages du Catalogue :</b>\n"
         f"{top_pages_str}\n\n"
         "⚡ <b>Zone de Frappe (Positions 4 à 15) :</b>\n"
-        f"{striking_str}\n\n"
-        "🔍 <b>Catalogue & Indexation :</b>\n"
-        "• Catalogue pSEO : <code>57 URLs canoniques</code>\n"
+        f"{striking_str}"
+    )
+
+    # Ajout du bloc Requêtes GPL & Distribution Sensibles si détectées
+    engine_vulns = opps.get("engine_vulnerabilities", [])
+    if engine_vulns:
+        vuln_lines = [f"• <code>{html.escape(v['query'][:38])}</code> (Pos {v['position']}, {v['impressions']} imp)" for v in engine_vulns[:3]]
+        text += (
+            "\n\n🔧 <b>Requêtes GPL & Distribution Sensibles :</b>\n" +
+            "\n".join(vuln_lines)
+        )
+
+    text += (
+        "\n\n🔍 <b>Catalogue & Indexation :</b>\n"
+        f"• Catalogue pSEO : <code>{total_catalog_count} URLs canoniques</code> (+ /llms.txt)\n"
         f"• Propriété Search Console : <code>{html.escape(site_url)}</code>"
     )
 

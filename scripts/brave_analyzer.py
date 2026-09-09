@@ -60,15 +60,16 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 STATUS_CACHE_FILE = DATA_DIR / "brave_index_status.json"
 
 TARGET_QUERIES = [
+    "carnet d'entretien dacia sandero stepway pdf",
+    "entretien dacia gpl",
+    "revision dacia gpl",
+    "carnet d'entretien peugeot 2008",
     "plan entretien peugeot 208",
     "carnet entretien suzuki vitara",
-    "revision dacia sandero stepway",
-    "courroie distribution renault clio 4",
-    "frequence vidange peugeot 308",
     "entretien dacia jogger eco-g",
     "programme entretien dacia duster",
-    "prix revision clio 4 essence",
-    "entretien renault espace 5",
+    "courroie distribution renault clio 4",
+    "frequence vidange peugeot 308",
     "site:lavigieauto.com",
 ]
 
