@@ -134,6 +134,39 @@ export function extractBrakeWearMeasurements(text?: string): {
   return { frontWearPercent, rearWearPercent, frontThicknessMm, rearThicknessMm };
 }
 
+export interface FormatReplacementAlertOptions {
+  currentMileage?: number | null;
+  minRemainingKm?: number;
+  maxRemainingKm?: number;
+  wearPercent?: number;
+  includeWearPrefix?: boolean;
+}
+
+/**
+ * Formate l'alerte de remplacement avec kilométrage cible absolu et rappel relatif
+ * Exemple avec currentMileage = 142000, min = 3000, max = 5000 :
+ * -> "Remplacer à 145 000 km (soit sous ~3 000 à 5 000 km)."
+ * Fallback gracieux si kilométrage absent/indisponible :
+ * -> "Planifiez le remplacement sous ~3 000 à 5 000 km."
+ */
+export function formatReplacementAlertMessage(options?: FormatReplacementAlertOptions): string {
+  const minKm = typeof options?.minRemainingKm === 'number' && options.minRemainingKm > 0 ? options.minRemainingKm : 3000;
+  const maxKm = typeof options?.maxRemainingKm === 'number' && options.maxRemainingKm > 0 ? options.maxRemainingKm : 5000;
+  const formattedMin = minKm.toLocaleString('fr-FR');
+  const formattedMax = maxKm.toLocaleString('fr-FR');
+  const relativePart = `soit sous ~${formattedMin} à ${formattedMax} km`;
+  const prefix = options?.includeWearPrefix && options?.wearPercent ? `Plaquettes usées à plus de ${options.wearPercent}%. ` : '';
+
+  const mileage = options?.currentMileage;
+  if (typeof mileage === 'number' && !isNaN(mileage) && mileage > 0) {
+    const targetMileage = mileage + minKm;
+    const formattedTarget = targetMileage.toLocaleString('fr-FR');
+    return `${prefix}Remplacer à ${formattedTarget} km (${relativePart}).`;
+  }
+
+  return `${prefix}Planifiez le remplacement sous ~${formattedMin} à ${formattedMax} km.`;
+}
+
 /**
  * Moteur de calcul prédictif de l'état des plaquettes et disques
  */
@@ -301,7 +334,13 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     frontStatus = 'DUE_SOON';
     frontStatusLabel = 'À Remplacer Prochainement';
     frontColor = 'orange';
-    frontRec = 'Plaquettes usées à plus de 75%. Planifiez le remplacement sous ~3 000 à 5 000 km.';
+    frontRec = formatReplacementAlertMessage({
+      currentMileage: params.currentMileage,
+      minRemainingKm: 3000,
+      maxRemainingKm: 5000,
+      wearPercent: 75,
+      includeWearPrefix: true,
+    });
   } else if (frontWearPct >= 50) {
     frontStatus = 'ATTENTION';
     frontStatusLabel = 'Usure Intermédiaire';

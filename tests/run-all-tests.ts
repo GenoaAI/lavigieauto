@@ -38,6 +38,8 @@ import { testAuthOnboardingFunnel } from "./auth-onboarding-funnel.test";
 import { runAdversarialAuthChallengerTests } from "./adversarial-auth-challenger.test";
 import { runAdversarialOnboardingChallenger2Tests } from "./adversarial-onboarding-challenger-2.test";
 import { testBraveAnalyzerSuite } from "./brave-analyzer.test";
+import { testLastInspectionMileage } from "./last-inspection-mileage.test";
+import { testBrakeReplacementAlert } from "./brake-replacement-alert.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -89,6 +91,8 @@ async function runAllTests() {
     { name: "Tests Adversariaux Auth, Schémas & Auto-Provisioning Anti-BOLA (Challenger 1)", fn: runAdversarialAuthChallengerTests },
     { name: "Tests Adversariaux Middleware, Idempotence & Catalogue Véhicules (Challenger 2)", fn: runAdversarialOnboardingChallenger2Tests },
     { name: "Outillage Brave Search & Claude (GEO) - Client API, WDP, Catalogue & Alertes", fn: testBraveAnalyzerSuite },
+    { name: "Affichage du Kilométrage du Dernier Contrôle sur la Fiche Véhicule", fn: testLastInspectionMileage },
+    { name: "Formulation des Alertes de Remplacement avec Kilométrage Cible Absolu", fn: testBrakeReplacementAlert },
   ];
 
 

@@ -56,6 +56,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { ManualMaintenanceModal } from "@/components/vehicles/ManualMaintenanceModal";
+import { LastInspectionSummary, formatInspectionMileage } from "@/components/vehicles/LastInspectionSummary";
 
 interface VehicleDetailClientViewProps {
   initialVehicleData: any;
@@ -1307,6 +1308,16 @@ export function VehicleDetailClientView({
 
                 const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
                 const centerName = ctDoc?.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
+                const centerDetail = ctData.centre_controle?.agrement
+                  ? `Agrément ${ctData.centre_controle.agrement}`
+                  : ctData.centre_controle?.adresse || ctData.center?.address || "Centre agréé UTAC / OTC";
+                const inspectionMileage =
+                  (typeof ctDoc?.kilometrage_document === "number" && ctDoc.kilometrage_document > 0 ? ctDoc.kilometrage_document : null) ??
+                  (typeof ctData?.vehicle?.mileage === "number" && ctData.vehicle.mileage > 0 ? ctData.vehicle.mileage : null) ??
+                  (typeof ctData?.kilometrage === "number" && ctData.kilometrage > 0 ? ctData.kilometrage : null) ??
+                  (typeof ctData?.mileage === "number" && ctData.mileage > 0 ? ctData.mileage : null) ??
+                  (typeof v?.dernier_controle_kilometrage === "number" && v.dernier_controle_kilometrage > 0 ? v.dernier_controle_kilometrage : null) ??
+                  null;
                 const rawCtRes = (ctData.inspectionResult?.status || ctData.resultat_global || "").toUpperCase();
                 const isCtCritical = rawCtRes === "R" || rawCtRes.includes("CRITIQUE") || rawCtRes === "UNFAVORABLE_CRITICAL" || defects.some((d: any) => d.niveau_gravite === "critique");
                 const isCtMajor = !isCtCritical && (rawCtRes === "S" || rawCtRes.includes("MAJEURE") || rawCtRes.includes("DEFAVORABLE") || rawCtRes === "UNFAVORABLE_MAJOR" || defects.some((d: any) => d.niveau_gravite === "majeure"));
@@ -1343,7 +1354,7 @@ export function VehicleDetailClientView({
                     icon={<ShieldCheck className="w-5 h-5" />}
                     iconBgColor={ctIconBg}
                     title="Dernier Contrôle Technique Officiel"
-                    subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}` : "Aucun procès-verbal enregistré pour ce véhicule"}
+                    subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}${inspectionMileage ? ` • Relevé à ${formatInspectionMileage(inspectionMileage)}` : ""}` : "Aucun procès-verbal enregistré pour ce véhicule"}
                     badge={
                       <div className="flex items-center gap-2">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${ctBadgeClass}`}>
@@ -1364,9 +1375,15 @@ export function VehicleDetailClientView({
                       </p>
                     ) : (
                       <>
-                        <div className="flex items-center justify-between gap-3 text-xs text-slate-600">
-                          <p>{centerName} • Validité jusqu&apos;au : <strong>{expiry}</strong></p>
-                        </div>
+                        <LastInspectionSummary
+                          mileage={inspectionMileage}
+                          date={ctDoc?.date_document}
+                          centerName={centerName}
+                          centerAddress={centerDetail}
+                          expiryDate={expiry}
+                          resultStatus={resultStatus}
+                          defectsCount={defects.length}
+                        />
 
                         {/* Observations vulgarisées */}
                         {defects.length > 0 ? (
@@ -1850,6 +1867,13 @@ export function VehicleDetailClientView({
             const expiry = ctData.date_limite_validite || ctData.inspectionResult?.expiryDate || "Dans 2 ans";
             const centerName = ctDoc?.emetteur || ctData.centre_controle?.nom || ctData.center?.name || "Centre Contrôle Technique Agréé";
             const centerDetail = ctData.centre_controle?.agrement ? `Agrément ${ctData.centre_controle.agrement}` : "Centre agréé UTAC / OTC";
+            const inspectionMileage =
+              (typeof ctDoc?.kilometrage_document === "number" && ctDoc.kilometrage_document > 0 ? ctDoc.kilometrage_document : null) ??
+              (typeof ctData?.vehicle?.mileage === "number" && ctData.vehicle.mileage > 0 ? ctData.vehicle.mileage : null) ??
+              (typeof ctData?.kilometrage === "number" && ctData.kilometrage > 0 ? ctData.kilometrage : null) ??
+              (typeof ctData?.mileage === "number" && ctData.mileage > 0 ? ctData.mileage : null) ??
+              (typeof v?.dernier_controle_kilometrage === "number" && v.dernier_controle_kilometrage > 0 ? v.dernier_controle_kilometrage : null) ??
+              null;
             const rawCtRes = (ctData.inspectionResult?.status || ctData.resultat_global || "").toUpperCase();
             const isCtCritical = rawCtRes === "R" || rawCtRes.includes("CRITIQUE") || rawCtRes === "UNFAVORABLE_CRITICAL" || defects.some((d: any) => d.niveau_gravite === "critique");
             const isCtMajor = !isCtCritical && (rawCtRes === "S" || rawCtRes.includes("MAJEURE") || rawCtRes.includes("DEFAVORABLE") || rawCtRes === "UNFAVORABLE_MAJOR" || defects.some((d: any) => d.niveau_gravite === "majeure"));
@@ -1886,7 +1910,7 @@ export function VehicleDetailClientView({
                 icon={<ShieldCheck className="w-5 h-5" />}
                 iconBgColor={ctIconBg}
                 title="Dernier Contrôle Technique Officiel"
-                subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}` : "Aucun procès-verbal réglementaire enregistré pour ce véhicule"}
+                subtitle={hasCt ? `${centerName} • Validité jusqu'au : ${expiry}${inspectionMileage ? ` • Relevé à ${formatInspectionMileage(inspectionMileage)}` : ""}` : "Aucun procès-verbal réglementaire enregistré pour ce véhicule"}
                 badge={
                   <div className="flex items-center gap-2">
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${ctBadgeClass}`}>
@@ -1912,25 +1936,15 @@ export function VehicleDetailClientView({
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
-                        <p className="text-slate-400 text-[10px] font-semibold uppercase">Centre Agréé</p>
-                        <p className="font-bold text-slate-800 line-clamp-1">{centerName}</p>
-                        <p className="text-slate-500 text-[11px]">{centerDetail}</p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
-                        <p className="text-slate-400 text-[10px] font-semibold uppercase">Date & Kilométrage</p>
-                        <p className="font-bold text-slate-800">{ctDoc.date_document || "Date certifiée"}</p>
-                        <p className="text-emerald-700 font-semibold text-[11px]">
-                          {ctDoc.kilometrage_document ? `${(ctDoc.kilometrage_document).toLocaleString("fr-FR")} km certifiés` : "Odomètre relevé"}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-xl space-y-0.5">
-                        <p className="text-slate-400 text-[10px] font-semibold uppercase">Résultat & Bilan</p>
-                        <p className="font-bold text-emerald-700">Aucune contre-visite</p>
-                        <p className="text-slate-500 text-[11px]">{defects.length} observation(s) relevée(s)</p>
-                      </div>
-                    </div>
+                    <LastInspectionSummary
+                      mileage={inspectionMileage}
+                      date={ctDoc?.date_document}
+                      centerName={centerName}
+                      centerAddress={centerDetail}
+                      expiryDate={expiry}
+                      resultStatus={resultStatus}
+                      defectsCount={defects.length}
+                    />
 
                     {defects.length > 0 && (
                       <div className="space-y-2.5">
