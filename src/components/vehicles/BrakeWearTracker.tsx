@@ -22,6 +22,10 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
   const rear = assessment.rearAxle;
   const activeAxle = selectedAxle === "FRONT" ? front : rear;
 
+  const frontTargetKm = (front.currentEstimatedMileage > 0 && front.remainingKm > 0) ? front.currentEstimatedMileage + front.remainingKm : 0;
+  const rearTargetKm = (rear.currentEstimatedMileage > 0 && rear.remainingKm > 0) ? rear.currentEstimatedMileage + rear.remainingKm : 0;
+  const activeTargetKm = (activeAxle.currentEstimatedMileage > 0 && activeAxle.remainingKm > 0) ? activeAxle.currentEstimatedMileage + activeAxle.remainingKm : 0;
+
   const nextAxle = assessment.nextReplacementAxle === "REAR" ? rear : front;
   const brakeCalendarEvent: UniversalCalendarEvent = {
     id: `brake-wear-${vehicleId || licensePlate}`,
@@ -193,7 +197,7 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
             />
           </div>
           <p className="text-[10px] text-slate-500 font-semibold mt-1.5">
-            {100 - front.wearPercentage}% de garniture (~{front.remainingKm.toLocaleString()} km)
+            {100 - front.wearPercentage}% de garniture (~{front.remainingKm.toLocaleString("fr-FR")} km{frontTargetKm > 0 ? ` • cible ~${frontTargetKm.toLocaleString("fr-FR")} km` : ""})
           </p>
         </button>
 
@@ -230,7 +234,7 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
             />
           </div>
           <p className="text-[10px] text-slate-500 font-semibold mt-1.5">
-            {100 - rear.wearPercentage}% de garniture (~{rear.remainingKm.toLocaleString()} km)
+            {100 - rear.wearPercentage}% de garniture (~{rear.remainingKm.toLocaleString("fr-FR")} km{rearTargetKm > 0 ? ` • cible ~${rearTargetKm.toLocaleString("fr-FR")} km` : ""})
           </p>
         </button>
       </div>
@@ -295,14 +299,24 @@ export function BrakeWearTracker({ assessment, vehicleName, licensePlate, vehicl
           <div className="p-3 bg-white rounded-xl border border-slate-200/60">
             <span className="text-[10px] text-slate-400 block font-semibold">Autonomie restante</span>
             <p className="font-black text-slate-900 text-sm mt-0.5">
-              ~{activeAxle.remainingKm.toLocaleString()} km
+              ~{activeAxle.remainingKm.toLocaleString("fr-FR")} km
             </p>
+            {activeTargetKm > 0 && (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Cible ~{activeTargetKm.toLocaleString("fr-FR")} km
+              </p>
+            )}
           </div>
           <div className="p-3 bg-white rounded-xl border border-slate-200/60">
             <span className="text-[10px] text-slate-400 block font-semibold">Échéance estimée</span>
             <p className="font-black text-slate-900 text-sm mt-0.5">
-              ~{activeAxle.projectedReplacementDate}
+              {activeTargetKm > 0 ? `À ~${activeTargetKm.toLocaleString("fr-FR")} km` : `~${activeAxle.projectedReplacementDate}`}
             </p>
+            {activeTargetKm > 0 && (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Date : ~{activeAxle.projectedReplacementDate}
+              </p>
+            )}
           </div>
           <div className="p-3 bg-white rounded-xl border border-slate-200/60">
             <span className="text-[10px] text-slate-400 block font-semibold">État des Disques</span>

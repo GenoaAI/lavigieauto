@@ -40,6 +40,7 @@ import { runAdversarialOnboardingChallenger2Tests } from "./adversarial-onboardi
 import { testBraveAnalyzerSuite } from "./brave-analyzer.test";
 import { testLastInspectionMileage } from "./last-inspection-mileage.test";
 import { testBrakeReplacementAlert } from "./brake-replacement-alert.test";
+import { testTireReplacementAlert } from "./tire-replacement-alert.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -92,7 +93,8 @@ async function runAllTests() {
     { name: "Tests Adversariaux Middleware, Idempotence & Catalogue Véhicules (Challenger 2)", fn: runAdversarialOnboardingChallenger2Tests },
     { name: "Outillage Brave Search & Claude (GEO) - Client API, WDP, Catalogue & Alertes", fn: testBraveAnalyzerSuite },
     { name: "Affichage du Kilométrage du Dernier Contrôle sur la Fiche Véhicule", fn: testLastInspectionMileage },
-    { name: "Formulation des Alertes de Remplacement avec Kilométrage Cible Absolu", fn: testBrakeReplacementAlert },
+    { name: "Formulation des Alertes de Remplacement avec Kilométrage Cible Absolu (Freins)", fn: testBrakeReplacementAlert },
+    { name: "Formulation des Alertes & Échéances avec Kilométrage Cible Absolu (Pneus)", fn: testTireReplacementAlert },
   ];
 
 

@@ -23,6 +23,7 @@ export interface TireAxleState {
   wearPercentage: number; // 0% = neuf (8mm), 100% = usé au témoin légal (1.6mm)
   remainingTreadDepthMm: number; // e.g. 7.2 mm
   remainingKm: number;
+  targetReplacementMileage: number;
   projectedReplacementDate: string;
   status: 'EXCELLENT' | 'GOOD' | 'ATTENTION' | 'DUE_SOON' | 'CRITICAL';
   statusLabel: string;
@@ -38,6 +39,7 @@ export interface VehicleTireAssessment {
   overallStatus: 'EXCELLENT' | 'GOOD' | 'ATTENTION' | 'DUE_SOON' | 'CRITICAL';
   urgentActionNeeded: boolean;
   nextReplacementDate: string;
+  nextReplacementMileage?: number;
   nextReplacementAxle: 'FRONT' | 'REAR' | 'BOTH';
   recommendedDimension: string;
   historySummary: string;
@@ -162,6 +164,33 @@ export function extractTireBrandAndModel(text?: string): string {
   if (t.includes("toyo")) return "Toyo Proxes";
 
   return "Pneumatiques Neufs";
+}
+
+export interface FormatTireReplacementAlertOptions {
+  currentMileage?: number | null;
+  remainingKm?: number | null;
+  wearPercent?: number | null;
+}
+
+/**
+ * Formate l'alerte de remplacement des pneumatiques avec kilométrage cible absolu et rappel relatif
+ * Exemple avec currentMileage = 272448, remainingKm = 26400 :
+ * -> "Remplacer à ~298 848 km (soit sous ~26 400 km)."
+ * Fallback si kilométrage absent/indisponible :
+ * -> "Planifiez le remplacement sous ~26 400 km."
+ */
+export function formatTireReplacementAlert(options?: FormatTireReplacementAlertOptions): string {
+  const remaining = typeof options?.remainingKm === 'number' && options.remainingKm > 0 ? options.remainingKm : 20000;
+  const formattedRemaining = remaining.toLocaleString('fr-FR');
+  const mileage = options?.currentMileage;
+
+  if (typeof mileage === 'number' && !isNaN(mileage) && mileage > 0 && remaining > 0) {
+    const targetMileage = mileage + remaining;
+    const formattedTarget = targetMileage.toLocaleString('fr-FR');
+    return `Remplacer à ~${formattedTarget} km (soit sous ~${formattedRemaining} km).`;
+  }
+
+  return `Planifiez le remplacement sous ~${formattedRemaining} km.`;
 }
 
 export function calculateVehicleTireAssessment(params: TireCalculationParams): VehicleTireAssessment {
@@ -436,7 +465,7 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
   const rearTreadDepth = Math.max(1.6, Math.round((8.0 - (rearWearPct / 100) * (8.0 - 1.6)) * 10) / 10);
 
   // Évaluation statuts
-  function getTireStatus(wearPct: number): {
+  function getTireStatus(wearPct: number, remainingKm?: number): {
     status: 'EXCELLENT' | 'GOOD' | 'ATTENTION' | 'DUE_SOON' | 'CRITICAL';
     label: string;
     color: 'emerald' | 'blue' | 'amber' | 'orange' | 'red';
@@ -467,25 +496,27 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
       };
     }
     if (wearPct <= 90) {
+      const alert = formatTireReplacementAlert({ currentMileage, remainingKm, wearPercent: wearPct });
       return {
         status: 'DUE_SOON',
         label: 'Remplacement Recommandé',
         color: 'orange',
-        rec: 'Proche de la limite de sécurité (3 mm). Risque d\'aquaplaning accru.',
+        rec: `Proche de la limite de sécurité (3 mm). ${alert}`,
       };
     }
+    const alert = formatTireReplacementAlert({ currentMileage, remainingKm, wearPercent: wearPct });
     return {
       status: 'CRITICAL',
       label: 'Seuil Critique Atteint',
       color: 'red',
-      rec: 'Témoin d\'usure légal (1.6 mm) atteint ou dépassé. Remplacement urgent obligatoire.',
+      rec: `Témoin d'usure légal (1.6 mm) atteint ou dépassé. Remplacement urgent obligatoire (${alert})`,
     };
   }
 
   const hasCertifiedTireHistory = frontAssigned || rearAssigned;
 
-  let frontStatus = getTireStatus(frontWearPct);
-  let rearStatus = getTireStatus(rearWearPct);
+  let frontStatus = getTireStatus(frontWearPct, frontRemainingKm);
+  let rearStatus = getTireStatus(rearWearPct, rearRemainingKm);
   let globalHealthScore = Math.round(100 - (frontWearPct * 0.6 + rearWearPct * 0.4));
   let historySummary = `Suivi certifié d'après vos factures de pneumatiques et votre rythme annuel (~ ${Math.round(safeDailyRate * 365).toLocaleString('fr-FR')} km/an).`;
 
@@ -513,6 +544,9 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
   else if (rearRemainingKm < frontRemainingKm) nextAxle = 'REAR';
 
   const nextDateStr = nextAxle === 'REAR' ? rearProjectedDate.toISOString().split('T')[0] : frontProjectedDate.toISOString().split('T')[0];
+  const frontTargetKm = hasCertifiedTireHistory ? Math.round(currentMileage + frontRemainingKm) : Math.round(currentMileage + 20000);
+  const rearTargetKm = hasCertifiedTireHistory ? Math.round(currentMileage + rearRemainingKm) : Math.round(currentMileage + 30000);
+  const nextReplacementMileage = nextAxle === 'REAR' ? rearTargetKm : frontTargetKm;
 
   return {
     vehicleId,
@@ -531,6 +565,7 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
       wearPercentage: hasCertifiedTireHistory ? frontWearPct : 50,
       remainingTreadDepthMm: hasCertifiedTireHistory ? frontTreadDepth : 4.5,
       remainingKm: hasCertifiedTireHistory ? frontRemainingKm : 20000,
+      targetReplacementMileage: frontTargetKm,
       projectedReplacementDate: frontProjectedDate.toISOString().split('T')[0],
       status: frontStatus.status,
       statusLabel: frontStatus.label,
@@ -552,6 +587,7 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
       wearPercentage: hasCertifiedTireHistory ? rearWearPct : 50,
       remainingTreadDepthMm: hasCertifiedTireHistory ? rearTreadDepth : 5.0,
       remainingKm: hasCertifiedTireHistory ? rearRemainingKm : 30000,
+      targetReplacementMileage: rearTargetKm,
       projectedReplacementDate: rearProjectedDate.toISOString().split('T')[0],
       status: rearStatus.status,
       statusLabel: rearStatus.label,
@@ -562,6 +598,7 @@ export function calculateVehicleTireAssessment(params: TireCalculationParams): V
     overallStatus: !hasCertifiedTireHistory ? 'ATTENTION' : frontStatus.status === 'CRITICAL' || rearStatus.status === 'CRITICAL' ? 'CRITICAL' : frontStatus.status === 'DUE_SOON' || rearStatus.status === 'DUE_SOON' ? 'DUE_SOON' : 'EXCELLENT',
     urgentActionNeeded,
     nextReplacementDate: nextDateStr,
+    nextReplacementMileage,
     nextReplacementAxle: nextAxle,
     recommendedDimension: frontTireState.dimension,
     historySummary,

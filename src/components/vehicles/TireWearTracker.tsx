@@ -23,6 +23,10 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
   const rear = assessment.rearAxle;
   const activeAxle = selectedAxle === "FRONT" ? front : rear;
 
+  const frontTargetKm = front.targetReplacementMileage || ((front.currentEstimatedMileage > 0 && front.remainingKm > 0) ? front.currentEstimatedMileage + front.remainingKm : 0);
+  const rearTargetKm = rear.targetReplacementMileage || ((rear.currentEstimatedMileage > 0 && rear.remainingKm > 0) ? rear.currentEstimatedMileage + rear.remainingKm : 0);
+  const activeTargetKm = activeAxle.targetReplacementMileage || ((activeAxle.currentEstimatedMileage > 0 && activeAxle.remainingKm > 0) ? activeAxle.currentEstimatedMileage + activeAxle.remainingKm : 0);
+
   const tireCalendarEvent: UniversalCalendarEvent = {
     id: `tire-wear-${vehicleId || licensePlate}`,
     title: `🔧 RDV Pneumatiques : ${vehicleName} [${licensePlate}]`,
@@ -150,7 +154,12 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
             </div>
             <div className="p-3 bg-white/10 rounded-xl space-y-1">
               <span className="text-slate-400 block font-semibold text-[11px]">Prochaine échéance recommandée :</span>
-              <p className="font-bold text-white text-sm">~{assessment.nextReplacementDate} (ou {front.remainingKm.toLocaleString()} km)</p>
+              <p className="font-bold text-white text-sm">
+                ~{assessment.nextReplacementDate}
+                {frontTargetKm > 0
+                  ? ` (à ~${frontTargetKm.toLocaleString("fr-FR")} km • sous ~${front.remainingKm.toLocaleString("fr-FR")} km)`
+                  : ` (ou sous ~${front.remainingKm.toLocaleString("fr-FR")} km)`}
+              </p>
               <p className="text-slate-300 text-[11px]">Essieu concerné : {assessment.nextReplacementAxle === "BOTH" ? "4 Pneus (AV + AR)" : assessment.nextReplacementAxle === "FRONT" ? "Train Avant" : "Train Arrière"}</p>
             </div>
           </div>
@@ -196,7 +205,7 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
             />
           </div>
           <p className="text-[10px] text-slate-500 font-semibold mt-1.5">
-            {100 - front.wearPercentage}% de vie restante (~{front.remainingKm.toLocaleString()} km)
+            {100 - front.wearPercentage}% de vie restante (~{front.remainingKm.toLocaleString("fr-FR")} km{frontTargetKm > 0 ? ` • cible ~${frontTargetKm.toLocaleString("fr-FR")} km` : ""})
           </p>
         </button>
 
@@ -231,7 +240,7 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
             />
           </div>
           <p className="text-[10px] text-slate-500 font-semibold mt-1.5">
-            {100 - rear.wearPercentage}% de vie restante (~{rear.remainingKm.toLocaleString()} km)
+            {100 - rear.wearPercentage}% de vie restante (~{rear.remainingKm.toLocaleString("fr-FR")} km{rearTargetKm > 0 ? ` • cible ~${rearTargetKm.toLocaleString("fr-FR")} km` : ""})
           </p>
         </button>
       </div>
@@ -290,12 +299,14 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
             <span className="text-[10px] font-bold text-slate-400 uppercase">Potentiel Kilométrique</span>
             <div className="flex items-baseline gap-1.5">
               <p className="text-2xl font-black text-emerald-700 font-mono">
-                ~{activeAxle.remainingKm.toLocaleString()}
+                ~{activeAxle.remainingKm.toLocaleString("fr-FR")}
               </p>
               <span className="text-xs font-bold text-slate-500">km</span>
             </div>
             <p className="text-[10px] text-slate-500">
-              {activeAxle.sourceType === "WORKSHOP_INSPECTION"
+              {activeTargetKm > 0
+                ? `Remplacer à ~${activeTargetKm.toLocaleString("fr-FR")} km (${100 - activeAxle.wearPercentage}% restant${activeAxle.sourceType === "WORKSHOP_INSPECTION" ? " selon atelier" : ""})`
+                : activeAxle.sourceType === "WORKSHOP_INSPECTION"
                 ? `${100 - activeAxle.wearPercentage}% de vie restante selon relevé atelier`
                 : activeAxle.kmDrivenSinceEvent === 0
                 ? "Pneumatiques fraîchement posés (0 km parcourus)"
@@ -303,13 +314,21 @@ export function TireWearTracker({ assessment, vehicleName, licensePlate, vehicle
             </p>
           </div>
 
-          {/* Date de remplacement préconisée */}
+          {/* Date & Kilométrage cible de remplacement */}
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-1 shadow-sm">
             <span className="text-[10px] font-bold text-slate-400 uppercase">Remplacement Prévu</span>
-            <p className="text-base font-black text-slate-900 mt-1">
-              ~{activeAxle.projectedReplacementDate}
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-xl font-black text-slate-900 font-mono mt-0.5">
+                {activeTargetKm > 0
+                  ? `À ~${activeTargetKm.toLocaleString("fr-FR")} km`
+                  : `~${activeAxle.projectedReplacementDate}`}
+              </p>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              {activeTargetKm > 0
+                ? `Date estimée : ~${activeAxle.projectedReplacementDate}`
+                : "Calculé d'après votre rythme moyen journalier"}
             </p>
-            <p className="text-[10px] text-slate-500">Calculé d&apos;après votre rythme moyen journalier</p>
           </div>
         </div>
 

@@ -11,6 +11,7 @@ export default defineConfig({
       "tests/**/*.vitest.test.{ts,tsx}",
       "tests/last-inspection-mileage.test.ts",
       "tests/brake-replacement-alert.test.ts",
+      "tests/tire-replacement-alert.test.ts",
     ],
   },
   resolve: {
