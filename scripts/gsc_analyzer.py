@@ -314,18 +314,29 @@ def get_search_analytics(
     site_url: str,
     days: int = 28,
     dimensions: Optional[List[str]] = None,
-    row_limit: int = 1000
+    row_limit: int = 1000,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Récupère les métriques de recherche depuis la Search Analytics API."""
     if dimensions is None:
         dimensions = ["page"]
 
-    end_date = datetime.now(timezone.utc) - timedelta(days=2)  # Décalage standard GSC (J-2)
-    start_date = end_date - timedelta(days=days)
+    if end_date is None:
+        end_dt = datetime.now(timezone.utc) - timedelta(days=2)  # Décalage standard GSC (J-2)
+        end_str = end_dt.strftime("%Y-%m-%d")
+    else:
+        end_str = end_date
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+    if start_date is None:
+        start_str = (end_dt - timedelta(days=days)).strftime("%Y-%m-%d")
+    else:
+        start_str = start_date
 
     req = {
-        "startDate": start_date.strftime("%Y-%m-%d"),
-        "endDate": end_date.strftime("%Y-%m-%d"),
+        "startDate": start_str,
+        "endDate": end_str,
         "dimensions": dimensions,
         "rowLimit": row_limit,
     }
@@ -478,6 +489,143 @@ def analyze_opportunities(
     }
 
 
+def compute_weekly_synthesis(
+    service,
+    site_url: str,
+    days: int = 7,
+    curr_page_rows: Optional[List[Dict[str, Any]]] = None,
+    bing_summary: Optional[Dict[str, Any]] = None,
+    brave_summary: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """Calcule la progression semaine sur semaine (S vs S-1) et génère la synthèse Executive (Option A)."""
+    try:
+        end_curr = datetime.now(timezone.utc) - timedelta(days=2)
+        start_curr = end_curr - timedelta(days=days)
+        end_prev = start_curr
+        start_prev = end_prev - timedelta(days=days)
+
+        if curr_page_rows is None:
+            curr_page_rows = get_search_analytics(
+                service, site_url,
+                start_date=start_curr.strftime("%Y-%m-%d"),
+                end_date=end_curr.strftime("%Y-%m-%d"),
+                dimensions=["page"],
+                row_limit=500
+            )
+
+        prev_page_rows = get_search_analytics(
+            service, site_url,
+            start_date=start_prev.strftime("%Y-%m-%d"),
+            end_date=end_prev.strftime("%Y-%m-%d"),
+            dimensions=["page"],
+            row_limit=500
+        )
+
+        curr_clicks = sum(r.get("clicks", 0) for r in curr_page_rows)
+        curr_imp = sum(r.get("impressions", 0) for r in curr_page_rows)
+        curr_pos = (
+            sum(r.get("position", 0) * r.get("impressions", 0) for r in curr_page_rows) / curr_imp
+            if curr_imp > 0 else 0.0
+        )
+
+        prev_clicks = sum(r.get("clicks", 0) for r in prev_page_rows)
+        prev_imp = sum(r.get("impressions", 0) for r in prev_page_rows)
+        prev_pos = (
+            sum(r.get("position", 0) * r.get("impressions", 0) for r in prev_page_rows) / prev_imp
+            if prev_imp > 0 else 0.0
+        )
+
+        # Calcul des Deltas (S vs S-1)
+        if prev_imp > 0:
+            delta_imp_pct = ((curr_imp - prev_imp) / prev_imp) * 100.0
+        else:
+            delta_imp_pct = 100.0 if curr_imp > 0 else 0.0
+
+        delta_clicks = curr_clicks - prev_clicks
+        delta_pos = (prev_pos - curr_pos) if (prev_pos > 0 and curr_pos > 0) else 0.0
+
+        # Attribution du qualificatif et du badge
+        if delta_imp_pct >= 20.0 or (prev_clicks > 0 and (delta_clicks / prev_clicks) >= 0.25):
+            badge_emoji = "🚀"
+            sign = "+" if delta_imp_pct > 0 else ""
+            badge_title = f"Forte accélération ({sign}{delta_imp_pct:.0f}% d'impressions)"
+        elif delta_imp_pct >= 5.0:
+            badge_emoji = "🟢"
+            badge_title = f"Progression continue (+{delta_imp_pct:.0f}% d'impressions)"
+        elif delta_pos >= 1.0:
+            badge_emoji = "🟢"
+            badge_title = f"Progression saine (+{delta_pos:.1f} rangs pos. moy.)"
+        elif delta_clicks > 0:
+            badge_emoji = "🟢"
+            badge_title = f"Progression positive (+{delta_clicks} clics)"
+        elif delta_imp_pct >= -5.0:
+            badge_emoji = "🟡"
+            sign = "+" if delta_imp_pct > 0 else ""
+            badge_title = f"Consolidation stable ({sign}{delta_imp_pct:.0f}% d'impressions)"
+        elif delta_imp_pct >= -15.0:
+            badge_emoji = "🟠"
+            badge_title = f"Léger tassement ({delta_imp_pct:.0f}% d'impressions)"
+        else:
+            badge_emoji = "🔴"
+            badge_title = f"Vigilance / repli ({delta_imp_pct:.0f}% d'impressions)"
+
+        # Formulation du volet SEO Google
+        if delta_pos >= 0.5:
+            seo_part = f"La visibilité organique Google s'accentue avec un gain de +{delta_pos:.1f} rangs en position moyenne ({curr_pos:.1f})"
+        elif delta_pos <= -0.5:
+            seo_part = f"La visibilité organique Google temporise en position moyenne ({curr_pos:.1f}, {delta_pos:.1f} rangs) mais consolide {curr_imp:,} impressions"
+        else:
+            seo_part = f"La visibilité organique Google reste stable en position moyenne ({curr_pos:.1f}) avec {curr_imp:,} impressions"
+
+        if delta_clicks > 0:
+            seo_part += f" et {curr_clicks} clics (+{delta_clicks} vs S-1)"
+        elif delta_clicks < 0:
+            seo_part += f" et {curr_clicks} clics ({delta_clicks} vs S-1)"
+        else:
+            seo_part += f" et {curr_clicks} clics"
+
+        # Formulation du volet GEO (Moteurs IA)
+        cov = brave_summary.get("coverage_percent", 0.0) if brave_summary else 0.0
+        if cov >= 80.0:
+            geo_part = f"la découvrabilité GEO reste optimale avec {cov:.0f}% du catalogue indexé pour les moteurs IA (Claude & ChatGPT)."
+        elif cov > 0:
+            geo_part = f"la présence GEO progresse avec {cov:.0f}% du catalogue indexé sur Brave Search / Claude et un crawl actif sur Bing / ChatGPT."
+        elif bing_summary and bing_summary.get("feed_status") == "Success":
+            geo_part = f"la découvrabilité GEO est active via Bing / ChatGPT ({bing_summary.get('urls_count', 0)} URLs sitemap) et le point d'entrée structuré /llms.txt."
+        else:
+            geo_part = "la couverture GEO s'appuie sur le catalogue structuré et le point d'entrée dédié /llms.txt."
+
+        discord_value = f"{seo_part}, tandis que {geo_part}"
+        telegram_html = (
+            f"🎯 <b>Synthèse Hebdo (S vs S-1) :</b> {badge_emoji} <b>{html.escape(badge_title)}</b>\n"
+            f"{html.escape(seo_part)}, tandis que {html.escape(geo_part)}"
+        )
+        cli_summary = f"🎯 Synthèse Hebdo : {badge_emoji} {badge_title} | {seo_part}, tandis que {geo_part}"
+
+        return {
+            "badge_emoji": badge_emoji,
+            "badge_title": badge_title,
+            "badge": f"{badge_emoji} {badge_title}",
+            "seo_part": seo_part,
+            "geo_part": geo_part,
+            "discord_value": discord_value,
+            "telegram_html": telegram_html,
+            "cli_summary": cli_summary,
+            "curr_imp": curr_imp,
+            "prev_imp": prev_imp,
+            "delta_imp_pct": delta_imp_pct,
+            "curr_clicks": curr_clicks,
+            "prev_clicks": prev_clicks,
+            "delta_clicks": delta_clicks,
+            "curr_pos": curr_pos,
+            "prev_pos": prev_pos,
+            "delta_pos": delta_pos,
+        }
+    except Exception as e:
+        print(f"⚠️ Erreur lors du calcul de la synthèse hebdomadaire : {e}")
+        return None
+
+
 def print_overview(service, site_url: str, days: int = 28):
     """Affiche une vue d'ensemble rapide et visuelle des performances."""
     print(f"\n🚀 \033[1mANALYSE GOOGLE SEARCH CONSOLE — LAVIGIEAUTO\033[0m")
@@ -534,6 +682,31 @@ def print_overview(service, site_url: str, days: int = 28):
                 f"{r.get('position', 0.0):.1f}"
             ])
         print(tabulate(table_p, headers=["URL", "Clics", "Impressions", "CTR", "Position"], tablefmt="psql"))
+
+    # Synthèse hebdomadaire d'évolution (S vs S-1)
+    if days == 7:
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from bing_analyzer import get_bing_summary
+            from brave_analyzer import get_brave_summary
+            bing_data = get_bing_summary()
+            brave_data = get_brave_summary()
+        except Exception:
+            bing_data = None
+            brave_data = None
+
+        synthesis = compute_weekly_synthesis(
+            service,
+            site_url,
+            days=days,
+            curr_page_rows=page_rows,
+            bing_summary=bing_data,
+            brave_summary=brave_data,
+        )
+        if synthesis:
+            print("\n\033[1m" + "═" * 70 + "\033[0m")
+            print(f"\033[1;32m{synthesis['cli_summary']}\033[0m")
+            print("\033[1m" + "═" * 70 + "\033[0m")
 
 
 def run_indexation_audit(service, site_url: str, limit: Optional[int] = None):
@@ -760,6 +933,7 @@ def send_discord_notification(
     })
 
     # Enrichissement Bing Webmaster & ChatGPT Search si configuré
+    bing_data = None
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from bing_analyzer import get_bing_summary
@@ -779,6 +953,7 @@ def send_discord_notification(
         pass
 
     # Enrichissement Brave Search & Claude (GEO) si configuré ou en cache
+    brave_data = None
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from brave_analyzer import get_brave_summary
@@ -796,6 +971,22 @@ def send_discord_notification(
             })
     except Exception:
         pass
+
+    # Synthèse d'évolution hebdomadaire S vs S-1 (Option A)
+    synthesis = compute_weekly_synthesis(
+        service,
+        site_url,
+        days=days,
+        curr_page_rows=page_rows,
+        bing_summary=bing_data,
+        brave_summary=brave_data,
+    )
+    if synthesis:
+        embed_fields.append({
+            "name": f"🎯 Synthèse Hebdo (S vs S-1) : {synthesis['badge']}",
+            "value": synthesis["discord_value"],
+            "inline": False,
+        })
 
     embed = {
         "title": "📊 Rapport SEO Hebdomadaire — LaVigieAuto",
@@ -917,6 +1108,7 @@ def send_telegram_notification(
     )
 
     # Enrichissement Bing Webmaster & ChatGPT Search si configuré
+    bing_data = None
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from bing_analyzer import get_bing_summary
@@ -933,6 +1125,7 @@ def send_telegram_notification(
         pass
 
     # Enrichissement Brave Search & Claude (GEO) si configuré
+    brave_data = None
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from brave_analyzer import get_brave_summary
@@ -946,6 +1139,21 @@ def send_telegram_notification(
             )
     except Exception:
         pass
+
+    # Synthèse d'évolution hebdomadaire S vs S-1 (Option A)
+    synthesis = compute_weekly_synthesis(
+        service,
+        site_url,
+        days=days,
+        curr_page_rows=page_rows,
+        bing_summary=bing_data,
+        brave_summary=brave_data,
+    )
+    if synthesis:
+        text += (
+            "\n\n━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{synthesis['telegram_html']}"
+        )
 
     telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
