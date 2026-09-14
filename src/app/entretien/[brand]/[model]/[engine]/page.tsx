@@ -42,7 +42,16 @@ function formatVehicleTitle(brand: string, model: string, engine: string): strin
     return title;
   }
 
-  // 3. Élagage de "Stepway" si le titre excède encore 64 caractères (ex: Sandero 3 ECO-G GPL)
+  // 3. Compaction ciblée de la motorisation pour préserver "Stepway" (ex: Sandero 3 ECO-G GPL)
+  if (cleanEngine.includes('ECO-G') && cleanEngine.includes('(GPL)')) {
+    cleanEngine = cleanEngine.replace(/100\s*\(/i, '').replace(/\)/g, '').trim();
+    title = `Carnet d'Entretien ${brand} ${cleanModel} ${cleanEngine} (PDF)`;
+    if (title.length <= 64) {
+      return title;
+    }
+  }
+
+  // 4. Élagage de secours de "Stepway" si le titre excède encore 64 caractères
   if (cleanModel.includes('Stepway')) {
     cleanModel = cleanModel.replace(/\s*Stepway/gi, '');
     title = `Carnet d'Entretien ${brand} ${cleanModel} ${cleanEngine} (PDF)`;
@@ -51,7 +60,7 @@ function formatVehicleTitle(brand: string, model: string, engine: string): strin
     }
   }
 
-  // 4. Clamping de sécurité strict (< 65 chars absolu)
+  // 5. Clamping de sécurité strict (< 65 chars absolu)
   return title.slice(0, 64).trim();
 }
 
@@ -84,7 +93,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : 'contrôle de distribution par chaîne';
 
   const title = formatVehicleTitle(data.brand, data.model, data.engine);
-  const description = `Plan d'entretien constructeur & révision pour ${data.brand} ${data.model} ${data.engine}. Fréquences de vidange, norme d'huile ${data.recommendedOilNorm}, ${distributionDesc}. Fiche PDF officielle et carnet d'entretien gratuit.`;
+  const description = `Carnet d'entretien gratuit & PDF officiel pour ${data.brand} ${data.model} ${data.engine}. Fréquences de vidange, norme d'huile ${data.recommendedOilNorm}, ${distributionDesc}. Téléchargement immédiat du carnet d'entretien gratuit.`;
 
   return {
     title,

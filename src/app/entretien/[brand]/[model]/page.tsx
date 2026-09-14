@@ -57,7 +57,7 @@ export async function generateMetadata({ params }: ModelPageProps): Promise<Meta
 
   const cleanModel = data.modelDisplayName.replace(/\s*\/\s*/g, ' ');
   const title = `Carnet d'Entretien ${data.brand} ${cleanModel} (PDF)`;
-  const description = `Consultez le plan d'entretien officiel et le programme de révision pour ${data.brand} ${data.modelDisplayName} (${data.engines.length} motorisation${data.engines.length > 1 ? 's' : ''}). Périodicités vidange, ${distributionMention.toLowerCase()}, devis et carnet numérique.`;
+  const description = `Carnet d'entretien officiel & révision ${data.brand} ${data.modelDisplayName} (${data.engines.length} moteur${data.engines.length > 1 ? 's' : ''}) gratuit en PDF. Fréquences de vidange, ${distributionMention.toLowerCase()} et calendrier.`;
   const canonicalUrl = `https://www.lavigieauto.com/entretien/${data.brandSlug}/${data.modelSlug}`;
 
   return {

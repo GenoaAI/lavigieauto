@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { trackMaintenanceEvent } from '@/lib/analytics/tracker';
+import { recordMicroConversionAction } from '@/app/actions/analytics';
 
 interface MaintenanceDropzoneProps {
   brand: string;
@@ -61,6 +62,19 @@ export function MaintenanceDropzone({
       source,
     });
 
+    try {
+      recordMicroConversionAction({
+        eventType: 'dropzone_upload',
+        brand,
+        model,
+        engine,
+        url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        metadata: { source },
+      }).catch(() => {});
+    } catch {
+      // Silencieux
+    }
+
     setAnalysisState('analyzing');
     setProgressMessage('Lecture du document et extraction visuelle...');
 
@@ -81,6 +95,18 @@ export function MaintenanceDropzone({
         model,
         engine,
       });
+
+      try {
+        recordMicroConversionAction({
+          eventType: 'dropzone_completed',
+          brand,
+          model,
+          engine,
+          url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        }).catch(() => {});
+      } catch {
+        // Silencieux
+      }
     }, 2600);
   };
 
@@ -107,6 +133,19 @@ export function MaintenanceDropzone({
       engine,
       destination: '/dashboard',
     });
+
+    try {
+      recordMicroConversionAction({
+        eventType: 'conversion_cta',
+        brand,
+        model,
+        engine,
+        url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        metadata: { destination: '/dashboard' },
+      }).catch(() => {});
+    } catch {
+      // Silencieux
+    }
 
     const targetBrandSlug = brandSlug || brand;
     const targetModelSlug = modelSlug || model;

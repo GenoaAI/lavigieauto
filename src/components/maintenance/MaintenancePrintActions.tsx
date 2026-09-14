@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { signInWithGoogleAction } from '@/app/actions/auth';
+import { recordMicroConversionAction } from '@/app/actions/analytics';
 
 interface MaintenancePrintActionsProps {
   brand: string;
@@ -52,6 +53,18 @@ export function MaintenancePrintActions({
   // Direct print handler: closes modal and triggers native window.print()
   const handleDirectPrint = () => {
     setIsModalOpen(false);
+    try {
+      recordMicroConversionAction({
+        eventType: 'pdf_download_print',
+        brand: resolvedBrand,
+        model: resolvedModel,
+        engine: resolvedEngine,
+        url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        metadata: { method: 'direct_print' },
+      }).catch(() => {});
+    } catch {
+      // Non-bloquant
+    }
     if (typeof window !== 'undefined') {
       setTimeout(() => {
         window.print();
@@ -108,6 +121,19 @@ export function MaintenancePrintActions({
     setIsGoogleLoading(true);
     setGoogleError(null);
 
+    try {
+      recordMicroConversionAction({
+        eventType: 'lead_magnet_submit',
+        brand: resolvedBrand,
+        model: resolvedModel,
+        engine: resolvedEngine,
+        url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        metadata: { method: 'google_oauth' },
+      }).catch(() => {});
+    } catch {
+      // Silencieux
+    }
+
     const targetDashboardUrl = `/dashboard?brand=${encodeURIComponent(
       resolvedBrand
     )}&model=${encodeURIComponent(resolvedModel)}&engine=${encodeURIComponent(
@@ -150,6 +176,19 @@ export function MaintenancePrintActions({
     e.preventDefault();
     if (!email || !email.includes('@')) {
       return;
+    }
+
+    try {
+      recordMicroConversionAction({
+        eventType: 'lead_magnet_submit',
+        brand: resolvedBrand,
+        model: resolvedModel,
+        engine: resolvedEngine,
+        url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        metadata: { method: 'email', email: email.trim() },
+      }).catch(() => {});
+    } catch {
+      // Silencieux
     }
 
     try {
@@ -197,7 +236,21 @@ export function MaintenancePrintActions({
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setIsModalOpen(true);
+                try {
+                  recordMicroConversionAction({
+                    eventType: 'pdf_download_print',
+                    brand: resolvedBrand,
+                    model: resolvedModel,
+                    engine: resolvedEngine,
+                    url: typeof window !== 'undefined' ? window.location.pathname : undefined,
+                    metadata: { trigger: 'modal_open' },
+                  }).catch(() => {});
+                } catch {
+                  // Silencieux
+                }
+              }}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition active:scale-95 cursor-pointer"
               title="Télécharger la fiche d'entretien (PDF) / Imprimer"
             >

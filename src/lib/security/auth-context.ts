@@ -8,21 +8,66 @@ export interface AuthenticatedSecurityContext {
   role: "owner" | "admin" | "member";
 }
 
+export interface LeadAcquisitionData {
+  source?: string;
+  brand?: string | null;
+  model?: string | null;
+  engine?: string | null;
+  url?: string | null;
+  entry_url?: string | null;
+  referrer?: string | null;
+  timestamp?: string | null;
+  landing_time?: string | null;
+}
+
 /**
  * Garantit l'existence d'un foyer et l'affiliation de l'utilisateur en tant que 'owner'.
  * Fonction idempotente et auto-réparatrice (Self-Healing).
+ * Persiste l'attribution marketing (lavigie_lead_source) de manière déterministe dans foyers.metadata.
  */
-export async function ensureUserHousehold(user: {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-}): Promise<{ foyerId: string; role: "owner" | "admin" | "member" }> {
+export async function ensureUserHousehold(
+  user: {
+    id: string;
+    email?: string;
+    user_metadata?: Record<string, any>;
+  },
+  explicitLeadData?: LeadAcquisitionData | null
+): Promise<{ foyerId: string; role: "owner" | "admin" | "member" }> {
   if (!user?.id) {
     throw new Error("Identifiant utilisateur requis pour le rattachement foyer.");
   }
 
   const cleanEmail = user.email?.trim().toLowerCase() || "";
   const adminSupabase = createAdminClient();
+
+  // Résolution sécurisée des métadonnées d'acquisition de trafic
+  let leadData: LeadAcquisitionData | null = explicitLeadData || null;
+  if (!leadData) {
+    try {
+      const cookieStore = await cookies();
+      const rawLeadCookie = cookieStore?.get("lavigie_lead_source")?.value;
+      if (rawLeadCookie) {
+        const parsed = JSON.parse(rawLeadCookie);
+        if (parsed && typeof parsed === "object") {
+          leadData = parsed;
+        }
+      }
+    } catch {
+      // Ignorer si cookies() n'est pas disponible (hors contexte Next.js) ou si le cookie est corrompu
+    }
+  }
+
+  const acquisition = leadData
+    ? {
+        source: leadData.source || "seo_pseo",
+        brand: leadData.brand || null,
+        model: leadData.model || null,
+        engine: leadData.engine || null,
+        entry_url: leadData.url || leadData.entry_url || null,
+        timestamp: leadData.timestamp || leadData.landing_time || null,
+        converted_at: new Date().toISOString(),
+      }
+    : null;
 
   // 1. Vérifier si l'utilisateur a déjà un enregistrement dans foyer_members
   const { data: existingMember } = await (adminSupabase as any)
@@ -32,6 +77,40 @@ export async function ensureUserHousehold(user: {
     .maybeSingle();
 
   if (existingMember?.foyer_id) {
+    // Si l'utilisateur est déjà affilié mais que le foyer n'a pas encore d'attribution enregistrée, rétro-propagation
+    if (acquisition) {
+      try {
+        const { data: foyerData } = await (adminSupabase as any)
+          .from("foyers")
+          .select("metadata")
+          .eq("id", existingMember.foyer_id)
+          .maybeSingle();
+
+        const currentMeta =
+          foyerData?.metadata && typeof foyerData.metadata === "object"
+            ? foyerData.metadata
+            : {};
+
+        if (!currentMeta.acquisition) {
+          await (adminSupabase as any)
+            .from("foyers")
+            .update({
+              metadata: {
+                ...currentMeta,
+                acquisition,
+                source: acquisition.source,
+                lead_brand: acquisition.brand,
+                lead_model: acquisition.model,
+                lead_engine: acquisition.engine,
+              },
+            })
+            .eq("id", existingMember.foyer_id);
+        }
+      } catch {
+        // Rétro-propagation non bloquante
+      }
+    }
+
     return {
       foyerId: existingMember.foyer_id,
       role: (existingMember.role as "owner" | "admin" | "member") || "owner",
@@ -51,6 +130,32 @@ export async function ensureUserHousehold(user: {
 
     if (matchedFoyer) {
       targetFoyerId = matchedFoyer.id;
+      if (acquisition) {
+        try {
+          const currentMeta =
+            matchedFoyer.metadata && typeof matchedFoyer.metadata === "object"
+              ? matchedFoyer.metadata
+              : {};
+
+          if (!currentMeta.acquisition) {
+            await (adminSupabase as any)
+              .from("foyers")
+              .update({
+                metadata: {
+                  ...currentMeta,
+                  acquisition,
+                  source: acquisition.source,
+                  lead_brand: acquisition.brand,
+                  lead_model: acquisition.model,
+                  lead_engine: acquisition.engine,
+                },
+              })
+              .eq("id", targetFoyerId);
+          }
+        } catch {
+          // Rétro-propagation non bloquante
+        }
+      }
     }
   }
 
@@ -64,20 +169,30 @@ export async function ensureUserHousehold(user: {
 
     const ownerName = rawOwnerName.charAt(0).toUpperCase() + rawOwnerName.slice(1);
 
+    const foyerMetadata: Record<string, any> = {
+      user_email: cleanEmail || null,
+      owner_name: ownerName,
+      picture: user.user_metadata?.avatar_url || null,
+      plan: "foyer_decouverte",
+      auto_provisioned: true,
+      created_at: new Date().toISOString(),
+    };
+
+    if (acquisition) {
+      foyerMetadata.acquisition = acquisition;
+      foyerMetadata.source = acquisition.source;
+      foyerMetadata.lead_brand = acquisition.brand;
+      foyerMetadata.lead_model = acquisition.model;
+      foyerMetadata.lead_engine = acquisition.engine;
+    }
+
     const { error: foyerErr } = await (adminSupabase as any)
       .from("foyers")
       .insert({
         id: targetFoyerId,
         nom: `Foyer ${ownerName}`,
         description: `Espace automobile personnel de ${ownerName}`,
-        metadata: {
-          user_email: cleanEmail || null,
-          owner_name: ownerName,
-          picture: user.user_metadata?.avatar_url || null,
-          plan: "foyer_decouverte",
-          auto_provisioned: true,
-          created_at: new Date().toISOString(),
-        },
+        metadata: foyerMetadata,
       });
 
     if (foyerErr) {

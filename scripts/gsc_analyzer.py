@@ -626,6 +626,130 @@ def compute_weekly_synthesis(
         return None
 
 
+def get_supabase_funnel_metrics(
+    days: int = 7,
+    gsc_clicks: int = 0,
+    supabase_url: Optional[str] = None,
+    service_role_key: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Récupère les métriques d'entonnoir (Full Funnel) depuis l'API REST PostgREST Supabase.
+
+    Interroge les tables réelles :
+    - public.foyers : Nouveaux foyers créés et attribution SEO (metadata->acquisition->>source = 'seo_pseo')
+    - public.vehicules : Nouveaux véhicules rattachés
+    - public.micro_conversions : Téléchargements PDF, dépôts Dropzone OCR (avec tolérance 404 si non migrée)
+
+    Calcule le taux de conversion global : (nouveaux_foyers / gsc_clicks) * 100.
+    """
+    if supabase_url is not None:
+        url_base = supabase_url
+    else:
+        url_base = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
+
+    if service_role_key is not None:
+        service_key = service_role_key
+    else:
+        service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_KEY")
+
+    if not url_base or not service_key:
+        return None
+
+    url_base = url_base.rstrip("/")
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+    }
+
+    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=days)
+    start_iso = cutoff_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    new_foyers = 0
+    seo_attributed_foyers = 0
+    try:
+        r_foyers = requests.get(
+            f"{url_base}/rest/v1/foyers",
+            headers=headers,
+            params={"select": "id,nom,created_at,metadata", "created_at": f"gte.{start_iso}"},
+            timeout=10,
+        )
+        if r_foyers.ok:
+            foyers_data = r_foyers.json()
+            new_foyers = len(foyers_data)
+            for f in foyers_data:
+                meta = f.get("metadata") or {}
+                if isinstance(meta, dict):
+                    if meta.get("source") == "seo_pseo" or meta.get("lead_source") == "seo_pseo":
+                        seo_attributed_foyers += 1
+                    elif isinstance(meta.get("acquisition"), dict) and meta["acquisition"].get("source") == "seo_pseo":
+                        seo_attributed_foyers += 1
+    except Exception as e:
+        print(f"⚠️ Erreur lors de la requête foyers Supabase : {e}")
+
+    new_vehicles = 0
+    try:
+        r_vehs = requests.get(
+            f"{url_base}/rest/v1/vehicules",
+            headers=headers,
+            params={"select": "id,created_at,foyer_id", "created_at": f"gte.{start_iso}"},
+            timeout=10,
+        )
+        if r_vehs.ok:
+            vehs_data = r_vehs.json()
+            new_vehicles = len(vehs_data)
+    except Exception as e:
+        print(f"⚠️ Erreur lors de la requête vehicules Supabase : {e}")
+
+    micro_count = 0
+    pdf_count = 0
+    dropzone_count = 0
+    lead_magnet_count = 0
+    try:
+        r_micro = requests.get(
+            f"{url_base}/rest/v1/micro_conversions",
+            headers=headers,
+            params={"select": "id,event_type,created_at", "created_at": f"gte.{start_iso}"},
+            timeout=10,
+        )
+        if r_micro.status_code == 404:
+            # Table non encore migrée dans le cache PostgREST -> Résilience totale
+            micro_count = 0
+        elif r_micro.ok:
+            micro_data = r_micro.json()
+            micro_count = len(micro_data)
+            for m in micro_data:
+                etype = (m.get("event_type") or "").lower()
+                if "pdf" in etype or "print" in etype:
+                    pdf_count += 1
+                elif "dropzone" in etype or "upload" in etype or "ocr" in etype:
+                    dropzone_count += 1
+                elif "lead_magnet" in etype:
+                    lead_magnet_count += 1
+    except Exception as e:
+        micro_count = 0
+
+    conversion_rate = (new_foyers / gsc_clicks * 100) if gsc_clicks > 0 else 0.0
+    micro_rate = (micro_count / gsc_clicks * 100) if gsc_clicks > 0 else 0.0
+    closing_rate = (new_foyers / micro_count * 100) if micro_count > 0 else 0.0
+
+    return {
+        "available": True,
+        "days": days,
+        "cutoff_date": start_iso,
+        "gsc_clicks": gsc_clicks,
+        "new_foyers": new_foyers,
+        "seo_attributed_foyers": seo_attributed_foyers,
+        "new_vehicles": new_vehicles,
+        "micro_count": micro_count,
+        "pdf_count": pdf_count,
+        "dropzone_count": dropzone_count,
+        "lead_magnet_count": lead_magnet_count,
+        "conversion_rate": round(conversion_rate, 2),
+        "micro_rate": round(micro_rate, 2),
+        "closing_rate": round(closing_rate, 2),
+    }
+
+
 def print_overview(service, site_url: str, days: int = 28):
     """Affiche une vue d'ensemble rapide et visuelle des performances."""
     print(f"\n🚀 \033[1mANALYSE GOOGLE SEARCH CONSOLE — LAVIGIEAUTO\033[0m")
@@ -683,8 +807,26 @@ def print_overview(service, site_url: str, days: int = 28):
             ])
         print(tabulate(table_p, headers=["URL", "Clics", "Impressions", "CTR", "Position"], tablefmt="psql"))
 
-    # Synthèse hebdomadaire d'évolution (S vs S-1)
+    # Synthèse hebdomadaire d'évolution et Entonnoir de conversion (S vs S-1)
     if days == 7:
+        funnel = get_supabase_funnel_metrics(days=days, gsc_clicks=total_clicks)
+        if funnel:
+            print(f"\n🎯 \033[1mENTONNOIR DE CONVERSION (FULL FUNNEL — {days} DERNIERS JOURS)\033[0m")
+            table_funnel = [
+                ["1. Trafic Organique Google (Clics SEO GSC)", f"{funnel['gsc_clicks']:,} clics"],
+                ["2. Micro-Conversions (Engagement Fiches pSEO)", f"{funnel['micro_count']:,} action{'s' if funnel['micro_count'] > 1 else ''}"],
+                ["   ├─ Téléchargements & Impressions Carnet PDF", f"{funnel['pdf_count']:,}"],
+                ["   └─ Interactions Dropzone OCR", f"{funnel['dropzone_count']:,}"],
+                ["3. Macro-Conversions (Comptes & Véhicules Réels)", f"{funnel['new_foyers']:,} foyer{'s' if funnel['new_foyers'] > 1 else ''}"],
+                ["   ├─ Foyers avec attribution SEO (pSEO)", f"{funnel['seo_attributed_foyers']:,}"],
+                ["   └─ Véhicules rattachés au foyer", f"{funnel['new_vehicles']:,} véhicule{'s' if funnel['new_vehicles'] > 1 else ''}"],
+                ["🚀 Taux de Transformation Global (Clics → Foyers)", f"{funnel['conversion_rate']:.2f}%"],
+                ["⚡ Taux d'Engagement Micro (Clics → Actions)", f"{funnel['micro_rate']:.2f}%"],
+            ]
+            if funnel["micro_count"] > 0:
+                table_funnel.append(["🔑 Taux de Clôture (Micro → Foyers)", f"{funnel['closing_rate']:.2f}%"])
+            print(tabulate(table_funnel, headers=["Étape de l'Entonnoir", "Volume"], tablefmt="rounded_grid"))
+
         try:
             sys.path.insert(0, str(Path(__file__).resolve().parent))
             from bing_analyzer import get_bing_summary
@@ -902,6 +1044,23 @@ def send_discord_notification(
             "value": brands_str,
             "inline": True,
         },
+    ]
+
+    funnel = get_supabase_funnel_metrics(days=days, gsc_clicks=clicks)
+    if funnel:
+        embed_fields.append({
+            "name": "🎯 Entonnoir de Conversion (Full Funnel)",
+            "value": (
+                f"• 🌐 **Clics SEO Google (GSC)** : `{funnel['gsc_clicks']}`\n"
+                f"• 📄 **Micro-conversions** : `{funnel['micro_count']}` ({funnel['pdf_count']} PDF, {funnel['dropzone_count']} Dropzone)\n"
+                f"• 👤 **Nouveaux Foyers** : `{funnel['new_foyers']}`\n"
+                f"• 🚗 **Véhicules enregistrés** : `{funnel['new_vehicles']}`\n"
+                f"• 📈 **Taux de conversion global** : `{funnel['conversion_rate']:.2f}%`"
+            ),
+            "inline": False,
+        })
+
+    embed_fields.extend([
         {
             "name": "🏆 Top Pages du Catalogue",
             "value": top_pages_str,
@@ -912,7 +1071,7 @@ def send_discord_notification(
             "value": striking_str,
             "inline": False,
         },
-    ]
+    ])
 
     # Ajout du bloc Requêtes GPL & Distribution Sensibles si détectées
     engine_vulns = opps.get("engine_vulnerabilities", [])
@@ -1139,6 +1298,18 @@ def send_telegram_notification(
             )
     except Exception:
         pass
+
+    # Entonnoir de conversion (Full Funnel)
+    funnel = get_supabase_funnel_metrics(days=days, gsc_clicks=clicks)
+    if funnel:
+        text += (
+            f"\n\n🎯 <b>Entonnoir de Conversion (Full Funnel) :</b>\n"
+            f"• Clics SEO Google ({days}j) : <b>{funnel['gsc_clicks']}</b>\n"
+            f"• Micro-conversions : <b>{funnel['micro_count']}</b> ({funnel['pdf_count']} PDF, {funnel['dropzone_count']} OCR)\n"
+            f"• Nouveaux Foyers : <b>{funnel['new_foyers']}</b>\n"
+            f"• Véhicules enregistrés : <b>{funnel['new_vehicles']}</b>\n"
+            f"• Taux de transformation global : <b>{funnel['conversion_rate']:.2f}%</b>\n\n"
+        )
 
     # Synthèse d'évolution hebdomadaire S vs S-1 (Option A)
     synthesis = compute_weekly_synthesis(

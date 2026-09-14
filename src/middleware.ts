@@ -84,6 +84,35 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // 4. Attribution Edge Lead Tagging sur les fiches d'entretien pSEO
+  const entretienMatch = request.nextUrl.pathname.match(
+    /^\/entretien\/([^/]+)\/([^/]+)\/([^/]+)\/?$/
+  );
+  if (entretienMatch) {
+    const hasLeadSource =
+      request.cookies.has("lavigie_lead_source") &&
+      !!request.cookies.get("lavigie_lead_source")?.value;
+
+    if (!hasLeadSource) {
+      const [, brand, model, engine] = entretienMatch;
+      const leadData = {
+        source: "seo_pseo",
+        brand: decodeURIComponent(brand),
+        model: decodeURIComponent(model),
+        engine: decodeURIComponent(engine),
+        url: request.nextUrl.pathname,
+        timestamp: new Date().toISOString(),
+      };
+
+      response.cookies.set("lavigie_lead_source", JSON.stringify(leadData), {
+        path: "/",
+        maxAge: 30 * 24 * 3600, // 30 jours
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+  }
+
   return response;
 }
 

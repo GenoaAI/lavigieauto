@@ -41,6 +41,8 @@ import { testBraveAnalyzerSuite } from "./brave-analyzer.test";
 import { testLastInspectionMileage } from "./last-inspection-mileage.test";
 import { testBrakeReplacementAlert } from "./brake-replacement-alert.test";
 import { testTireReplacementAlert } from "./tire-replacement-alert.test";
+import { testFullFunnelAttribution } from "./full-funnel-attribution.test";
+import { testGscFunnelReporting } from "./test-gsc-funnel-reporting.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -95,6 +97,8 @@ async function runAllTests() {
     { name: "Affichage du Kilométrage du Dernier Contrôle sur la Fiche Véhicule", fn: testLastInspectionMileage },
     { name: "Formulation des Alertes de Remplacement avec Kilométrage Cible Absolu (Freins)", fn: testBrakeReplacementAlert },
     { name: "Formulation des Alertes & Échéances avec Kilométrage Cible Absolu (Pneus)", fn: testTireReplacementAlert },
+    { name: "Attribution Full Funnel & Persistance des Micro-Conversions (M1)", fn: testFullFunnelAttribution },
+    { name: "Reporting d'Entonnoir Full Funnel & Automatisation GSC (M2)", fn: testGscFunnelReporting },
   ];
 
 
