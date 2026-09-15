@@ -1087,6 +1087,50 @@ def send_discord_notification(
             "inline": False,
         })
 
+    # Bloc Optionnel — 🎯 Entonnoir de Conversion (Full Funnel)
+    funnel = get_supabase_funnel_metrics(days=days, gsc_clicks=clicks)
+    if funnel and funnel.get("available"):
+        funnel_discord = [
+            f"• Clics SEO GSC : `{funnel['gsc_clicks']} clics`",
+            f"• Micro-conversions : `{funnel['micro_count']} action{'s' if funnel['micro_count'] > 1 else ''}`",
+            f"• Macro-conversions : `{funnel['new_foyers']} foyer{'s' if funnel['new_foyers'] > 1 else ''}` (dont `{funnel['seo_attributed_foyers']}` via pSEO)",
+            f"• Taux de transformation global : `{funnel['conversion_rate']:.1f}%`"
+        ]
+        if funnel.get("new_vehicles", 0) > 0:
+            funnel_discord.append(f"• Véhicules rattachés : `{funnel['new_vehicles']} véhicule{'s' if funnel['new_vehicles'] > 1 else ''}`")
+
+        embed_fields.append({
+            "name": "🎯 Entonnoir de Conversion (Full Funnel)",
+            "value": "\n".join(funnel_discord),
+            "inline": False,
+        })
+
+    # Bloc Optionnel — 🎯 Synthèse Hebdo (S vs S-1)
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from bing_analyzer import get_bing_summary
+        from brave_analyzer import get_brave_summary
+        bing_data = get_bing_summary()
+        brave_data = get_brave_summary()
+    except Exception:
+        bing_data = None
+        brave_data = None
+
+    synthesis = compute_weekly_synthesis(
+        service,
+        site_url,
+        days=days,
+        curr_page_rows=page_rows,
+        bing_summary=bing_data,
+        brave_summary=brave_data,
+    )
+    if synthesis:
+        embed_fields.append({
+            "name": f"🎯 Synthèse Hebdo (S vs S-1) : {synthesis['badge_emoji']} {synthesis['badge_title']}",
+            "value": synthesis["discord_value"],
+            "inline": False,
+        })
+
     # Bloc 3 — 💡 Analyse & Recommandations
     recs_discord = []
     if clicks > 0:
