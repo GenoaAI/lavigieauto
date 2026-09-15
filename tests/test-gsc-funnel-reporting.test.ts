@@ -249,8 +249,11 @@ with patch("gsc_analyzer.get_search_analytics", side_effect=[mock_pages, mock_qu
     striking_field = next((f for f in fields if "🎯 Zone de Frappe (Pos. 4 à 15)" in f["name"]), None)
     assert striking_field is not None, "Le champ '🎯 Zone de Frappe' doit être présent."
     assert striking_field["inline"] is False, "Le champ doit être inline: False."
+    recs_field = next((f for f in fields if "💡 Analyse & Recommandation" in f["name"]), None)
+    assert recs_field is not None, "Le champ '💡 Analyse & Recommandation' doit être présent."
+    assert recs_field["inline"] is False, "Le champ doit être inline: False."
 
-# Test Telegram HTML section contract (Standardise, <= 12 lignes)
+# Test Telegram HTML section contract (Standardise, <= 14 lignes avec recommandation)
 with patch("gsc_analyzer.get_search_analytics", side_effect=[mock_pages, mock_queries]), \
      patch("requests.post") as mock_post_tg:
     
@@ -265,9 +268,10 @@ with patch("gsc_analyzer.get_search_analytics", side_effect=[mock_pages, mock_qu
     assert "<code>119 imp • 4 clics • CTR" in text_tg, "Le ruban KPI doit être en code HTML."
     assert "🏆 <b>Top Pages :</b>" in text_tg, "Le bloc Top Pages doit être présent."
     assert ".../sandero-2/0-9-tce-90" in text_tg, "L'URL doit être tronquée avec .../."
+    assert "💡 <b>Analyse & Action CRO :</b>" in text_tg, "Le bloc Analyse & Action CRO doit être présent."
     assert "54 pages actives au catalogue pSEO" in text_tg, "Le footer catalogue doit être présent."
     lines_count = len(text_tg.splitlines())
-    assert lines_count <= 12, f"Le message Telegram ne doit pas excéder 12 lignes (actuel: {lines_count})."
+    assert lines_count <= 14, f"Le message Telegram ne doit pas excéder 14 lignes (actuel: {lines_count})."
 
 print("SUCCESS_FORMAT_TESTS")
 `;

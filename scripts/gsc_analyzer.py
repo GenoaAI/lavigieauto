@@ -1087,6 +1087,24 @@ def send_discord_notification(
             "inline": False,
         })
 
+    # Bloc 3 — 💡 Analyse & Recommandations
+    recs_discord = []
+    if clicks > 0:
+        recs_discord.append(f"Traction sur le catalogue ({clicks} clics) mais fuite du funnel : tester un lead magnet sur les fiches reines (rappel révision 1 clic / PDF direct sans barrière).")
+    else:
+        recs_discord.append("Consolider les positions en zone de frappe pour amorcer les premiers clics.")
+
+    if top_striking:
+        best_q = top_striking[0]
+        recs_discord.append(f"Optimiser la balise Title et FAQ sur la requête prioritaire `{best_q['query']}` (pos `{best_q['position']:.1f}`).")
+
+    if recs_discord:
+        embed_fields.append({
+            "name": "💡 Analyse & Recommandation",
+            "value": "\n".join(f"• {r}" for r in recs_discord),
+            "inline": False,
+        })
+
     clic_kpi = f"{clicks} clic{'s' if clicks > 1 else ''}"
     embed = {
         "title": "📈 Rapport SEO Hebdo — LaVigieAuto",
@@ -1197,11 +1215,25 @@ def send_telegram_notification(
         top_pages_val_telegram,
     ]
 
+    recs_telegram = []
+    if clicks > 0:
+        recs_telegram.append("Traction fiches : tester un lead magnet (rappel révision 1 clic / PDF direct).")
+    if top_striking:
+        best_q = top_striking[0]
+        recs_telegram.append(f"Optimiser Title/FAQ pour '{html.escape(best_q['query'])}' (pos <code>{best_q['position']:.1f}</code>).")
+
     if striking_telegram:
         lines.extend([
             "",
             "🎯 <b>Zone de Frappe (Pos. 4 à 15) :</b>",
             "\n".join(striking_telegram),
+        ])
+
+    if recs_telegram:
+        lines.extend([
+            "",
+            "💡 <b>Analyse & Action CRO :</b>",
+            "\n".join(f"• {r}" for r in recs_telegram),
         ])
 
     lines.extend([
