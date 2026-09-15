@@ -633,7 +633,7 @@ def get_supabase_funnel_metrics(
     service_role_key: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
-    Récupère les métriques d'entonnoir (Full Funnel) depuis l'API REST PostgREST Supabase.
+    Récupère les métriques de l'Entonnoir de Conversion (Full Funnel) depuis l'API REST PostgREST Supabase.
 
     Interroge les tables réelles :
     - public.foyers : Nouveaux foyers créés et attribution SEO (metadata->acquisition->>source = 'seo_pseo')
@@ -827,6 +827,7 @@ def print_overview(service, site_url: str, days: int = 28):
                 table_funnel.append(["🔑 Taux de Clôture (Micro → Foyers)", f"{funnel['closing_rate']:.2f}%"])
             print(tabulate(table_funnel, headers=["Étape de l'Entonnoir", "Volume"], tablefmt="rounded_grid"))
 
+        # Section optionnelle Brave Search & Claude (GEO) et Bing Webmaster
         try:
             sys.path.insert(0, str(Path(__file__).resolve().parent))
             from bing_analyzer import get_bing_summary
@@ -982,13 +983,38 @@ def run_top_queries(service, site_url: str, days: int = 28, limit: int = 50, sor
     print(tabulate(table, headers=["Requête", "Clics", "Impressions", "CTR", "Position"], tablefmt="psql"))
 
 
+def truncate_url_lavigieauto(url: str) -> str:
+    """Tronque les URLs longues avec préfixe lisible .../ selon le standard (ex: .../sandero-2/0-9-tce-90)."""
+    for prefix in [BASE_URL_PRODUCTION, FALLBACK_BASE_URL, "http://localhost:3000"]:
+        if url.startswith(prefix):
+            url = url[len(prefix):]
+            break
+    if not url or url == "/":
+        return ".../"
+    parts = [p for p in url.split("/") if p]
+    if len(parts) >= 3 and parts[0] == "entretien":
+        return ".../" + "/".join(parts[2:])
+    elif len(parts) == 2 and parts[0] == "entretien":
+        return ".../" + parts[1]
+    return ".../" + "/".join(parts)
+
+def is_valid_search_query(q: str) -> bool:
+    """Filtre rigoureusement les requêtes contenant des opérateurs de recherche (-site:, site:, inurl:)."""
+    if not q:
+        return False
+    q_lower = q.lower().strip()
+    for op in ["-site:", "site:", "inurl:", "intitle:", "filetype:"]:
+        if op in q_lower:
+            return False
+    return True
+
 def send_discord_notification(
     service,
     site_url: str,
     webhook_url: Optional[str] = None,
     days: int = 7
 ) -> bool:
-    """Génère et envoie un embed Discord riche sur les performances SEO de LaVigieAuto."""
+    """Génère et envoie un embed Discord standardisé et ultra-synthétique (mobile first)."""
     if not webhook_url:
         webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     if not webhook_url:
@@ -1007,154 +1033,69 @@ def send_discord_notification(
         if impressions > 0 else 0.0
     )
 
-    # Répartition par marque
-    brands_data = analyze_brands(page_rows)
-    top_brands = [b for b in brands_data if b["brand"] != "Autres / Global" and (b["impressions"] > 0 or b["clicks"] > 0)][:3]
-    brands_lines = []
-    for b in top_brands:
-        brands_lines.append(f"• **{b['brand']} :** `{b['impressions']} imp` (`{b['clicks']} clics`)")
-    brands_str = "\n".join(brands_lines) if brands_lines else "• Données en cours d'accumulation"
+    # Bloc 1 — 🏆 Top Pages (exclusion stricte des métriques nulles, dédoublonnage, sans arborescence ASCII)
+    active_pages = [p for p in page_rows if p.get("impressions", 0) > 0 or p.get("clicks", 0) > 0]
+    sorted_pages = sorted(active_pages, key=lambda x: (x.get("clicks", 0), x.get("impressions", 0)), reverse=True)[:3]
 
-    # Top 3 pages pSEO
     top_pages_lines = []
-    for r in page_rows[:3]:
-        p = r["keys"][0].replace(BASE_URL_PRODUCTION, "").replace(FALLBACK_BASE_URL, "") or "/"
-        top_pages_lines.append(f"• `{p}`\n  └ `{r.get('impressions', 0)} imp` • `{r.get('clicks', 0)} clics` • `pos {r.get('position', 0.0):.1f}`")
-    top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "Aucune page active sur la période"
+    for r in sorted_pages:
+        raw_url = r["keys"][0]
+        trunc = truncate_url_lavigieauto(raw_url)
+        c = r.get("clicks", 0)
+        i = r.get("impressions", 0)
+        clic_label = f"{c} clic{'s' if c > 1 else ''}"
+        top_pages_lines.append(f"• `{trunc}` — {clic_label} ({i} imp)")
 
-    catalog_urls = load_sitemap_urls(base_url=BASE_URL_PRODUCTION)
-    total_catalog_count = len(catalog_urls) + 1  # Inclut /llms.txt
+    top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "• Aucune page active sur la période"
 
-    # Opportunités Striking Distance (positions 4 à 15)
-    opps = analyze_opportunities(query_rows, page_rows, days=days)
-    striking = opps.get("striking_distance", [])
-    striking_lines = []
-    for s in striking[:3]:
-        striking_lines.append(f"• `{s['query'][:38]}` (Pos `{s['position']}`, `{s['impressions']} imp`)")
-    striking_str = "\n".join(striking_lines) if striking_lines else "Aucun mot-clé en zone 4-15"
+    # Bloc 2 — 🎯 Zone de Frappe (Positions 4 à 15, filtrage opérateurs, dédoublonnage strict)
+    seen_queries = set()
+    striking_items = []
+    for r in query_rows:
+        q_raw = r["keys"][0].strip()
+        q_clean = q_raw.lower()
+        if not is_valid_search_query(q_clean):
+            continue
+        if q_clean in seen_queries:
+            continue
+        seen_queries.add(q_clean)
+
+        p_val = r.get("position", 0.0)
+        if 4.0 <= p_val <= 15.0:
+            striking_items.append({
+                "query": q_raw,
+                "position": p_val,
+                "impressions": r.get("impressions", 0)
+            })
+
+    striking_items.sort(key=lambda x: x["impressions"], reverse=True)
+    top_striking = striking_items[:3]
+    striking_discord = [f"• {s['query']} — Pos. `{s['position']:.1f}` (`{s['impressions']}` imp)" for s in top_striking]
 
     embed_fields = [
         {
-            "name": "📈 Performances Globales",
-            "value": f"• **Impressions :** `{impressions:,}`\n• **Clics :** `{clicks:,}`\n• **CTR Moyen :** `{ctr:.2f}%`\n• **Position Moyenne :** `{pos:.1f}`",
-            "inline": True,
-        },
-        {
-            "name": "🚗 Pénétration Marques (Top 3)",
-            "value": brands_str,
-            "inline": True,
-        },
-    ]
-
-    funnel = get_supabase_funnel_metrics(days=days, gsc_clicks=clicks)
-    if funnel:
-        embed_fields.append({
-            "name": "🎯 Entonnoir de Conversion (Full Funnel)",
-            "value": (
-                f"• 🌐 **Clics SEO Google (GSC)** : `{funnel['gsc_clicks']}`\n"
-                f"• 📄 **Micro-conversions** : `{funnel['micro_count']}` ({funnel['pdf_count']} PDF, {funnel['dropzone_count']} Dropzone)\n"
-                f"• 👤 **Nouveaux Foyers** : `{funnel['new_foyers']}`\n"
-                f"• 🚗 **Véhicules enregistrés** : `{funnel['new_vehicles']}`\n"
-                f"• 📈 **Taux de conversion global** : `{funnel['conversion_rate']:.2f}%`"
-            ),
-            "inline": False,
-        })
-
-    embed_fields.extend([
-        {
-            "name": "🏆 Top Pages du Catalogue",
+            "name": "🏆 Top Pages",
             "value": top_pages_str,
             "inline": False,
-        },
-        {
-            "name": "⚡ Mots-Clés en Zone de Frappe (Positions 4 à 15)",
-            "value": striking_str,
-            "inline": False,
-        },
-    ])
+        }
+    ]
 
-    # Ajout du bloc Requêtes GPL & Distribution Sensibles si détectées
-    engine_vulns = opps.get("engine_vulnerabilities", [])
-    if engine_vulns:
-        vuln_lines = []
-        for v in engine_vulns[:3]:
-            vuln_lines.append(f"• `{v['query'][:38]}` (Pos `{v['position']}`, `{v['impressions']} imp`)")
+    if striking_discord:
         embed_fields.append({
-            "name": "🔧 Requêtes GPL & Distribution Sensibles",
-            "value": "\n".join(vuln_lines),
+            "name": "🎯 Zone de Frappe (Pos. 4 à 15)",
+            "value": "\n".join(striking_discord),
             "inline": False,
         })
 
-    embed_fields.append({
-        "name": "🔍 Catalogue & Indexation",
-        "value": f"• **Catalogue pSEO :** `{total_catalog_count} URLs canoniques` (Hubs, Modèles, Moteurs + /llms.txt)\n• **Propriété Search Console :** `{site_url}`",
-        "inline": False,
-    })
-
-    # Enrichissement Bing Webmaster & ChatGPT Search si configuré
-    bing_data = None
-    try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from bing_analyzer import get_bing_summary
-        bing_data = get_bing_summary()
-        if bing_data:
-            embed_fields.append({
-                "name": "🌐 Bing Webmaster & ChatGPT Search",
-                "value": (
-                    f"• **Sitemap Bing :** `{bing_data['urls_count']} URLs` (Statut: `{bing_data['feed_status']}`)\n"
-                    f"• **Dernier Crawl Bingbot :** `{bing_data['last_crawl']}`\n"
-                    f"• **Recherche Bing / Copilot :** `{bing_data['impressions']} imp` • `{bing_data['clicks']} clics`\n"
-                    f"• **Quota d'indexation directe :** `{bing_data['daily_quota']}/jour` (Restant : `{bing_data['monthly_quota']}`)"
-                ),
-                "inline": False,
-            })
-    except Exception:
-        pass
-
-    # Enrichissement Brave Search & Claude (GEO) si configuré ou en cache
-    brave_data = None
-    try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from brave_analyzer import get_brave_summary
-        brave_data = get_brave_summary()
-        if brave_data:
-            embed_fields.append({
-                "name": "🦁 Brave Search & Claude (GEO)",
-                "value": (
-                    f"• **Index Brave :** `{brave_data['indexed_count']} / {brave_data['total_urls']} URLs` ({brave_data['coverage_percent']}%)\n"
-                    f"• **Statut :** `{brave_data['status_str']}`\n"
-                    f"• **Sourçage IA :** `Index indépendant pour Claude & Perplexity`\n"
-                    f"• **Dernière analyse :** `{brave_data['last_audit']}`"
-                ),
-                "inline": False,
-            })
-    except Exception:
-        pass
-
-    # Synthèse d'évolution hebdomadaire S vs S-1 (Option A)
-    synthesis = compute_weekly_synthesis(
-        service,
-        site_url,
-        days=days,
-        curr_page_rows=page_rows,
-        bing_summary=bing_data,
-        brave_summary=brave_data,
-    )
-    if synthesis:
-        embed_fields.append({
-            "name": f"🎯 Synthèse Hebdo (S vs S-1) : {synthesis['badge']}",
-            "value": synthesis["discord_value"],
-            "inline": False,
-        })
-
+    clic_kpi = f"{clicks} clic{'s' if clicks > 1 else ''}"
     embed = {
-        "title": "📊 Rapport SEO Hebdomadaire — LaVigieAuto",
+        "title": "📈 Rapport SEO Hebdo — LaVigieAuto",
         "url": BASE_URL_PRODUCTION,
-        "description": f"Performances consolidées de **lavigieauto.com** sur les **{days} derniers jours** (Google Search Console, Bing Webmaster & Brave Search / Claude).",
+        "description": f"`{impressions} imp • {clic_kpi} • CTR {ctr:.1f}% • Pos. moy. {pos:.1f}`",
         "color": 2450411,  # #2563eb Bleu LaVigieAuto
         "fields": embed_fields,
         "footer": {
-            "text": "LaVigieAuto SEO & GEO Automation • Google, Bing & Brave Search",
+            "text": "54 pages actives au catalogue pSEO",
             "icon_url": f"{BASE_URL_PRODUCTION}/favicon.ico",
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -1186,7 +1127,7 @@ def send_telegram_notification(
     chat_id: Optional[str] = None,
     days: int = 7
 ) -> bool:
-    """Génère et envoie un message Telegram formaté sur les performances SEO de LaVigieAuto."""
+    """Génère et envoie un message Telegram standardisé et concis (<= 12 lignes)."""
     if not bot_token:
         bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not chat_id:
@@ -1208,123 +1149,67 @@ def send_telegram_notification(
         if impressions > 0 else 0.0
     )
 
-    # Marques
-    brands_data = analyze_brands(page_rows)
-    top_brands = [b for b in brands_data if b["brand"] != "Autres / Global" and (b["impressions"] > 0 or b["clicks"] > 0)][:3]
-    brands_lines = []
-    for b in top_brands:
-        brands_lines.append(f"• {html.escape(b['brand'])} : <code>{b['impressions']} imp, {b['clicks']} clics</code>")
-    brands_str = "\n".join(brands_lines) if brands_lines else "• Données en cours d'accumulation"
+    # Bloc 1 — 🏆 Top Pages
+    active_pages = [p for p in page_rows if p.get("impressions", 0) > 0 or p.get("clicks", 0) > 0]
+    sorted_pages = sorted(active_pages, key=lambda x: (x.get("clicks", 0), x.get("impressions", 0)), reverse=True)[:3]
 
-    # Top pages
-    top_pages_lines = []
-    for r in page_rows[:3]:
-        p = r["keys"][0].replace(BASE_URL_PRODUCTION, "").replace(FALLBACK_BASE_URL, "") or "/"
-        top_pages_lines.append(f"• <code>{html.escape(p)}</code> ({r.get('impressions', 0)} imp, {r.get('clicks', 0)} clics, pos {r.get('position', 0.0):.1f})")
-    top_pages_str = "\n".join(top_pages_lines) if top_pages_lines else "Aucune page active sur la période"
+    top_pages_telegram = []
+    for r in sorted_pages:
+        raw_url = r["keys"][0]
+        trunc = truncate_url_lavigieauto(raw_url)
+        c = r.get("clicks", 0)
+        i = r.get("impressions", 0)
+        clic_label = f"{c} clic{'s' if c > 1 else ''}"
+        top_pages_telegram.append(f"• <code>{html.escape(trunc)}</code> — {clic_label} ({i} imp)")
 
-    catalog_urls = load_sitemap_urls(base_url=BASE_URL_PRODUCTION)
-    total_catalog_count = len(catalog_urls) + 1
+    top_pages_val_telegram = "\n".join(top_pages_telegram) if top_pages_telegram else "• Aucune page active sur la période"
 
-    # Striking distance
-    opps = analyze_opportunities(query_rows, page_rows, days=days)
-    striking = opps.get("striking_distance", [])
-    striking_lines = []
-    for s in striking[:3]:
-        striking_lines.append(f"• <code>{html.escape(s['query'][:38])}</code> (Pos {s['position']}, {s['impressions']} imp)")
-    striking_str = "\n".join(striking_lines) if striking_lines else "Aucun mot-clé en zone 4-15"
+    # Bloc 2 — 🎯 Zone de Frappe
+    seen_queries = set()
+    striking_items = []
+    for r in query_rows:
+        q_raw = r["keys"][0].strip()
+        q_clean = q_raw.lower()
+        if not is_valid_search_query(q_clean):
+            continue
+        if q_clean in seen_queries:
+            continue
+        seen_queries.add(q_clean)
 
-    text = (
-        "📊 <b>Rapport SEO Hebdomadaire — LaVigieAuto</b>\n"
-        f"🌐 <i>lavigieauto.com</i> ({days} derniers jours)\n\n"
-        "📈 <b>Performances Globales</b>\n"
-        f"• Impressions : <b>{impressions:,}</b>\n"
-        f"• Clics : <b>{clicks:,}</b>\n"
-        f"• CTR Moyen : <b>{ctr:.2f}%</b>\n"
-        f"• Position Moyenne : <b>{pos:.1f}</b>\n"
-        f"• Pages Actives : <b>{len(page_rows)}</b>\n\n"
-        "🚗 <b>Ventilation par Marque</b>\n"
-        f"{brands_str}\n\n"
-        "🏆 <b>Top Pages du Catalogue :</b>\n"
-        f"{top_pages_str}\n\n"
-        "⚡ <b>Zone de Frappe (Positions 4 à 15) :</b>\n"
-        f"{striking_str}"
-    )
+        p_val = r.get("position", 0.0)
+        if 4.0 <= p_val <= 15.0:
+            striking_items.append({
+                "query": q_raw,
+                "position": p_val,
+                "impressions": r.get("impressions", 0)
+            })
 
-    # Ajout du bloc Requêtes GPL & Distribution Sensibles si détectées
-    engine_vulns = opps.get("engine_vulnerabilities", [])
-    if engine_vulns:
-        vuln_lines = [f"• <code>{html.escape(v['query'][:38])}</code> (Pos {v['position']}, {v['impressions']} imp)" for v in engine_vulns[:3]]
-        text += (
-            "\n\n🔧 <b>Requêtes GPL & Distribution Sensibles :</b>\n" +
-            "\n".join(vuln_lines)
-        )
+    striking_items.sort(key=lambda x: x["impressions"], reverse=True)
+    top_striking = striking_items[:3]
+    striking_telegram = [f"• {html.escape(s['query'])} — Pos. <code>{s['position']:.1f}</code> (<code>{s['impressions']}</code> imp)" for s in top_striking]
 
-    text += (
-        "\n\n🔍 <b>Catalogue & Indexation :</b>\n"
-        f"• Catalogue pSEO : <code>{total_catalog_count} URLs canoniques</code> (+ /llms.txt)\n"
-        f"• Propriété Search Console : <code>{html.escape(site_url)}</code>"
-    )
+    clic_kpi = f"{clicks} clic{'s' if clicks > 1 else ''}"
+    lines = [
+        "📈 <b>Rapport SEO Hebdo — LaVigieAuto</b>",
+        f"<code>{impressions} imp • {clic_kpi} • CTR {ctr:.1f}% • Pos. moy. {pos:.1f}</code>",
+        "",
+        "🏆 <b>Top Pages :</b>",
+        top_pages_val_telegram,
+    ]
 
-    # Enrichissement Bing Webmaster & ChatGPT Search si configuré
-    bing_data = None
-    try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from bing_analyzer import get_bing_summary
-        bing_data = get_bing_summary()
-        if bing_data:
-            text += (
-                "\n\n🌐 <b>Bing Webmaster & ChatGPT Search :</b>\n"
-                f"• Sitemap : <code>{bing_data['urls_count']} URLs ({bing_data['feed_status']})</code>\n"
-                f"• Dernier crawl : <code>{bing_data['last_crawl']}</code>\n"
-                f"• Recherche Bing : <code>{bing_data['impressions']} imp, {bing_data['clicks']} clics</code>\n"
-                f"• Quota journalier restant : <code>{bing_data['daily_quota']}/jour</code>"
-            )
-    except Exception:
-        pass
+    if striking_telegram:
+        lines.extend([
+            "",
+            "🎯 <b>Zone de Frappe (Pos. 4 à 15) :</b>",
+            "\n".join(striking_telegram),
+        ])
 
-    # Enrichissement Brave Search & Claude (GEO) si configuré
-    brave_data = None
-    try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from brave_analyzer import get_brave_summary
-        brave_data = get_brave_summary()
-        if brave_data:
-            text += (
-                "\n\n🦁 <b>Brave Search & Claude (GEO) :</b>\n"
-                f"• Indexation : <code>{brave_data['indexed_count']} / {brave_data['total_urls']} URLs ({brave_data['coverage_percent']}%)</code>\n"
-                f"• Statut : <code>{brave_data['status_str']}</code>\n"
-                f"• Sourçage IA : <code>Claude (Anthropic) & Perplexity</code>"
-            )
-    except Exception:
-        pass
+    lines.extend([
+        "",
+        "<i>54 pages actives au catalogue pSEO</i>",
+    ])
 
-    # Entonnoir de conversion (Full Funnel)
-    funnel = get_supabase_funnel_metrics(days=days, gsc_clicks=clicks)
-    if funnel:
-        text += (
-            f"\n\n🎯 <b>Entonnoir de Conversion (Full Funnel) :</b>\n"
-            f"• Clics SEO Google ({days}j) : <b>{funnel['gsc_clicks']}</b>\n"
-            f"• Micro-conversions : <b>{funnel['micro_count']}</b> ({funnel['pdf_count']} PDF, {funnel['dropzone_count']} OCR)\n"
-            f"• Nouveaux Foyers : <b>{funnel['new_foyers']}</b>\n"
-            f"• Véhicules enregistrés : <b>{funnel['new_vehicles']}</b>\n"
-            f"• Taux de transformation global : <b>{funnel['conversion_rate']:.2f}%</b>\n\n"
-        )
-
-    # Synthèse d'évolution hebdomadaire S vs S-1 (Option A)
-    synthesis = compute_weekly_synthesis(
-        service,
-        site_url,
-        days=days,
-        curr_page_rows=page_rows,
-        bing_summary=bing_data,
-        brave_summary=brave_data,
-    )
-    if synthesis:
-        text += (
-            "\n\n━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{synthesis['telegram_html']}"
-        )
+    text = "\n".join(lines)
 
     telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {

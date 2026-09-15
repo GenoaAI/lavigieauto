@@ -221,22 +221,15 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, "scripts")
 import gsc_analyzer
 
-# Test Discord embed field contract
-funnel_data = {
-    "available": True,
-    "days": 7,
-    "gsc_clicks": 13,
-    "new_foyers": 1,
-    "seo_attributed_foyers": 1,
-    "new_vehicles": 0,
-    "micro_count": 5,
-    "pdf_count": 3,
-    "dropzone_count": 2,
-    "conversion_rate": 7.69,
-}
+# Test Discord embed contract (Standardise, Mobile-First)
+mock_pages = [
+    {"keys": ["https://www.lavigieauto.com/entretien/dacia/sandero-2/0-9-tce-90"], "clicks": 4, "impressions": 119, "position": 2.1}
+]
+mock_queries = [
+    {"keys": ["carnet entretien jogger gpl"], "clicks": 0, "impressions": 17, "position": 11.1}
+]
 
-with patch("gsc_analyzer.get_supabase_funnel_metrics", return_value=funnel_data), \
-     patch("gsc_analyzer.get_search_analytics", return_value=[]), \
+with patch("gsc_analyzer.get_search_analytics", side_effect=[mock_pages, mock_queries]), \
      patch("requests.post") as mock_post:
     
     mock_post.return_value = MagicMock(status_code=204)
@@ -245,20 +238,20 @@ with patch("gsc_analyzer.get_supabase_funnel_metrics", return_value=funnel_data)
     assert mock_post.called, "requests.post doit être appelé pour Discord."
     payload = mock_post.call_args[1]["json"]
     embed = payload["embeds"][0]
+    assert embed["title"] == "📈 Rapport SEO Hebdo — LaVigieAuto", "Le titre Discord doit respecter le standard."
+    assert "119 imp • 4 clics • CTR" in embed["description"], "La description doit contenir le ruban KPI en code inline."
+    assert embed["footer"]["text"] == "54 pages actives au catalogue pSEO", "Le footer doit indiquer les pages du catalogue."
     fields = embed["fields"]
-    
-    funnel_field = next((f for f in fields if "Entonnoir de Conversion (Full Funnel)" in f["name"]), None)
-    assert funnel_field is not None, "Le champ '🎯 Entonnoir de Conversion (Full Funnel)' doit être présent dans Discord."
-    assert "Clics SEO Google (GSC)" in funnel_field["value"], "Le champ doit mentionner les Clics SEO."
-    assert "Micro-conversions" in funnel_field["value"], "Le champ doit mentionner les Micro-conversions."
-    assert "Nouveaux Foyers" in funnel_field["value"], "Le champ doit mentionner les Nouveaux Foyers."
-    assert "Véhicules enregistrés" in funnel_field["value"], "Le champ doit mentionner les Véhicules."
-    assert "Taux de conversion global" in funnel_field["value"], "Le champ doit mentionner le Taux de conversion global."
-    assert funnel_field["inline"] is False, "Le champ doit être inline: False."
+    top_pages_field = next((f for f in fields if "🏆 Top Pages" in f["name"]), None)
+    assert top_pages_field is not None, "Le champ '🏆 Top Pages' doit être présent."
+    assert ".../sandero-2/0-9-tce-90" in top_pages_field["value"], "L'URL doit être tronquée avec .../."
+    assert top_pages_field["inline"] is False, "Le champ doit être inline: False."
+    striking_field = next((f for f in fields if "🎯 Zone de Frappe (Pos. 4 à 15)" in f["name"]), None)
+    assert striking_field is not None, "Le champ '🎯 Zone de Frappe' doit être présent."
+    assert striking_field["inline"] is False, "Le champ doit être inline: False."
 
-# Test Telegram HTML section contract
-with patch("gsc_analyzer.get_supabase_funnel_metrics", return_value=funnel_data), \
-     patch("gsc_analyzer.get_search_analytics", return_value=[]), \
+# Test Telegram HTML section contract (Standardise, <= 12 lignes)
+with patch("gsc_analyzer.get_search_analytics", side_effect=[mock_pages, mock_queries]), \
      patch("requests.post") as mock_post_tg:
     
     mock_post_tg.return_value = MagicMock(status_code=200)
@@ -268,12 +261,13 @@ with patch("gsc_analyzer.get_supabase_funnel_metrics", return_value=funnel_data)
     payload_tg = mock_post_tg.call_args[1]["json"]
     text_tg = payload_tg["text"]
     
-    assert "🎯 <b>Entonnoir de Conversion (Full Funnel) :</b>" in text_tg, "Le titre HTML Telegram doit être présent."
-    assert "• Clics SEO Google (7j) : <b>13</b>" in text_tg, "Les clics SEO doivent être au format attendu."
-    assert "• Micro-conversions : <b>5</b> (3 PDF, 2 OCR)" in text_tg, "Les micro-conversions doivent être ventilées."
-    assert "• Nouveaux Foyers : <b>1</b>" in text_tg, "Les nouveaux foyers doivent être au format attendu."
-    assert "• Véhicules enregistrés : <b>0</b>" in text_tg, "Les véhicules doivent être au format attendu."
-    assert "• Taux de transformation global : <b>7.69%</b>" in text_tg, "Le taux de transformation doit être au format attendu."
+    assert "📈 <b>Rapport SEO Hebdo — LaVigieAuto</b>" in text_tg, "Le titre HTML Telegram doit respecter le standard."
+    assert "<code>119 imp • 4 clics • CTR" in text_tg, "Le ruban KPI doit être en code HTML."
+    assert "🏆 <b>Top Pages :</b>" in text_tg, "Le bloc Top Pages doit être présent."
+    assert ".../sandero-2/0-9-tce-90" in text_tg, "L'URL doit être tronquée avec .../."
+    assert "54 pages actives au catalogue pSEO" in text_tg, "Le footer catalogue doit être présent."
+    lines_count = len(text_tg.splitlines())
+    assert lines_count <= 12, f"Le message Telegram ne doit pas excéder 12 lignes (actuel: {lines_count})."
 
 print("SUCCESS_FORMAT_TESTS")
 `;
