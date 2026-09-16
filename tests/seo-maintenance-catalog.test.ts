@@ -612,8 +612,9 @@ export async function testSeoMaintenanceCatalog() {
       params: Promise.resolve({ brand: item.brandSlug, model: item.modelSlug, engine: item.engineSlug }),
     });
     const title = typeof meta.title === 'string' ? meta.title : '';
-    if (!title.startsWith("Carnet d'Entretien")) {
-      throw new Error(`Le titre pour ${item.brand} ${item.model} ${item.engine} doit commencer par "Carnet d'Entretien" : ${title}`);
+    const expectedPrefix = item.slug === 'dacia-jogger-1-0-eco-g-100' || `${item.brandSlug}-${item.modelSlug}-${item.engineSlug}` === 'dacia-jogger-1-0-eco-g-100' ? 'Entretien Dacia Jogger GPL' : "Carnet d'Entretien";
+    if (!title.startsWith(expectedPrefix)) {
+      throw new Error(`Le titre pour ${item.brand} ${item.model} ${item.engine} doit commencer par "${expectedPrefix}" : ${title}`);
     }
     if (!title.includes('PDF')) {
       throw new Error(`Le titre pour ${item.brand} ${item.model} ${item.engine} doit inclure 'PDF' : ${title}`);

@@ -168,7 +168,7 @@ export function FeedbackDrawer() {
       {/* Bouton Flottant (FAB) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="feedback-trigger-btn fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3 sm:right-5 z-40 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 active:scale-95 transition duration-200 border border-blue-400/30 touch-manipulation"
+        className="feedback-trigger-btn fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3 sm:right-5 z-40 print:hidden flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 active:scale-95 transition duration-200 border border-blue-400/30 touch-manipulation"
         title="Donner un avis / Signaler un bug"
         aria-label="Ouvrir le formulaire de feedback"
       >
@@ -187,7 +187,7 @@ export function FeedbackDrawer() {
       <div
         ref={drawerRef}
         onPaste={handlePaste}
-        className={`fixed top-0 right-0 z-50 h-full w-full sm:w-[440px] border-l border-slate-200 bg-white/95 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out flex flex-col ${
+        className={`fixed top-0 right-0 z-50 h-full w-full sm:w-[440px] border-l border-slate-200 bg-white/95 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out flex flex-col print:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

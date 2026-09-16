@@ -175,6 +175,7 @@ body {
   .print\:hidden,
   [data-feedback-trigger],
   #feedback-drawer,
+  .feedback-trigger-btn,
   .mobile-bottom-nav {
     display: none !important;
   }

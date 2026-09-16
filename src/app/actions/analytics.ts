@@ -31,13 +31,14 @@ const microConversionZodSchema = z
       [
         "pdf_download_print",
         "lead_magnet_submit",
+        "lead_magnet_cta_click",
         "dropzone_upload",
         "dropzone_completed",
         "conversion_cta",
       ].includes(data.eventType),
     {
       message:
-        "Type d'événement invalide. Valeurs autorisées: pdf_download_print, lead_magnet_submit, dropzone_upload, dropzone_completed, conversion_cta",
+        "Type d'événement invalide. Valeurs autorisées: pdf_download_print, lead_magnet_submit, lead_magnet_cta_click, dropzone_upload, dropzone_completed, conversion_cta",
     }
   );
 

@@ -10,6 +10,9 @@
   "fuelType": "Essence",
   "powerHp": 100,
   "productionYears": "2022-2024",
+  "metaTitle": "Entretien Dacia Jogger GPL : Programme & Carnet (PDF)",
+  "metaDescription": "Entretien Dacia Jogger GPL : révisions 30 000 et 60 000 km, filtres GPL gazeux et liquide, bougies d'allumage. Téléchargez le carnet officiel en PDF gratuit.",
+  "slug": "dacia-jogger-1-0-eco-g-100",
   "directAnswerSummary": "Le plan d'entretien officiel du Dacia Jogger 1.0 ECO-G (100 ch bicarburation Essence/GPL) impose une vidange moteur annuelle ou tous les 30 000 km avec une huile homologuée Renault RN17 (5W-30). Doté d'une distribution par chaîne sans entretien, le programme spécifique GPL prescrit le remplacement du filtre GPL phase gazeuse tous les 30 000 km (2 ans), du filtre GPL phase liquide tous les 60 000 km (4 ans), et le contrôle d'étanchéité du circuit de gaz.",
   "recommendedOilNorm": "Renault RN17 (5W-30)",
   "oilViscosity": "5W-30",
@@ -145,6 +148,10 @@
     }
   ],
   "faqs": [
+    {
+      "question": "Quel est le programme d'entretien d'un Dacia Jogger GPL ?",
+      "answer": "Le programme d'entretien officiel du Dacia Jogger 1.0 ECO-G 100 GPL prévoit une révision tous les 30 000 km ou 1 an (vidange avec huile moteur Renault RN17 5W-30, remplacement du filtre d'habitacle et du filtre GPL phase gazeuse, et contrôle d'étanchéité du circuit gaz). Tous les 60 000 km ou 2 ans s'y ajoutent le remplacement du filtre à air, des bougies d'allumage spécifiques GPL et du filtre GPL phase liquide. La distribution s'effectue par chaîne sans remplacement périodique (lubrifiée à vie)."
+    },
     {
       "question": "À combien de kilomètres faire la vidange d'un Dacia Jogger ?",
       "answer": "La vidange d'un Dacia Jogger 1.0 ECO-G 100 ch s'effectue tous les 30 000 km ou 1 an (au premier des deux termes échu) avec de l'huile homologuée Renault RN17 5W-30."

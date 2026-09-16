@@ -55,7 +55,7 @@ export function MobileBottomNav() {
   return (
     <>
       {/* Barre de navigation basse pour mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/90 px-2 sm:px-4 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0.75rem))] shadow-[0_-8px_25px_rgba(0,0,0,0.08)] min-h-[70px]">
+      <div className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/90 px-2 sm:px-4 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0.75rem))] shadow-[0_-8px_25px_rgba(0,0,0,0.08)] min-h-[70px] print:hidden">
         <nav
           role="navigation"
           aria-label="Navigation principale mobile"

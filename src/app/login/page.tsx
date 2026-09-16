@@ -28,6 +28,7 @@ interface SelectedVehicleContext {
   brand: string;
   model: string;
   engine?: string;
+  email?: string;
   source?: string;
   timestamp?: number;
 }
@@ -131,6 +132,7 @@ function LoginFormContent() {
   const redirectToParam = searchParams.get("redirect_to") || undefined;
   const modeParam = searchParams.get("mode");
   const loggedOutParam = searchParams.get("logged_out");
+  const urlEmail = searchParams.get("email") || undefined;
 
   // Vehicle context state
   const [vehicleContext, setVehicleContext] = useState<SelectedVehicleContext | null>(() => {
@@ -139,6 +141,7 @@ function LoginFormContent() {
         brand: urlBrand,
         model: urlModel,
         engine: urlEngine,
+        email: urlEmail,
         source: urlSrc || "seo_landing",
         timestamp: Date.now(),
       };
@@ -158,7 +161,7 @@ function LoginFormContent() {
   const [mode, setMode] = useState<"signup" | "signin">(initialMode);
 
   // Form states
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(urlEmail || "");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [usePassword, setUsePassword] = useState(true);
@@ -173,11 +176,15 @@ function LoginFormContent() {
 
   // SessionStorage synchronization & fallback check
   useEffect(() => {
+    if (urlEmail) {
+      setEmail(urlEmail);
+    }
     if (urlBrand && urlModel) {
       const payload: SelectedVehicleContext = {
         brand: urlBrand,
         model: urlModel,
         engine: urlEngine,
+        email: urlEmail,
         source: urlSrc || "seo_landing",
         timestamp: Date.now(),
       };
@@ -198,12 +205,15 @@ function LoginFormContent() {
               setMode("signup");
             }
           }
+          if (parsed && parsed.email && !urlEmail) {
+            setEmail(parsed.email);
+          }
         }
       } catch {
         // Silencieux
       }
     }
-  }, [urlBrand, urlModel, urlEngine, urlSrc, modeParam, loggedOutParam]);
+  }, [urlBrand, urlModel, urlEngine, urlSrc, urlEmail, modeParam, loggedOutParam]);
 
   // Compute target destination
   const targetDestination = useMemo(() => {

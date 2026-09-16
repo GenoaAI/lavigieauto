@@ -5,9 +5,11 @@ import { notFound } from 'next/navigation';
 import { getAllMaintenanceParams, getMaintenanceData } from '@/lib/maintenance/maintenance-data';
 import { MaintenanceDropzone } from '@/components/maintenance/MaintenanceDropzone';
 import { MaintenanceTable } from '@/components/maintenance/MaintenanceTable';
+import { MaintenanceEstimator } from '@/components/maintenance/MaintenanceEstimator';
 import { ReliabilityAlert } from '@/components/maintenance/ReliabilityAlert';
 import { MaintenanceFAQ } from '@/components/maintenance/MaintenanceFAQ';
 import { MaintenancePrintActions } from '@/components/maintenance/MaintenancePrintActions';
+import { MaintenanceMobileStickyBar } from '@/components/maintenance/MaintenanceMobileStickyBar';
 
 interface PageProps {
   params: Promise<{
@@ -92,8 +94,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? 'changement de courroie de distribution'
     : 'contrôle de distribution par chaîne';
 
-  const title = formatVehicleTitle(data.brand, data.model, data.engine);
-  const description = `Carnet d'entretien gratuit & PDF officiel pour ${data.brand} ${data.model} ${data.engine}. Fréquences de vidange, norme d'huile ${data.recommendedOilNorm}, ${distributionDesc}. Téléchargement immédiat du carnet d'entretien gratuit.`;
+  const title = data.metaTitle || formatVehicleTitle(data.brand, data.model, data.engine);
+  const description =
+    data.metaDescription ||
+    `Carnet d'entretien gratuit & PDF officiel pour ${data.brand} ${data.model} ${data.engine}. Fréquences de vidange, norme d'huile ${data.recommendedOilNorm}, ${distributionDesc}. Téléchargement immédiat du carnet d'entretien gratuit.`;
 
   return {
     title,
@@ -289,6 +293,9 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
             <MaintenanceDropzone brand={data.brand} engine={data.engine} model={data.model} />
           </div>
 
+          {/* Estimateur de révision & Lead Magnet 1-Clic */}
+          <MaintenanceEstimator data={data} />
+
           {/* Tableau des échéances d'entretien */}
           <section className="my-10">
             <h2 className="text-xl font-bold text-slate-900">
@@ -350,6 +357,16 @@ export default async function VehicleMaintenancePage({ params }: PageProps) {
 
         </article>
       </main>
+
+      {/* Barre d'action mobile flottante pSEO (anti-collision & conversion) */}
+      <MaintenanceMobileStickyBar
+        brand={data.brand}
+        model={data.model}
+        engine={data.engine}
+        brandSlug={data.brandSlug}
+        modelSlug={data.modelSlug}
+        engineSlug={data.engineSlug}
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { DocumentDropzone } from "@/components/scanner/DocumentDropzone";
 import { ReservationKitModal } from "@/components/vehicles/ReservationKitModal";
+import { testMobileStickyBarSuite } from "./mobile-sticky-bar.test";
 
 export async function testMobileResponsiveArchitecture() {
   console.log("▶ [TEST] Architecture Responsive & Mobile-First...");
@@ -40,4 +41,7 @@ export async function testMobileResponsiveArchitecture() {
     throw new Error("Les fiches d'action d'intervention ne comportent pas le wrapping responsive attendu.");
   }
   console.log("  ✔ Fiches d'échéances prédictives validées en disposition adaptative (flex-wrap & anti-débordement).");
+
+  // 6. Validation de la Mobile Sticky Bar pSEO (R3 / Milestone M3)
+  await testMobileStickyBarSuite();
 }

@@ -472,6 +472,101 @@ export async function testFullFunnelAttribution() {
 
     console.log("  ✔ Fichiers statiques certifiés : migration SQL idempotente et déclencheurs UI conformes.\n");
 
+    // ==========================================
+    // PARTIE 5 : LEAD MAGNET « RAPPEL RÉVISION 1-CLIC » (MILESTONE M2)
+    // ==========================================
+    console.log("▶ [TEST 5] Module Lead Magnet « Rappel Révision 1-Clic » (MaintenanceEstimator, Login & Page)...");
+
+    // 5.1 Vérification de l'architecture et des contrats de MaintenanceEstimator.tsx
+    const estimatorPath = path.join(
+      process.cwd(),
+      "src/components/maintenance/MaintenanceEstimator.tsx"
+    );
+    assert.ok(fs.existsSync(estimatorPath), "Le composant MaintenanceEstimator.tsx doit exister.");
+    const estimatorSrc = fs.readFileSync(estimatorPath, "utf-8");
+
+    assert.ok(estimatorSrc.includes('"use client"'), "MaintenanceEstimator doit être un Client Component.");
+    assert.ok(estimatorSrc.includes('id="rappel-revision"'), "MaintenanceEstimator doit définir id=\"rappel-revision\".");
+    assert.ok(estimatorSrc.includes("print:hidden"), "MaintenanceEstimator doit avoir la classe print:hidden.");
+    assert.ok(estimatorSrc.includes("recordMicroConversionAction"), "MaintenanceEstimator doit appeler recordMicroConversionAction.");
+    assert.ok(estimatorSrc.includes("lead_magnet_submit"), "MaintenanceEstimator doit enregistrer lead_magnet_submit.");
+    assert.ok(estimatorSrc.includes("M'alerter à J-30"), "MaintenanceEstimator doit afficher le bouton M'alerter à J-30.");
+    assert.ok(estimatorSrc.includes("Imprimer le carnet officiel sans email"), "MaintenanceEstimator doit proposer l'impression directe sans email.");
+    assert.ok(estimatorSrc.includes("window.print()"), "MaintenanceEstimator doit déclencher window.print().");
+    assert.ok(estimatorSrc.includes("seo_pseo"), "MaintenanceEstimator doit propager la source seo_pseo.");
+    assert.ok(estimatorSrc.includes("/login?mode=signup"), "MaintenanceEstimator doit router vers /login en mode signup.");
+    assert.ok(estimatorSrc.includes("1250"), "MaintenanceEstimator doit utiliser le calcul de temps restant (delta / 1250).");
+
+    // 5.2 Vérification du pré-remplissage email dans src/app/login/page.tsx
+    const loginSrc = fs.readFileSync(path.join(process.cwd(), "src/app/login/page.tsx"), "utf-8");
+    assert.ok(
+      loginSrc.includes('searchParams.get("email")'),
+      "src/app/login/page.tsx doit lire searchParams.get('email')."
+    );
+    assert.ok(
+      loginSrc.includes("urlEmail"),
+      "src/app/login/page.tsx doit utiliser urlEmail pour initialiser le formulaire."
+    );
+
+    // 5.3 Vérification de l'intégration dans src/app/entretien/[brand]/[model]/[engine]/page.tsx
+    const pageSrc = fs.readFileSync(
+      path.join(process.cwd(), "src/app/entretien/[brand]/[model]/[engine]/page.tsx"),
+      "utf-8"
+    );
+    assert.ok(
+      pageSrc.includes("MaintenanceEstimator"),
+      "page.tsx doit importer et monter MaintenanceEstimator."
+    );
+    const estimatorIndex = pageSrc.indexOf("<MaintenanceEstimator");
+    const tableIndex = pageSrc.indexOf("<MaintenanceTable");
+    assert.ok(
+      estimatorIndex !== -1 && tableIndex !== -1 && estimatorIndex < tableIndex,
+      "MaintenanceEstimator doit être monté au-dessus de MaintenanceTable dans page.tsx."
+    );
+
+    // 5.4 Test algorithmique unitaire du calcul de prochaine échéance avec les données réelles Dacia Jogger GPL
+    const joggerJson = JSON.parse(
+      fs.readFileSync(
+        path.join(process.cwd(), "src/data/maintenance/dacia-jogger-1-0-eco-g-100.json"),
+        "utf-8"
+      )
+    );
+    assert.ok(joggerJson.intervals && joggerJson.intervals.length > 0, "Dacia Jogger doit posséder des intervalles.");
+
+    // Simulation de l'algorithme déterministe pour 45 000 km
+    const testMileage = 45000;
+    const milestonesSet = new Set<number>();
+    joggerJson.intervals.forEach((interval: any) => {
+      const step = interval.intervalKm;
+      if (step > 0) {
+        for (let m = step; m <= 400000; m += step) {
+          milestonesSet.add(m);
+        }
+      }
+    });
+    const sortedMilestones = Array.from(milestonesSet).sort((a, b) => a - b);
+    const nextMilestoneKm = sortedMilestones.find((m: number) => m > testMileage);
+    assert.equal(nextMilestoneKm, 60000, "Pour 45 000 km sur Jogger, le prochain jalon constructeur doit être 60 000 km.");
+
+    const deltaKm = nextMilestoneKm! - testMileage;
+    assert.equal(deltaKm, 15000, "Le delta restant doit être exactement 15 000 km.");
+
+    const estimatedMonths = Math.max(1, Math.round(deltaKm / 1250));
+    assert.equal(estimatedMonths, 12, "15 000 km à raison de 1250 km/mois correspond à ~12 mois.");
+
+    const dueOps = joggerJson.intervals.filter((i: any) => nextMilestoneKm! % i.intervalKm === 0);
+    const dueOpNames = dueOps.map((o: any) => o.operation);
+    assert.ok(
+      dueOpNames.some((n: string) => n.toLowerCase().includes("vidange")),
+      "L'échéance 60 000 km doit inclure la vidange (cycle 30k)."
+    );
+    assert.ok(
+      dueOpNames.some((n: string) => n.toLowerCase().includes("gpl")),
+      "L'échéance 60 000 km doit inclure les opérations spécifiques GPL."
+    );
+
+    console.log("  ✔ Lead Magnet M2 validé : composants, contrats UI, calculs d'échéances et pré-remplissage certifiés.\n");
+
     console.log("=================================================");
     console.log("🎉 SUITE D'ATTRIBUTION FULL FUNNEL VALIDÉE AVEC SUCCÈS (100% VERT) !");
     console.log("=================================================\n");

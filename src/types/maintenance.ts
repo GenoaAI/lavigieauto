@@ -55,4 +55,7 @@ export interface VehicleMaintenanceData {
   vulnerabilities: ReliabilityVulnerability[];
   costOptimizationBundles: MaintenanceBundle[];
   faqs: FAQItem[];
+  metaTitle?: string;
+  metaDescription?: string;
+  slug?: string;
 }
