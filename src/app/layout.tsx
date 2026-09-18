@@ -5,6 +5,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { UserNavHeader } from "@/components/layout/UserNavHeader";
 import { FeedbackDrawer } from "@/components/feedback/FeedbackDrawer";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -78,6 +79,9 @@ export default function RootLayout({
 
         {/* Vercel Speed Insights */}
         <SpeedInsights />
+
+        {/* Vercel Web Analytics */}
+        <Analytics />
 
         {/* Footer */}
         <footer className="bg-slate-900 text-white py-12 border-t border-slate-800">
