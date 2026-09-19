@@ -184,16 +184,19 @@ export function calculateVehicleAirConditioningAssessment(
 
   const acKeywords = [
     'recharge clim',
+    'recharge climatisation',
     'recharge de climatisation',
+    'recharge & entretien climatisation',
+    'entretien climatisation',
+    'entretien circuit clim',
     'forfait clim',
+    'forfait recharge',
     'r134a',
     'r1234yf',
     'tirage au vide',
     'fluide frigorigene',
     'fluide frigorigène',
     'gaz clim',
-    'entretien circuit clim',
-    'forfait recharge',
   ];
 
   const sortedInvoices = [...params.invoices].sort(
@@ -205,7 +208,11 @@ export function calculateVehicleAirConditioningAssessment(
     const cat = (inv.category || '').toLowerCase();
     const isAcInvoice =
       acKeywords.some((kw) => op.includes(kw)) ||
-      (cat === 'climatisation' && (op.includes('recharge') || op.includes('gaz') || op.includes('forfait')));
+      (cat === 'climatisation' &&
+        (op.includes('recharge') || op.includes('gaz') || op.includes('forfait') || op.includes('entretien')) &&
+        !op.includes('filtre habitacle') &&
+        !op.includes('filtre a pollen') &&
+        !op.includes('filtre à pollen'));
 
     if (isAcInvoice) {
       lastRechargeDate = inv.date;

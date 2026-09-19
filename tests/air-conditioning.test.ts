@@ -154,7 +154,34 @@ export function testAirConditioningPredictiveEngine() {
   if (refreshedAssessment.lastRechargeDate !== "2026-02-15") {
     throw new Error(`Date dernière recharge incorrecte : ${refreshedAssessment.lastRechargeDate}`);
   }
-  console.log("  ✔ Prise en compte et réinitialisation par facture réelle validée.");
+
+  // Cas 4.2 : Saisie manuelle "Je l'ai fait moi-même" (DIY)
+  const diyManualAssessment = calculateVehicleAirConditioningAssessment({
+    vehicleId: "diy-car",
+    currentMileage: 85000,
+    dailyKmRate: 25,
+    registrationDate: "2019-03-01",
+    firstRegistrationYear: 2019,
+    invoices: [
+      {
+        date: "2026-06-01", // Fait il y a 14 jours
+        mileage: 84500,
+        operation: "Recharge & entretien climatisation (R1234yf)",
+        category: "climatisation",
+        emitter: "Propriétaire (Entretien DIY)",
+      },
+    ],
+    referenceDate: refDate,
+  });
+  if (diyManualAssessment.status !== "OPTIMAL" || diyManualAssessment.globalHealthScore !== 100) {
+    throw new Error(
+      `Échec réinitialisation par saisie manuelle DIY : score ${diyManualAssessment.globalHealthScore}, statut ${diyManualAssessment.status}`
+    );
+  }
+  if (diyManualAssessment.lastRechargeDate !== "2026-06-01") {
+    throw new Error(`Date DIY non reconnue : ${diyManualAssessment.lastRechargeDate}`);
+  }
+  console.log("  ✔ Prise en compte et réinitialisation par facture réelle & saisie manuelle DIY validées.");
 
   // =========================================================================
   // 5. Détection de saisonnalité estivale

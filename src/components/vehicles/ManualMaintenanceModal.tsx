@@ -42,6 +42,7 @@ export interface ManualMaintenanceModalProps {
 
 const COMMON_PRESETS = [
   { label: "Vidange huile moteur & filtre", category: "moteur" },
+  { label: "Recharge & entretien climatisation", category: "climatisation" },
   { label: "Remplacement filtre d'habitacle", category: "climatisation" },
   { label: "Remplacement filtre à air", category: "moteur" },
   { label: "Remplacement filtre à carburant", category: "moteur" },
@@ -96,7 +97,7 @@ export function ManualMaintenanceModal({
 
         if (lib.includes("vidange") || typeEch.includes("revision") || lib.includes("moteur")) {
           setCategory("moteur");
-        } else if (lib.includes("habitacle") || lib.includes("pollen") || typeEch.includes("habitacle")) {
+        } else if (lib.includes("clim") || lib.includes("habitacle") || lib.includes("pollen") || typeEch.includes("habitacle") || typeEch.includes("clim")) {
           setCategory("climatisation");
         } else if (lib.includes("frein") || typeEch.includes("frein")) {
           setCategory("freinage");

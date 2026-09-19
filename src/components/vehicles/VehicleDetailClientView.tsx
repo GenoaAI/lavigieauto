@@ -1307,6 +1307,7 @@ export function VehicleDetailClientView({
                   vehicleName={`${v.marque} ${v.modele}`}
                   licensePlate={v.immatriculation}
                   vehicleId={v.id}
+                  onLogMaintenance={handleOpenManualModal}
                 />
               )}
 
@@ -1875,6 +1876,7 @@ export function VehicleDetailClientView({
               vehicleName={`${v.marque} ${v.modele}`}
               licensePlate={v.immatriculation}
               vehicleId={v.id}
+              onLogMaintenance={handleOpenManualModal}
             />
           )}
 

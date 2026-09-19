@@ -25,6 +25,7 @@ interface AirConditioningTrackerProps {
   vehicleName: string;
   licensePlate: string;
   vehicleId?: string;
+  onLogMaintenance?: (initialMilestone?: any) => void;
 }
 
 export function AirConditioningTracker({
@@ -32,6 +33,7 @@ export function AirConditioningTracker({
   vehicleName,
   licensePlate,
   vehicleId,
+  onLogMaintenance,
 }: AirConditioningTrackerProps) {
   const [showQuoteKit, setShowQuoteKit] = useState(false);
 
@@ -91,6 +93,25 @@ export function AirConditioningTracker({
       }
       actions={
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {onLogMaintenance && (
+            <button
+              type="button"
+              onClick={() =>
+                onLogMaintenance({
+                  libelle: `Recharge & entretien climatisation (${assessment.refrigerant.type})`,
+                  type_echeance: "climatisation",
+                  pieces_recommandees: `Fluide frigorigène ${assessment.refrigerant.type}`,
+                  cout_estime_max: assessment.refrigerant.estimatedRechargeCost.minEur,
+                })
+              }
+              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95"
+              title="Indiquer que la recharge ou l'entretien a été réalisé"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">J'ai fait cet entretien</span>
+              <span className="sm:hidden">Fait moi-même</span>
+            </button>
+          )}
           <UniversalCalendarDropdown
             event={acCalendarEvent}
             buttonLabel="Rappel Agenda"
@@ -258,6 +279,41 @@ export function AirConditioningTracker({
               <span><strong>Auto-test</strong> : {assessment.diyGuide.thermalSelfTest}</span>
             </li>
           </ul>
+
+          {onLogMaintenance && (
+            <div className="pt-2 flex flex-wrap gap-2 border-t border-emerald-200/60 mt-3">
+              <button
+                type="button"
+                onClick={() =>
+                  onLogMaintenance({
+                    libelle: `Recharge & entretien climatisation (${assessment.refrigerant.type})`,
+                    type_echeance: "climatisation",
+                    pieces_recommandees: `Fluide frigorigène ${assessment.refrigerant.type}`,
+                    cout_estime_max: assessment.refrigerant.estimatedRechargeCost.minEur,
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>J'ai fait la recharge</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onLogMaintenance({
+                    libelle: "Remplacement filtre d'habitacle",
+                    type_echeance: "filtre_habitacle",
+                    pieces_recommandees: "Filtre habitacle (pollen / charbon actif)",
+                    cout_estime_max: 20,
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold transition active:scale-95 shadow-xs"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>J'ai changé le filtre</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Pourquoi aller en atelier pour le fluide */}
