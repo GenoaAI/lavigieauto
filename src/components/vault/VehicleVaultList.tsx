@@ -14,6 +14,8 @@ import {
   FileCheck,
   FolderLock,
   Search,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { VaultDocumentItem } from "@/lib/storage/vault-service";
 import { deleteVaultDocumentAction, getDocumentSignedUrlAction } from "@/app/actions/vault";
@@ -44,6 +46,7 @@ export function VehicleVaultList({
   const [previewDoc, setPreviewDoc] = useState<VaultDocumentItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -70,13 +73,31 @@ export function VehicleVaultList({
 
   const handleOpenPreview = async (doc: VaultDocumentItem) => {
     setPreviewDoc(doc);
-    if (doc.signedUrl) {
-      setPreviewUrl(doc.signedUrl);
-    } else {
-      setLoadingPreview(true);
+    setPreviewError(null);
+    setLoadingPreview(true);
+    try {
       const res = await getDocumentSignedUrlAction(doc.storagePath);
-      setPreviewUrl(res.signedUrl || null);
+      if (res.signedUrl) {
+        setPreviewUrl(res.signedUrl);
+      } else {
+        setPreviewUrl(doc.signedUrl || null);
+        if (!doc.signedUrl) {
+          setPreviewError(res.error || "Impossible de générer l'accès sécurisé à ce document.");
+        }
+      }
+    } catch (err: any) {
+      setPreviewUrl(doc.signedUrl || null);
+      if (!doc.signedUrl) {
+        setPreviewError(err?.message || "Erreur de connexion au stockage sécurisé.");
+      }
+    } finally {
       setLoadingPreview(false);
+    }
+  };
+
+  const handleRetryPreview = () => {
+    if (previewDoc) {
+      handleOpenPreview(previewDoc);
     }
   };
 
@@ -362,44 +383,58 @@ export function VehicleVaultList({
 
       {/* MODALE DE PRÉVISUALISATION DU SCAN */}
       {previewDoc && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 line-clamp-1">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 truncate">
                     {previewDoc.emitter || previewDoc.fileName}
                   </h3>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 truncate">
                     {previewDoc.dateDocument} • {previewDoc.mileageDocument ? `${previewDoc.mileageDocument.toLocaleString("fr-FR")} km` : "Relevé officiel"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {previewUrl && (
-                  <a
-                    href={previewUrl}
-                    download={previewDoc.fileName}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Ouvrir / Télécharger
-                  </a>
+                  <>
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs"
+                      title="Ouvrir en plein écran dans un nouvel onglet"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Plein écran</span>
+                      <span className="sm:hidden">Ouvrir</span>
+                    </a>
+                    <a
+                      href={previewUrl}
+                      download={previewDoc.fileName}
+                      className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition"
+                      title="Télécharger le fichier original"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Télécharger</span>
+                    </a>
+                  </>
                 )}
                 <button
                   type="button"
                   onClick={() => {
                     setPreviewDoc(null);
                     setPreviewUrl(null);
+                    setPreviewError(null);
                   }}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition ml-1"
+                  aria-label="Fermer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -407,11 +442,11 @@ export function VehicleVaultList({
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-auto p-4 bg-slate-900/5 flex items-center justify-center min-h-[500px]">
+            <div className="flex-1 overflow-auto p-3 sm:p-5 bg-slate-900/5 flex flex-col items-center justify-center min-h-[420px] sm:min-h-[520px]">
               {loadingPreview ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                  <p className="text-xs text-slate-500 font-medium">Génération de l&apos;accès sécurisé...</p>
+                <div className="flex flex-col items-center gap-3 p-8">
+                  <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-slate-600 font-semibold">Génération de l&apos;accès sécurisé...</p>
                 </div>
               ) : previewUrl ? (
                 (previewDoc.mimeType?.startsWith("image/") ||
@@ -419,19 +454,73 @@ export function VehicleVaultList({
                   <img
                     src={previewUrl}
                     alt={previewDoc.fileName}
-                    className="max-h-[70vh] max-w-full object-contain rounded-xl shadow"
+                    className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow"
                   />
                 ) : (
-                  <iframe
-                    src={previewUrl}
-                    title={previewDoc.fileName}
-                    className="w-full h-[70vh] rounded-xl border border-slate-200 bg-white shadow-xs"
-                  />
+                  <div className="w-full h-full flex flex-col items-center gap-3">
+                    {/* Bandeau d'action mobile optimisé pour la lecture directe */}
+                    <div className="w-full sm:hidden bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <FileCheck className="w-4 h-4 text-emerald-600" />
+                          Document PDF Prêt
+                        </span>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-md">
+                          Certifié
+                        </span>
+                      </div>
+                      <a
+                        href={previewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs active:scale-[0.98]"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Consulter le PDF en plein écran
+                      </a>
+                    </div>
+
+                    <iframe
+                      src={previewUrl}
+                      title={previewDoc.fileName}
+                      className="w-full h-[60vh] sm:h-[72vh] rounded-2xl border border-slate-200 bg-white shadow-xs"
+                      allow="fullscreen"
+                    />
+                  </div>
                 )
               ) : (
-                <div className="text-center p-8 space-y-2">
-                  <p className="text-sm font-bold text-slate-700">Aperçu direct non disponible</p>
-                  <p className="text-xs text-slate-500">Vous pouvez ouvrir ou télécharger le fichier pour le consulter.</p>
+                <div className="text-center p-6 sm:p-8 space-y-4 max-w-md mx-auto bg-white rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto text-amber-600">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-800">Aperçu direct indisponible</p>
+                    <p className="text-xs text-slate-500">
+                      {previewError || "Le document n'a pas pu être chargé depuis le stockage sécurisé."}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRetryPreview()}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Réessayer
+                    </button>
+                    {previewDoc?.signedUrl && (
+                      <a
+                        href={previewDoc.signedUrl}
+                        download={previewDoc.fileName}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Lien de secours
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

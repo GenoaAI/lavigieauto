@@ -5,3 +5,4 @@ export * from './conformity-score';
 export * from './garage-resolver';
 export * from './vehicle-catalog';
 export * from './brakes';
+export * from './air-conditioning';

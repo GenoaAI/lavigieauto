@@ -8,6 +8,7 @@ import { MaintenanceCategory } from "@/lib/ai";
 import { generateReservationKit, ReservationKit } from "@/lib/engine/reservation-kit";
 import { calculateVehicleTireAssessment, VehicleTireAssessment } from "@/lib/engine/tires";
 import { calculateVehicleBrakeAssessment, VehicleBrakeAssessment } from "@/lib/engine/brakes";
+import { calculateVehicleAirConditioningAssessment, VehicleAirConditioningAssessment } from "@/lib/engine/air-conditioning";
 import { fetchOnlineManufacturerPlan, OfficialMaintenancePlan } from "@/lib/engine/manufacturer-retriever";
 import { resolveRecommendedGarage, ResolveGarageResult, EnrichedGarage } from "@/lib/engine/garage-resolver";
 import { reconcileSingleOperationWithHistory } from "@/lib/engine/reconciliation";
@@ -63,6 +64,7 @@ export interface VehicleDetailsActionResult {
   reservationKit: ReservationKit;
   tires: VehicleTireAssessment;
   brakes: VehicleBrakeAssessment;
+  airConditioning?: VehicleAirConditioningAssessment;
   garageRecommendation?: ResolveGarageResult;
 }
 
@@ -294,6 +296,15 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     let mappedCat: MaintenanceCategory | null = null;
 
     if (cat.includes("moteur") || op.includes("vidange") || op.includes("huile") || op.includes("revision") || op.includes("forfait entretien")) mappedCat = "DRAIN_OIL";
+    else if (
+      op.includes("recharge clim") ||
+      op.includes("forfait clim") ||
+      op.includes("r134a") ||
+      op.includes("r1234yf") ||
+      op.includes("fluide frigorig") ||
+      op.includes("gaz clim") ||
+      (cat.includes("climatisation") && (op.includes("recharge") || op.includes("gaz") || op.includes("circuit")))
+    ) mappedCat = "AIR_CONDITIONING";
     else if (cat.includes("climatisation") || op.includes("habitacle") || op.includes("pollen")) mappedCat = "CABIN_FILTER";
     else if (op.includes("filtre a air") || op.includes("filtre à air") || op.includes("filtrante") || op.includes("filtre air")) mappedCat = "AIR_FILTER";
     else if (op.includes("carburant") || op.includes("gazole") || op.includes("essence") || op.includes("filtre gasoil")) mappedCat = "FUEL_FILTER";
@@ -525,6 +536,19 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     upcomingMilestones: milestonesForKit,
   });
 
+  const airConditioning = calculateVehicleAirConditioningAssessment({
+    vehicleId: vehicle.id,
+    currentMileage: vehicle.kilometrage_actuel || 0,
+    dailyKmRate: forecast.vehiclePace.dailyKmRate,
+    registrationDate: regDate,
+    firstRegistrationYear: vehicle.annee_mise_en_circulation || undefined,
+    make: vehicle.marque,
+    model: vehicle.modele,
+    version: vehicle.version || undefined,
+    fuel: vehicle.energie || undefined,
+    invoices: allTireOperations,
+  });
+
   const garageRecommendation = resolveRecommendedGarage({
     vehicle,
     garages: availableGarages && availableGarages.length > 0 ? availableGarages : (foyerData.garages || []),
@@ -539,6 +563,7 @@ export async function getVehicleDetailsAction(identifier: string): Promise<Vehic
     reservationKit,
     tires,
     brakes,
+    airConditioning,
     garageRecommendation,
   };
 }

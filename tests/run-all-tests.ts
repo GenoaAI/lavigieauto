@@ -43,6 +43,7 @@ import { testBrakeReplacementAlert } from "./brake-replacement-alert.test";
 import { testTireReplacementAlert } from "./tire-replacement-alert.test";
 import { testFullFunnelAttribution } from "./full-funnel-attribution.test";
 import { testGscFunnelReporting } from "./test-gsc-funnel-reporting.test";
+import { testAirConditioningPredictiveEngine } from "./air-conditioning.test";
 
 async function runAllTests() {
   console.log("=================================================");
@@ -99,6 +100,7 @@ async function runAllTests() {
     { name: "Formulation des Alertes & Échéances avec Kilométrage Cible Absolu (Pneus)", fn: testTireReplacementAlert },
     { name: "Attribution Full Funnel & Persistance des Micro-Conversions (M1)", fn: testFullFunnelAttribution },
     { name: "Reporting d'Entonnoir Full Funnel & Automatisation GSC (M2)", fn: testGscFunnelReporting },
+    { name: "Moteur Prédictif Climatisation & Confort Thermique (Gaz R134a/R1234yf & Saisonnalité)", fn: testAirConditioningPredictiveEngine },
   ];
 
 

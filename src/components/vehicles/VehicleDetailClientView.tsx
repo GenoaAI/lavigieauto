@@ -10,6 +10,7 @@ import { EditVehicleModal } from "@/components/vehicles/EditVehicleModal";
 import { CarnetExportModal } from "@/components/vehicles/CarnetExportModal";
 import { TireWearTracker } from "@/components/vehicles/TireWearTracker";
 import { BrakeWearTracker } from "@/components/vehicles/BrakeWearTracker";
+import { AirConditioningTracker } from "@/components/vehicles/AirConditioningTracker";
 import { VehicleVaultList } from "@/components/vault/VehicleVaultList";
 import {
   getVehicleDetailsAction,
@@ -1299,6 +1300,16 @@ export function VehicleDetailClientView({
                 />
               )}
 
+              {/* BILAN CLIMATISATION & CONFORT THERMIQUE */}
+              {vehicleData?.airConditioning && (
+                <AirConditioningTracker
+                  assessment={vehicleData.airConditioning}
+                  vehicleName={`${v.marque} ${v.modele}`}
+                  licensePlate={v.immatriculation}
+                  vehicleId={v.id}
+                />
+              )}
+
               {/* BILAN CONTRÔLE TECHNIQUE */}
               {(() => {
                 const ctDoc = (v.documents_sources || []).find((d: any) => d.file_type === "controle_technique");
@@ -1857,7 +1868,17 @@ export function VehicleDetailClientView({
             />
           )}
 
-          {/* 5. BILAN CONTRÔLE TECHNIQUE & SÉCURITÉ */}
+          {/* 6. BILAN CLIMATISATION & CONFORT THERMIQUE */}
+          {vehicleData?.airConditioning && (
+            <AirConditioningTracker
+              assessment={vehicleData.airConditioning}
+              vehicleName={`${v.marque} ${v.modele}`}
+              licensePlate={v.immatriculation}
+              vehicleId={v.id}
+            />
+          )}
+
+          {/* 7. BILAN CONTRÔLE TECHNIQUE & SÉCURITÉ */}
           {(() => {
             const ctDoc = (v.documents_sources || []).find((d: any) => d.file_type === "controle_technique");
             const ctData = ctDoc?.ocr_structured_data || {};
