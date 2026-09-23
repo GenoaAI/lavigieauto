@@ -43,6 +43,68 @@ export function testBrakePredictiveEngine() {
   }
   console.log('  ✔ Cas réel Renault Espace V validé (80% usure, statut urgent, remplacement combiné conseillé).');
 
+  // 2.bis Test cas réel Renault Espace V après nouvelle facture de remplacement plaquettes et disques (278 543 km)
+  const espaceReplacedAssessment = calculateVehicleBrakeAssessment({
+    vehicleId: 'espace-v-test',
+    currentMileage: 278543,
+    dailyKmRate: 45,
+    make: 'Renault',
+    model: 'Espace V',
+    transmission: 'automatique',
+    invoices: [
+      {
+        date: '2026-09-23',
+        mileage: 278543,
+        operation: 'REMPLACEMENT X2 DISQUE DE FREIN AVANT',
+        emitter: 'SARL Garage Hélière C. & S.',
+      },
+      {
+        date: '2026-09-23',
+        mileage: 278543,
+        operation: 'PLAQUETTE GARNIE FRN AV',
+        emitter: 'SARL Garage Hélière C. & S.',
+      },
+      {
+        date: '2026-09-23',
+        mileage: 278543,
+        operation: 'REMPLACEMENT PLAQUETTE DE FREIN ARRIERE',
+        emitter: 'SARL Garage Hélière C. & S.',
+      },
+      {
+        date: '2026-09-23',
+        mileage: 278543,
+        operation: 'JEU PLAQUETTE AR',
+        emitter: 'SARL Garage Hélière C. & S.',
+      },
+      {
+        date: '2026-08-18',
+        mileage: 272448,
+        operation: text1,
+        emitter: 'SARL Garage Hélière C. & S.',
+      },
+    ],
+  });
+
+  if (espaceReplacedAssessment.frontAxle.wearPercentage !== 0) {
+    throw new Error('Usure avant non réinitialisée à 0% après remplacement: ' + espaceReplacedAssessment.frontAxle.wearPercentage);
+  }
+  if (espaceReplacedAssessment.rearAxle.wearPercentage !== 0) {
+    throw new Error('Usure arrière non réinitialisée à 0% après remplacement: ' + espaceReplacedAssessment.rearAxle.wearPercentage);
+  }
+  if (espaceReplacedAssessment.frontAxle.sourceType !== 'NEW_PADS_INSTALLED') {
+    throw new Error('Source avant non reconnue comme NEW_PADS_INSTALLED: ' + espaceReplacedAssessment.frontAxle.sourceType);
+  }
+  if (espaceReplacedAssessment.rearAxle.sourceType !== 'NEW_PADS_INSTALLED') {
+    throw new Error('Source arrière non reconnue comme NEW_PADS_INSTALLED: ' + espaceReplacedAssessment.rearAxle.sourceType);
+  }
+  if (espaceReplacedAssessment.urgentActionNeeded) {
+    throw new Error('Alerte urgente toujours active après remplacement des freins');
+  }
+  if (espaceReplacedAssessment.frontAxle.discsCondition !== 'OPTIMAL') {
+    throw new Error('État des disques avant non optimal après remplacement: ' + espaceReplacedAssessment.frontAxle.discsCondition);
+  }
+  console.log('  ✔ Cas réel Renault Espace V après facture de remplacement validé (0% usure, organes neufs, alerte neutralisée).');
+
   // 3. Test cas réel Suzuki Vitara (125 789 km, CT vierge)
   const vitaraAssessment = calculateVehicleBrakeAssessment({
     vehicleId: 'vitara-test',

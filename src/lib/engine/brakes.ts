@@ -167,6 +167,17 @@ export function formatReplacementAlertMessage(options?: FormatReplacementAlertOp
   return `${prefix}Planifiez le remplacement sous ~${formattedMin} à ${formattedMax} km.`;
 }
 
+function isEventNewer(
+  eventA: { date: string; mileage: number } | null,
+  eventB: { date: string; mileage: number } | null
+): boolean {
+  if (!eventA) return false;
+  if (!eventB) return true;
+  if (eventA.mileage > eventB.mileage) return true;
+  if (eventA.mileage < eventB.mileage) return false;
+  return new Date(eventA.date).getTime() >= new Date(eventB.date).getTime();
+}
+
 /**
  * Moteur de calcul prédictif de l'état des plaquettes et disques
  */
@@ -221,24 +232,37 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
       }
     }
 
-    // Détection remplacement plaquettes
-    if (op.includes('PLAQUET') && (op.includes('REMPLACEMENT') || op.includes('POSE') || op.includes('JEU DE PLAQUETTES') || op.includes('ECHANGE'))) {
-      if (!op.includes('AR') && !latestFrontPadReplacement) {
-        latestFrontPadReplacement = { date: inv.date, mileage: inv.mileage || currentKm, emitter: inv.emitter };
-      }
-      if ((op.includes('AR') || op.includes('ARRIERE') || op.includes('4 PLAQUETTES')) && !latestRearPadReplacement) {
-        latestRearPadReplacement = { date: inv.date, mileage: inv.mileage || currentKm, emitter: inv.emitter };
-      }
-    }
-
-    // Détection remplacement disques
-    if (op.includes('DISQUE') && (op.includes('REMPLACEMENT') || op.includes('POSE') || op.includes('JEU DE DISQUES'))) {
-      if (!op.includes('AR') && !latestFrontDiscReplacement) {
+    // Détection remplacement disques (y compris kits disques, disques de frein, etc.)
+    const isDiscKeyword = op.includes('DISQUE');
+    const isDiscAction = op.includes('REMPLACEMENT') || op.includes('POSE') || op.includes('JEU DE DISQUES') ||
+      op.includes('DISQUE DE FREIN') || op.includes('DISQUES DE FREIN') || op.includes('DISQUE FRN') || op.includes('ECHANGE');
+    if (isDiscKeyword && isDiscAction) {
+      if ((!op.includes('AR') && !op.includes('ARRIERE')) && !latestFrontDiscReplacement) {
         latestFrontDiscReplacement = { date: inv.date, mileage: inv.mileage || currentKm, emitter: inv.emitter };
       }
       if ((op.includes('AR') || op.includes('ARRIERE')) && !latestRearDiscReplacement) {
         latestRearDiscReplacement = { date: inv.date, mileage: inv.mileage || currentKm, emitter: inv.emitter };
       }
+    }
+
+    // Détection remplacement plaquettes (y compris plaquettes garnies, jeux de plaquettes, etc.)
+    const isPadAction = op.includes('REMPLACEMENT') || op.includes('POSE') || op.includes('JEU DE PLAQUETTES') ||
+      op.includes('JEU PLAQUETTE') || op.includes('JEU PLAQUETTES') || op.includes('PLAQUETTE GARNIE') ||
+      op.includes('PLAQUETTES GARNIES') || op.includes('GARNIE') || op.includes('ECHANGE') ||
+      op.includes('KIT PLAQUETTES') || op.includes('KIT DE PLAQUETTES') || op.includes('FORFAIT FREIN');
+    const isPadComponent = op.includes('PLAQUET');
+
+    // Le remplacement de disques sur un train roulant s'accompagne systématiquement du remplacement des plaquettes associées
+    const isFrontPadCandidate = (isPadComponent && isPadAction && !op.includes('AR') && !op.includes('ARRIERE')) ||
+      (isDiscKeyword && isDiscAction && !op.includes('AR') && !op.includes('ARRIERE'));
+    const isRearPadCandidate = (isPadComponent && isPadAction && (op.includes('AR') || op.includes('ARRIERE') || op.includes('4 PLAQUETTES'))) ||
+      (isDiscKeyword && isDiscAction && (op.includes('AR') || op.includes('ARRIERE')));
+
+    if (isFrontPadCandidate && !latestFrontPadReplacement) {
+      latestFrontPadReplacement = { date: inv.date, mileage: inv.mileage || currentKm, emitter: inv.emitter };
+    }
+    if (isRearPadCandidate && !latestRearPadReplacement) {
+      latestRearPadReplacement = { date: inv.date, mileage: inv.mileage || currentKm, emitter: inv.emitter };
     }
   }
 
@@ -267,11 +291,21 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
   let frontSourceType: BrakeAxleState['sourceType'] = 'ESTIMATED';
   let frontWearPct = 0;
   let frontThickness = 12.0;
-  let frontLastEventDate = params.invoices[0]?.date || '2023-01-01';
-  let frontLastEventKm = params.invoices[0]?.mileage || Math.max(0, currentKm - 15000);
+  let frontLastEventDate = params.invoices?.[0]?.date || '2023-01-01';
+  let frontLastEventKm = params.invoices?.[0]?.mileage || Math.max(0, currentKm - 15000);
   let frontLastEventLabel = 'Suivi régulier (Contrôle visuel au prochain entretien)';
 
-  if (latestFrontMeasurement) {
+  const useFrontReplacement = isEventNewer(latestFrontPadReplacement, latestFrontMeasurement);
+
+  if (useFrontReplacement && latestFrontPadReplacement) {
+    frontSourceType = 'NEW_PADS_INSTALLED';
+    frontLastEventDate = latestFrontPadReplacement.date;
+    frontLastEventKm = latestFrontPadReplacement.mileage;
+    frontLastEventLabel = 'Plaquettes neuves posées (' + (latestFrontPadReplacement.emitter || 'Atelier') + ')';
+    const kmSince = Math.max(0, currentKm - frontLastEventKm);
+    frontWearPct = Math.min(100, Math.round((kmSince / frontBaseLifespan) * 100));
+    frontThickness = Math.max(2.0, Math.round((12.0 - (frontWearPct / 100) * 10.0) * 10) / 10);
+  } else if (latestFrontMeasurement) {
     frontSourceType = 'WORKSHOP_MEASUREMENT';
     frontLastEventDate = latestFrontMeasurement.date;
     frontLastEventKm = latestFrontMeasurement.mileage;
@@ -287,14 +321,6 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
       frontThickness = latestFrontMeasurement.thicknessMm;
       frontWearPct = Math.min(100, Math.max(0, Math.round(((12.0 - frontThickness) / 10.0) * 100)));
     }
-  } else if (latestFrontPadReplacement) {
-    frontSourceType = 'NEW_PADS_INSTALLED';
-    frontLastEventDate = latestFrontPadReplacement.date;
-    frontLastEventKm = latestFrontPadReplacement.mileage;
-    frontLastEventLabel = 'Plaquettes neuves posées (' + (latestFrontPadReplacement.emitter || 'Atelier') + ')';
-    const kmSince = Math.max(0, currentKm - frontLastEventKm);
-    frontWearPct = Math.min(100, Math.round((kmSince / frontBaseLifespan) * 100));
-    frontThickness = Math.max(2.0, Math.round((12.0 - (frontWearPct / 100) * 10.0) * 10) / 10);
   } else if (latestFavorableCt) {
     // Si un Contrôle Technique récent a été validé avec succès sans défaillance de freinage
     frontSourceType = 'ESTIMATED';
@@ -348,9 +374,20 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     frontRec = 'Usure normale de mi-vie. Contrôle visuel recommandé lors du prochain entretien.';
   }
 
-  // Disques AV : si les plaquettes sont changées pour la 2e fois ou si usure > 80%
-  const frontDiscsCondition: BrakeAxleState['discsCondition'] = frontWearPct >= 80 ? 'REPLACE_WITH_NEXT_PADS' : 'OPTIMAL';
-  const frontDiscsLabel = frontWearPct >= 80 ? 'Remplacement combiné conseillé (Plaquettes + Disques)' : 'Disques conformes (Cycle 1/2)';
+  // Disques AV : vérification si remplacement récent
+  const isFrontDiscNew = latestFrontDiscReplacement && (
+    latestFrontDiscReplacement.mileage >= frontLastEventKm ||
+    new Date(latestFrontDiscReplacement.date).getTime() >= new Date(frontLastEventDate).getTime()
+  );
+
+  const frontDiscsCondition: BrakeAxleState['discsCondition'] = (!isFrontDiscNew && frontWearPct >= 80)
+    ? 'REPLACE_WITH_NEXT_PADS'
+    : 'OPTIMAL';
+  const frontDiscsLabel = isFrontDiscNew
+    ? 'Disques neufs posés (' + (latestFrontDiscReplacement?.emitter || 'Atelier') + ')'
+    : frontWearPct >= 80
+    ? 'Remplacement combiné conseillé (Plaquettes + Disques)'
+    : 'Disques conformes (Cycle 1/2)';
 
   const frontAxle: BrakeAxleState = {
     axle: 'FRONT',
@@ -379,11 +416,21 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
   let rearSourceType: BrakeAxleState['sourceType'] = 'ESTIMATED';
   let rearWearPct = 0;
   let rearThickness = 10.0;
-  let rearLastEventDate = params.invoices[0]?.date || '2023-01-01';
-  let rearLastEventKm = params.invoices[0]?.mileage || Math.max(0, currentKm - 25000);
+  let rearLastEventDate = params.invoices?.[0]?.date || '2023-01-01';
+  let rearLastEventKm = params.invoices?.[0]?.mileage || Math.max(0, currentKm - 25000);
   let rearLastEventLabel = 'Suivi régulier (Contrôle visuel au prochain entretien)';
 
-  if (latestRearMeasurement) {
+  const useRearReplacement = isEventNewer(latestRearPadReplacement, latestRearMeasurement);
+
+  if (useRearReplacement && latestRearPadReplacement) {
+    rearSourceType = 'NEW_PADS_INSTALLED';
+    rearLastEventDate = latestRearPadReplacement.date;
+    rearLastEventKm = latestRearPadReplacement.mileage;
+    rearLastEventLabel = 'Plaquettes neuves posées (' + (latestRearPadReplacement.emitter || 'Atelier') + ')';
+    const kmSince = Math.max(0, currentKm - rearLastEventKm);
+    rearWearPct = Math.min(100, Math.round((kmSince / rearBaseLifespan) * 100));
+    rearThickness = Math.max(2.0, Math.round((10.0 - (rearWearPct / 100) * 8.0) * 10) / 10);
+  } else if (latestRearMeasurement) {
     rearSourceType = 'WORKSHOP_MEASUREMENT';
     rearLastEventDate = latestRearMeasurement.date;
     rearLastEventKm = latestRearMeasurement.mileage;
@@ -399,14 +446,6 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
       rearThickness = latestRearMeasurement.thicknessMm;
       rearWearPct = Math.min(100, Math.max(0, Math.round(((10.0 - rearThickness) / 8.0) * 100)));
     }
-  } else if (latestRearPadReplacement) {
-    rearSourceType = 'NEW_PADS_INSTALLED';
-    rearLastEventDate = latestRearPadReplacement.date;
-    rearLastEventKm = latestRearPadReplacement.mileage;
-    rearLastEventLabel = 'Plaquettes neuves posées (' + (latestRearPadReplacement.emitter || 'Atelier') + ')';
-    const kmSince = Math.max(0, currentKm - rearLastEventKm);
-    rearWearPct = Math.min(100, Math.round((kmSince / rearBaseLifespan) * 100));
-    rearThickness = Math.max(2.0, Math.round((10.0 - (rearWearPct / 100) * 8.0) * 10) / 10);
   } else if (latestFavorableCt) {
     rearSourceType = 'ESTIMATED';
     rearLastEventDate = latestFavorableCt.date;
@@ -447,8 +486,19 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     rearRec = 'Usure normale de mi-vie.';
   }
 
-  const rearDiscsCondition: BrakeAxleState['discsCondition'] = rearWearPct >= 80 ? 'REPLACE_WITH_NEXT_PADS' : 'OPTIMAL';
-  const rearDiscsLabel = rearWearPct >= 80 ? 'Remplacement combiné conseillé' : 'Disques arrière conformes';
+  const isRearDiscNew = latestRearDiscReplacement && (
+    latestRearDiscReplacement.mileage >= rearLastEventKm ||
+    new Date(latestRearDiscReplacement.date).getTime() >= new Date(rearLastEventDate).getTime()
+  );
+
+  const rearDiscsCondition: BrakeAxleState['discsCondition'] = (!isRearDiscNew && rearWearPct >= 80)
+    ? 'REPLACE_WITH_NEXT_PADS'
+    : 'OPTIMAL';
+  const rearDiscsLabel = isRearDiscNew
+    ? 'Disques arrière neufs posés'
+    : rearWearPct >= 80
+    ? 'Remplacement combiné conseillé'
+    : 'Disques arrière conformes';
 
   const rearAxle: BrakeAxleState = {
     axle: 'REAR',
@@ -495,6 +545,14 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
   const discsPadsMin = isHeavy ? 280 : 210;
   const discsPadsMax = isHeavy ? 440 : 330;
 
+  // Résumé d'historique intelligent
+  const historySummary = useFrontReplacement && latestFrontPadReplacement
+    ? (isFrontDiscNew ? 'Plaquettes et disques neufs posés le ' : 'Plaquettes neuves posées le ') +
+      latestFrontPadReplacement.date + ' (' + (latestFrontPadReplacement.emitter || 'Atelier') + ')'
+    : latestFrontMeasurement
+    ? 'Relevé atelier le ' + latestFrontMeasurement.date + ' (' + (latestFrontMeasurement.wearPercent || 80) + "% d'usure AV)"
+    : 'Suivi prédictif régulier';
+
   return {
     vehicleId: params.vehicleId,
     frontAxle,
@@ -505,9 +563,7 @@ export function calculateVehicleBrakeAssessment(params: BrakeCalculationParams):
     nextReplacementDate,
     nextReplacementAxle,
     replaceDiscsWithPads,
-    historySummary: latestFrontMeasurement
-      ? 'Relevé atelier le ' + latestFrontMeasurement.date + ' (' + (latestFrontMeasurement.wearPercent || 80) + "% d'usure AV)"
-      : 'Suivi prédictif régulier',
+    historySummary,
     estimatedCostRange: {
       padsOnlyTTC: { min: padsOnlyMin, max: padsOnlyMax },
       discsAndPadsTTC: { min: discsPadsMin, max: discsPadsMax },
