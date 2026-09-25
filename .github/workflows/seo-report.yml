@@ -2,9 +2,9 @@ name: Daily SEO & GEO Report (Google Search Console & Bing)
 
 on:
   schedule:
-    # Quotidien à 06:44 UTC (soit 08:44 heure de Paris en été CEST / 07:44 en hiver CET)
-    # Décalé de 6 min après EcoPulse pour éviter toute contention API ou runner
-    - cron: '44 6 * * *'
+    # Quotidien à 04:15 UTC (soit 06:15 heure de Paris en été CEST / 05:15 en hiver CET)
+    # Zone nocturne creuse (:15) pour éliminer l'engorgement des runners partagés GitHub Actions
+    - cron: '15 4 * * *'
   workflow_dispatch:
 
 permissions:
